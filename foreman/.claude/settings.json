@@ -1,0 +1,12 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "crew statusline"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(crew *)",
+      "PowerShell(crew *)"
+    ]
+  }
+}

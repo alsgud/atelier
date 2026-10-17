@@ -1,0 +1,566 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { HOME, PKG, paths, ensureHome, config, readJson, writeJson, resolveRepo, repoAlias, runDir } from '../lib/home.mjs';
+import * as cards from '../lib/card.mjs';
+import * as events from '../lib/events.mjs';
+import * as limits from '../lib/limits.mjs';
+import * as gitx from '../lib/git.mjs';
+import { tick } from '../lib/tick.mjs';
+import { run, killTree, alive, crewEnv } from '../lib/runner.mjs';
+import * as project from '../lib/project.mjs';
+import * as guard from '../lib/guard.mjs';
+
+const HELP = `crew — task cards, Ralph loops and a phone-driven foreman for Claude Code
+
+  crew init                         create ~/.crew and the foreman folder
+  crew repo add <alias> <path>      register a repo under a short name
+  crew repo list
+  crew add <repo> "<title>" --check "<cmd>" [--goal "..."] [--iterations N] [--hours H]
+           [--role R] [--phase design|contracts] [--autonomy pr|branch] [--where local|cloud]
+           [--model M] [--effort E] [--priority 1-5] [--base main] [--hold]
+  crew list [--all] [--json]        the board (done tasks hidden unless --all)
+  crew board [project]              tasks grouped by role
+
+ projects and teams (v2)
+  crew project init <alias> [--roster team|pair|game] [--trust strict|standard|loose]
+  crew project status <alias>
+  crew project role add <alias> <role> [--owns "glob,glob"] | role remove <alias> <role>
+  crew project trust <alias> strict|standard|loose
+  crew roles                        list role templates
+  crew gate <alias> <brief|spec|design|contracts> approve|skip|reopen --quote "<owner's words>" [--merge <task>]
+  crew approve <id> [--check "<cmd>"]   planned/requested → queued
+  crew close <id> "<note>"          mark a request for the lead handled (resumes tasks waiting on it)
+  crew request --to <role> "<what>" [--from <id>]   file a request card (agents: --from is automatic)
+  crew overrule <alias> "<proposal → what the owner wanted>"
+  crew verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
+  crew lead <alias>                 start the project's lead session with Remote Control
+  crew guard                        (PreToolUse hook: enforces role ownership and frozen docs)
+
+  crew show <id>                    card, recent progress, open questions, last check
+  crew digest                       phone-sized summary of everything
+  crew tick                         reconcile and start queued tasks
+  crew answer <id> "<text>"         answer the agent's question and requeue it
+  crew extend <id> [--iterations N] [--hours H]   more budget, requeue
+  crew stop <id> | resume <id> | retry <id> | cancel <id>
+  crew clean <id>                   remove a finished task's worktree (branch stays)
+  crew events [--unseen] [--mark] [--since MIN]
+  crew limits                       last known plan usage
+  crew cloud <id>                   print the prompt to start this task as a cloud session
+  crew foreman                      start the foreman session with Remote Control
+  crew statusline                   (status line command; records plan limits)
+  crew run <id>                     (internal) run the Ralph loop in the foreground
+`;
+
+const [cmd, ...rest] = process.argv.slice(2);
+const { flags, args } = parseArgs(rest);
+
+try {
+  ensureHome();
+  await main();
+} catch (err) {
+  console.error(`crew: ${err.message}`);
+  process.exit(1);
+}
+
+async function main() {
+  switch (cmd) {
+    case 'init': return init();
+    case 'repo': return repo();
+    case 'add': return add();
+    case 'list': case 'ls': return list();
+    case 'board': return board(args[0]);
+    case 'project': return projectCmd();
+    case 'roles': return console.log(project.roles().map(r => `${r.padEnd(14)} ${project.roleTemplate(r).title} — owns ${project.roleTemplate(r).owns.join(', ') || 'nothing'}`).join('\n'));
+    case 'gate': return gate();
+    case 'approve': return approve(need(0, 'id'));
+    case 'request': return request();
+    case 'overrule': return overrule(need(0, 'project'), args.slice(1).join(' '));
+    case 'verify': return verify(need(0, 'design|contracts'));
+    case 'lead': return lead(need(0, 'project'));
+    case 'guard': return guardHook();
+    case 'close': return close();
+    case 'show': return show(need(0, 'id'));
+    case 'digest': return digest();
+    case 'tick': { const r = tick(); if (r.skipped) console.log(r.skipped); else if (!r.changes.length) console.log('no changes'); return; }
+    case 'run': return run(need(0, 'id'));
+    case 'answer': return answer(need(0, 'id'), args.slice(1).join(' ') || flags.text);
+    case 'extend': return extend(need(0, 'id'));
+    case 'stop': return stop(need(0, 'id'));
+    case 'resume': case 'retry': return requeue(need(0, 'id'), cmd);
+    case 'cancel': return cancel(need(0, 'id'));
+    case 'clean': return clean(need(0, 'id'));
+    case 'events': return printEvents();
+    case 'limits': return console.log(limits.describe());
+    case 'cloud': return cloud(need(0, 'id'));
+    case 'foreman': return foreman();
+    case 'statusline': return statusline();
+    case undefined: case 'help': case '--help': case '-h': return console.log(HELP);
+    default: throw new Error(`unknown command "${cmd}"\n\n${HELP}`);
+  }
+}
+
+function init() {
+  installForeman();
+  console.log(`crew home: ${HOME}\nforeman:   ${paths.foreman}\nconfig:    ${paths.config}`);
+}
+
+function repo() {
+  const repos = readJson(paths.repos, {});
+  if (args[0] === 'add') {
+    const [, alias, p] = args;
+    if (!alias || !p) throw new Error('usage: crew repo add <alias> <path>');
+    const abs = path.resolve(p);
+    gitx.must(abs, 'rev-parse', '--git-dir');
+    repos[alias] = abs;
+    writeJson(paths.repos, repos);
+    return console.log(`${alias} → ${abs}`);
+  }
+  for (const [alias, p] of Object.entries(repos)) console.log(`${alias.padEnd(16)} ${p}`);
+}
+
+function add() {
+  const cfg = config();
+  const [repoArg, ...titleParts] = args;
+  const title = titleParts.join(' ') || flags.title;
+  if (!repoArg || !title) throw new Error('usage: crew add <repo> "<title>" --check "<cmd>" [--goal "..."]');
+  if (!flags.check) throw new Error('every task needs --check: a command that exits 0 only when the task is done');
+  const repoPath = resolveRepo(repoArg);
+  const d = cfg.defaults;
+  const base = flags.base || gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || d.base;
+  const alias = repoAlias(repoPath);
+  const p = project.tryLoad(alias);
+  const role = flags.role || '';
+  if (role) project.roleTemplate(role); // throws on an unknown role
+  if (p) {
+    const missing = project.missingGates(p, { phase: flags.phase });
+    if (missing.length) throw new Error(`${alias} needs these gates approved first: ${missing.join(', ')} (see crew project status ${alias})`);
+    if (role && !p.roster.some(r => r.role === role) && role !== 'builder') throw new Error(`${role} isn't on ${alias}'s roster. Add it: crew project role add ${alias} ${role}`);
+  }
+  // At strict trust every task waits for the owner to approve its plan.
+  const initial = flags.hold ? 'paused' : (p?.trust === 'strict' ? 'planned' : 'queued');
+  const id = cards.newId();
+  const goal = flags['goal-file'] ? fs.readFileSync(flags['goal-file'], 'utf8') : (flags.goal || title);
+  cards.save({
+    meta: {
+      id, title, status: initial,
+      project: p ? alias : '', role, phase: flags.phase || '',
+      repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || d.autonomy,
+      check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
+      model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
+      iteration: 0, created: new Date().toISOString(),
+    },
+    body: `## Goal\n\n${goal.trim()}\n`,
+  });
+  events.emit(id, 'added', title);
+  console.log(`added ${id}: ${title} [${alias}${role ? ` · ${role}` : ''}]${initial === 'planned' ? ` — planned; start it with: crew approve ${id}` : ''}`);
+  if (initial === 'queued' && (flags.where || d.where) === 'local') tick();
+}
+
+function list() {
+  const rows = cards.all().filter(c => flags.all || c.meta.status !== 'done');
+  if (flags.json) return console.log(JSON.stringify(rows.map(c => c.meta), null, 2));
+  if (!rows.length) return console.log('board is empty');
+  for (const { meta: m } of rows) {
+    const prog = m.status === 'running' || m.iteration ? ` ${m.iteration || 0}/${m.iterations}` : '';
+    const chk = m.last_check ? ` check:${m.last_check}` : '';
+    console.log(`${m.id}  ${m.status.padEnd(9)} ${repoAlias(m.repo).padEnd(12)} ${(m.role || '-').padEnd(13)} ${m.title}${prog}${chk}${m.reason ? `  — ${m.reason}` : ''}`);
+  }
+}
+
+function show(id) {
+  const card = cards.load(id);
+  const dir = runDir(id);
+  console.log(cards.serialize(card));
+  const tail = (f, n) => fs.existsSync(path.join(dir, f)) ? fs.readFileSync(path.join(dir, f), 'utf8').trim().split('\n').slice(-n).join('\n') : '(none)';
+  console.log(`--- progress (latest) ---\n${tail('PROGRESS.md', 25)}\n`);
+  console.log(`--- decisions ---\n${tail('DECISIONS.md', 15)}\n`);
+  console.log(`--- questions ---\n${tail('QUESTIONS.md', 20)}\n`);
+  console.log(`--- last check ---\n${tail('last-check.txt', 15)}`);
+}
+
+function digest() {
+  const all = cards.all();
+  const by = s => all.filter(c => c.meta.status === s);
+  const line = (m, extra = '') => `• ${m.id} ${m.title} [${repoAlias(m.repo)}]${extra}`;
+  const out = [];
+  const counts = cards.STATES.map(s => [s, by(s).length]).filter(([s, n]) => n && s !== 'done');
+  out.push(counts.length ? counts.map(([s, n]) => `${n} ${s}`).join(' · ') : 'Board is empty.');
+  const needs = by('needs-you');
+  if (needs.length) out.push('', 'Waiting on you:', ...needs.map(c => line(c.meta, ` — ${c.meta.reason}`)));
+  const planned = by('planned');
+  if (planned.length) out.push('', 'Plans awaiting approval:', ...planned.map(c => line(c.meta, ` — ${c.meta.role || 'builder'}, check \`${c.meta.check}\`, ${c.meta.iterations} it / ${c.meta.hours}h`)));
+  const requested = by('requested');
+  if (requested.length) out.push('', 'Requests for the lead:', ...requested.map(c => line(c.meta, ` — for ${c.meta.role}, from ${c.meta.requested_by || '?'}`)));
+  const review = by('review');
+  if (review.length) out.push('', 'Ready for review:', ...review.map(c => line(c.meta, c.meta.pr ? ` — ${c.meta.pr}` : ` — ${c.meta.reason}`)));
+  const running = by('running');
+  if (running.length) out.push('', 'Working:', ...running.map(c => line(c.meta, ` — ${c.meta.iteration || 0}/${c.meta.iterations}, check ${c.meta.last_check || 'not run'}${c.meta.reason ? `, ${c.meta.reason}` : ''}`)));
+  const broken = [...by('stalled'), ...by('failed')];
+  if (broken.length) out.push('', 'Stopped:', ...broken.map(c => line(c.meta, ` — ${c.meta.status}: ${c.meta.reason}`)));
+  out.push('', limits.describe());
+  console.log(out.join('\n'));
+}
+
+function answer(id, text) {
+  if (!text) throw new Error('usage: crew answer <id> "<text>"');
+  const dir = runDir(id);
+  fs.appendFileSync(path.join(dir, 'QUESTIONS.md'), `\n### ANSWER from owner (${new Date().toLocaleString()})\n${text}\n`);
+  const m = cards.load(id).meta;
+  events.emit(id, 'answered', text.slice(0, 120));
+  if (m.status === 'needs-you') {
+    const outOfBudget = /Used all|budget/.test(m.reason || '');
+    cards.update(id, {
+      status: 'queued', reason: '',
+      ...(outOfBudget ? { iterations: Number(m.iterations) + 5, hours: Number(m.hours) + 1 } : {}),
+    });
+    console.log(`answered and requeued ${id}${outOfBudget ? ' (+5 iterations, +1h)' : ''}`);
+    tick();
+  } else {
+    console.log(`answer recorded; ${id} is ${m.status}, the agent reads it next iteration`);
+  }
+}
+
+function extend(id) {
+  const m = cards.load(id).meta;
+  const iterations = Number(m.iterations) + num(flags.iterations, 5);
+  const hours = Number(m.hours) + num(flags.hours, 1);
+  const requeue = ['needs-you', 'stalled', 'failed'].includes(m.status);
+  cards.update(id, { iterations, hours, ...(requeue ? { status: 'queued', reason: '' } : {}) });
+  events.emit(id, 'extended', `${iterations} iterations, ${hours}h`);
+  console.log(`${id}: budget now ${iterations} iterations / ${hours}h${requeue ? ', requeued' : ''}`);
+  if (requeue) tick();
+}
+
+function stop(id) {
+  const m = cards.load(id).meta;
+  if (alive(m.pid)) killTree(m.pid);
+  cards.update(id, { status: 'paused', reason: 'stopped by owner', pid: '' });
+  events.emit(id, 'paused', 'stopped by owner');
+  console.log(`stopped ${id}; resume with: crew resume ${id}`);
+}
+
+function requeue(id, verb) {
+  const m = cards.load(id).meta;
+  if (m.status === 'running' && alive(m.pid)) return console.log(`${id} is already running`);
+  cards.update(id, { status: 'queued', reason: '' });
+  events.emit(id, 'queued', verb);
+  console.log(`${id} queued`);
+  tick();
+}
+
+function cancel(id) {
+  const m = cards.load(id).meta;
+  if (alive(m.pid)) killTree(m.pid);
+  cards.update(id, { status: 'failed', reason: 'cancelled by owner', pid: '' });
+  events.emit(id, 'failed', 'cancelled by owner');
+  console.log(`cancelled ${id}; its branch ${m.branch || '(none)'} is kept`);
+}
+
+function clean(id) {
+  const m = cards.load(id).meta;
+  if (!['done', 'failed', 'review'].includes(m.status)) throw new Error(`${id} is ${m.status}; only done/failed/review tasks can be cleaned`);
+  if (m.worktree && fs.existsSync(m.worktree)) gitx.must(m.repo, 'worktree', 'remove', m.worktree);
+  cards.update(id, { worktree: '' });
+  console.log(`removed worktree for ${id}; branch ${m.branch} is kept`);
+}
+
+function printEvents() {
+  const list = events.read({
+    unseen: !!flags.unseen, mark: !!flags.mark, sinceMin: flags.since && Number(flags.since),
+    project: typeof flags.project === 'string' ? flags.project : undefined, noProject: !!flags['no-project'],
+  });
+  const quietTypes = new Set(['iteration', 'paced']);
+  const shown = flags.verbose ? list : list.filter(e => !quietTypes.has(e.type));
+  if (!shown.length) return console.log('nothing new');
+  for (const e of shown) console.log(`${new Date(e.ts).toLocaleTimeString()} ${e.id} ${e.type}${e.msg ? `: ${e.msg}` : ''}`);
+}
+
+function cloud(id) {
+  const card = cards.load(id);
+  const m = card.meta;
+  const orders = fs.readFileSync(path.join(PKG, 'prompts', 'standing-orders.md'), 'utf8');
+  console.log([
+    `/goal \`${m.check}\` exits 0 and the work for "${m.title}" is committed on branch crew/${m.id} with a draft PR open. Stop after ${m.iterations * 3} turns if not reached.`,
+    '',
+    card.body,
+    '',
+    orders,
+  ].join('\n'));
+}
+
+function foreman() {
+  installForeman();
+  const args = ['--remote-control', 'Foreman', '--permission-mode', 'auto', 'Start your shift.'];
+  const child = spawn('claude', args, { cwd: paths.foreman, stdio: 'inherit' });
+  child.on('exit', code => process.exit(code ?? 0));
+}
+
+function installForeman() {
+  const src = path.join(PKG, 'foreman');
+  fs.cpSync(src, paths.foreman, { recursive: true });
+}
+
+async function statusline() {
+  let raw = '';
+  for await (const chunk of process.stdin) raw += chunk;
+  let input = null;
+  try { input = JSON.parse(raw); } catch { /* not JSON */ }
+  limits.saveFromStatusline(input);
+  const all = cards.all();
+  const n = s => all.filter(c => c.meta.status === s).length;
+  const parts = [`${n('running')} running`];
+  if (n('needs-you')) parts.push(`${n('needs-you')} need you`);
+  if (n('review')) parts.push(`${n('review')} to review`);
+  if (n('queued')) parts.push(`${n('queued')} queued`);
+  const five = input?.rate_limits?.five_hour;
+  if (five) parts.push(`5h ${Math.round(five.used_percentage)}%`);
+  console.log(`crew · ${parts.join(' · ')}`);
+}
+
+// ---------- v2: projects, gates, roles ----------
+
+function board(alias) {
+  const rows = cards.all().filter(c => (flags.all || c.meta.status !== 'done') && (!alias || c.meta.project === alias));
+  if (!rows.length) return console.log(alias ? `no open tasks in ${alias}` : 'board is empty');
+  const groups = new Map();
+  for (const c of rows) {
+    const key = `${c.meta.project || repoAlias(c.meta.repo)} · ${c.meta.role || 'builder'}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c.meta);
+  }
+  for (const [key, list] of [...groups].sort()) {
+    console.log(`\n${key}`);
+    for (const m of list) console.log(`  ${m.id}  ${m.status.padEnd(9)} ${m.title}${m.iteration ? ` ${m.iteration}/${m.iterations}` : ''}${m.reason ? `  — ${m.reason}` : ''}`);
+  }
+}
+
+function projectCmd() {
+  const [sub, alias, ...more] = args;
+  switch (sub) {
+    case 'init': {
+      if (!alias) throw new Error('usage: crew project init <alias> [--roster team|pair|game] [--trust strict]');
+      const repoPath = resolveRepo(alias);
+      const p = project.init(alias, { roster: flags.roster || 'team', trust: flags.trust || 'strict' });
+      const crewDir = path.join(repoPath, 'crew');
+      fs.mkdirSync(path.join(crewDir, 'acceptance'), { recursive: true });
+      for (const t of ['BRIEF.md', 'SPEC.md', 'PLAN.md']) {
+        const dest = path.join(crewDir, t);
+        if (!fs.existsSync(dest)) fs.copyFileSync(path.join(PKG, 'templates', t), dest);
+      }
+      console.log(`project ${alias}: roster ${p.roster.map(r => r.role).join(', ')} · trust ${p.trust}`);
+      console.log(`scaffolded ${crewDir} (BRIEF.md, SPEC.md, acceptance/)`);
+      console.log(`next: crew lead ${alias}   (then talk to "${alias} lead" in the Claude app)`);
+      return;
+    }
+    case 'status': return projectStatus(alias || need(1, 'alias'));
+    case 'role': {
+      const [, action, a, role] = args;
+      const p = project.load(a);
+      if (action === 'add') {
+        const t = project.roleTemplate(role);
+        const prev = p.roster.find(r => r.role === role);
+        const owns = typeof flags.owns === 'string' ? flags.owns.split(',').map(s => s.trim()).filter(Boolean) : (prev?.owns || t.owns);
+        const model = typeof flags.model === 'string' ? flags.model : prev?.model;
+        p.roster = p.roster.filter(r => r.role !== role).concat([{ role, owns, ...(model && { model }) }]);
+      } else if (action === 'remove') {
+        p.roster = p.roster.filter(r => r.role !== role);
+      } else throw new Error('usage: crew project role add|remove <alias> <role> [--owns "glob,glob"]');
+      project.save(p);
+      return console.log(`${a} roster: ${p.roster.map(r => `${r.role}${r.model ? ` [${r.model}]` : ''} (${r.owns.join(', ') || 'read-only'})`).join('; ')}`);
+    }
+    case 'trust': {
+      const level = more[0];
+      if (!project.TRUST.includes(level)) throw new Error(`usage: crew project trust <alias> ${project.TRUST.join('|')}`);
+      const p = project.load(alias);
+      p.trust = level;
+      project.save(p);
+      events.emit(alias, 'trust', level);
+      return console.log(`${alias} trust → ${level}`);
+    }
+    default: throw new Error('usage: crew project init|status|role|trust ...');
+  }
+}
+
+function projectStatus(alias) {
+  const p = project.load(alias);
+  const out = [`${alias} · trust ${p.trust} · next: ${project.nextPhase(p)}`, '', 'Gates:'];
+  for (const ph of project.PHASES) {
+    const g = p.gates[ph];
+    out.push(`  ${ph.padEnd(10)} ${g ? `${g.status} ${new Date(g.at).toLocaleDateString()}${g.quote ? ` — "${g.quote}"` : ''}` : 'open'}`);
+  }
+  out.push('', 'Roster:');
+  for (const r of p.roster) out.push(`  ${r.role.padEnd(14)}${r.model ? ` [${r.model}]` : ''} owns ${r.owns.join(', ') || 'nothing (read-only)'}`);
+  const tasks = project.tasks(alias);
+  const counts = cards.STATES.map(s => [s, tasks.filter(t => t.meta.status === s).length]).filter(([, n]) => n);
+  out.push('', `Tasks: ${counts.length ? counts.map(([s, n]) => `${n} ${s}`).join(' · ') : 'none yet'}`);
+  const approvals = p.approvals || 0;
+  out.push(`Track record: ${approvals} approvals, ${p.overrules.length} overrules${p.overrules.length ? ` (latest: ${p.overrules.at(-1).text})` : ''}`);
+  console.log(out.join('\n'));
+}
+
+function gate() {
+  const [alias, phase, action] = args;
+  if (!alias || !phase || !['approve', 'skip', 'reopen'].includes(action)) throw new Error('usage: crew gate <alias> <phase> approve|skip|reopen --quote "<owner\'s words>" [--merge <task>]');
+  if (typeof flags.quote !== 'string' || !flags.quote.trim()) throw new Error('--quote is required: the owner\'s own words approving this');
+  const p = project.load(alias);
+  const repoPath = resolveRepo(alias);
+  const base = gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || 'main';
+
+  if (action === 'approve') {
+    if (flags.merge) mergeTaskBranch(repoPath, base, String(flags.merge), phase);
+    const must = { brief: ['crew/BRIEF.md'], spec: ['crew/SPEC.md'], design: ['crew/DESIGN.md'], contracts: ['crew/contracts/README.md'] }[phase] || [];
+    const missing = must.filter(f => !gitx.git(repoPath, 'cat-file', '-e', `${base}:${f}`).ok);
+    if (missing.length) throw new Error(`can't approve ${phase}: ${missing.join(', ')} isn't committed on ${base} yet${['design', 'contracts'].includes(phase) ? ' (merge the task\'s PR, or pass --merge <task> for a local branch)' : ''}`);
+    p.approvals = (p.approvals || 0) + 1;
+  }
+  project.setGate(p, phase, action === 'approve' ? 'approved' : action === 'skip' ? 'skipped' : 'reopen', flags.quote);
+  events.emit(alias, 'gate', `${phase} ${action === 'reopen' ? 'reopened' : action === 'skip' ? 'skipped' : 'approved'}: "${flags.quote}"`);
+  console.log(`${alias}: ${phase} ${{ approve: 'approved', skip: 'skipped', reopen: 'reopened' }[action]} · next: ${project.nextPhase(project.load(alias))}`);
+}
+
+function mergeTaskBranch(repoPath, base, id, phase) {
+  const m = cards.load(id).meta;
+  if (!m.branch) throw new Error(`${id} has no branch`);
+  const current = gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out;
+  if (current !== base) throw new Error(`main checkout is on ${current}, not ${base}; switch it before merging`);
+  if (gitx.git(repoPath, 'status', '--porcelain', '--untracked-files=no').out) throw new Error(`main checkout has uncommitted changes; commit or stash them before merging ${m.branch}`);
+  gitx.must(repoPath, 'merge', '--no-ff', m.branch, '-m', `crew: merge ${id} (${phase} approved)`);
+  console.log(`merged ${m.branch} into ${base}`);
+}
+
+function approve(id) {
+  const m = cards.load(id).meta;
+  if (!['planned', 'requested'].includes(m.status)) throw new Error(`${id} is ${m.status}; only planned or requested tasks need approval`);
+  if (m.role === 'lead') throw new Error(`${id} is a request for the lead: handle it yourself, then close it with: crew close ${id} "<what you did>"`);
+  const patch = { status: 'queued', reason: '' };
+  if (typeof flags.check === 'string') patch.check = flags.check;
+  if (!m.check && !patch.check) throw new Error(`${id} has no done-check yet; approve it with --check "<cmd>"`);
+  cards.update(id, patch);
+  if (m.project) { const p = project.load(m.project); p.approvals = (p.approvals || 0) + 1; project.save(p); }
+  events.emit(id, 'approved', m.title);
+  console.log(`${id} approved and queued`);
+  tick();
+}
+
+function request() {
+  const to = flags.to;
+  const text = args.join(' ') || flags.text;
+  if (typeof to !== 'string' || !text) throw new Error('usage: crew request --to <role> "<what you need, why, and what done looks like>"');
+  const fromId = typeof flags.from === 'string' ? flags.from : process.env.CREW_TASK;
+  const from = fromId ? cards.load(fromId).meta : null;
+  const alias = from?.project || (typeof flags.project === 'string' ? flags.project : '');
+  if (!alias) throw new Error('can\'t tell which project this is for; pass --from <task> or --project <alias>');
+  const p = project.load(alias);
+  if (to !== 'lead' && !p.roster.some(r => r.role === to)) throw new Error(`${to} isn't on ${alias}'s roster (${p.roster.map(r => r.role).join(', ')}, or lead)`);
+  const repoPath = resolveRepo(alias);
+  const d = config().defaults;
+  const id = cards.newId();
+  cards.save({
+    meta: {
+      id, title: `Request: ${text.slice(0, 70)}${text.length > 70 ? '…' : ''}`, status: 'requested',
+      project: alias, role: to, requested_by: fromId || '', repo: repoPath,
+      base: from?.base || gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || d.base,
+      where: 'local', autonomy: d.autonomy, check: '', iterations: 6, hours: 2, priority: 2, iteration: 0,
+      created: new Date().toISOString(),
+    },
+    body: `## Goal\n\n${text}\n\nRequested by ${fromId ? `task ${fromId} (${from.role || 'builder'}: ${from.title})` : 'the owner'}.\n`,
+  });
+  events.emit(id, 'requested', `${from?.role || 'owner'} → ${to}: ${text.slice(0, 100)}`);
+  console.log(`filed request ${id} for ${to}. Keep working on anything that doesn't depend on it.`);
+}
+
+function close() {
+  const id = need(0, 'id');
+  const note = args.slice(1).join(' ');
+  cards.update(id, { status: 'done', reason: note || 'closed by lead' });
+  events.emit(id, 'done', note || 'closed by lead');
+  console.log(`${id} closed`);
+  tick();
+}
+
+function overrule(alias, text) {
+  if (!text) throw new Error('usage: crew overrule <alias> "<what you proposed> → <what the owner wanted>"');
+  const p = project.load(alias);
+  p.overrules.push({ at: new Date().toISOString(), text });
+  project.save(p);
+  events.emit(alias, 'overrule', text);
+  console.log(`logged overrule #${p.overrules.length} for ${alias}`);
+}
+
+function verify(kind) {
+  const root = typeof flags.dir === 'string' ? flags.dir : process.cwd();
+  const problems = [];
+  if (kind === 'design') {
+    const doc = path.join(root, 'crew', 'DESIGN.md');
+    if (!fs.existsSync(doc)) problems.push('crew/DESIGN.md is missing');
+    else {
+      const text = fs.readFileSync(doc, 'utf8');
+      for (const s of ['Flows', 'Visual system', 'Screens', 'States', 'Responsive', 'Accessibility', 'Copy']) {
+        if (!new RegExp(`^##\\s+${s}\\b`, 'im').test(text)) problems.push(`crew/DESIGN.md has no "## ${s}" section`);
+      }
+    }
+    const screens = listFiles(path.join(root, 'crew', 'design')).filter(f => f.endsWith('.html'));
+    if (!screens.length) problems.push('crew/design/ has no HTML screens or wireframes');
+  } else if (kind === 'contracts') {
+    if (!fs.existsSync(path.join(root, 'crew', 'contracts', 'README.md'))) problems.push('crew/contracts/README.md (the index) is missing');
+    if (listFiles(path.join(root, 'crew', 'contracts')).length < 2) problems.push('crew/contracts/ needs at least one contract file besides README.md');
+  } else throw new Error('usage: crew verify design|contracts');
+  if (problems.length) { console.log(problems.map(p => `✗ ${p}`).join('\n')); process.exit(1); }
+  console.log(`✓ ${kind} looks complete`);
+}
+
+function listFiles(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { recursive: true, withFileTypes: true }).filter(e => e.isFile()).map(e => path.join(e.parentPath ?? e.path, e.name));
+}
+
+function lead(alias) {
+  project.load(alias);
+  const repoPath = resolveRepo(alias);
+  const promptFile = path.join(project.PROJECTS, `${alias}.lead.md`);
+  const tpl = fs.readFileSync(path.join(PKG, 'roles', 'lead.md'), 'utf8').replace(/^---[\s\S]*?---\r?\n/, '');
+  fs.writeFileSync(promptFile, tpl.replaceAll('{{alias}}', alias));
+  const settings = {
+    ...guard.hookSettings(),
+    statusLine: { type: 'command', command: 'crew statusline' },
+    permissions: { allow: ['Bash(crew *)', 'PowerShell(crew *)', 'Bash(git add crew*)', 'Bash(git commit *)'] },
+  };
+  const claudeArgs = ['--remote-control', `${alias} lead`, '--permission-mode', 'auto',
+    '--append-system-prompt-file', promptFile, '--settings', JSON.stringify(settings), 'Start your shift.'];
+  const child = spawn('claude', claudeArgs, { cwd: repoPath, stdio: 'inherit', env: crewEnv({ role: 'lead', project: alias }, '', repoPath) });
+  child.on('exit', code => process.exit(code ?? 0));
+}
+
+async function guardHook() {
+  let raw = '';
+  for await (const chunk of process.stdin) raw += chunk;
+  let input;
+  try { input = JSON.parse(raw); } catch { return; }
+  const reason = guard.check(input);
+  if (reason) { process.stderr.write(reason + '\n'); process.exit(2); }
+}
+
+function parseArgs(list) {
+  const flags = {}, args = [];
+  for (let i = 0; i < list.length; i++) {
+    const a = list[i];
+    if (a.startsWith('--')) {
+      const key = a.slice(2);
+      const next = list[i + 1];
+      if (next === undefined || next.startsWith('--')) flags[key] = true;
+      else { flags[key] = next; i++; }
+    } else args.push(a);
+  }
+  return { flags, args };
+}
+
+function need(i, name) {
+  if (!args[i]) throw new Error(`missing <${name}>`);
+  return args[i];
+}
+
+function num(v, fallback) {
+  return v === undefined || v === true ? fallback : Number(v);
+}
