@@ -291,7 +291,21 @@ function cloud(id) {
   ].join('\n'));
 }
 
+// Lead and foreman are interactive sessions: without a real terminal (launched in the background,
+// or from another tool) claude answers its first prompt and exits. Reopen in a console window.
+function needsTerminal(args, title) {
+  if (process.stdin.isTTY) return false;
+  if (process.platform !== 'win32') throw new Error(`crew ${args.join(' ')} needs an interactive terminal; run it in a terminal window`);
+  if (!args.every(a => /^[\w-]+$/.test(a))) throw new Error('unexpected characters in arguments');
+  spawn('cmd.exe', ['/c', `start "${title}" cmd /k crew ${args.join(' ')}`], {
+    detached: true, stdio: 'ignore', windowsVerbatimArguments: true,
+  }).unref();
+  console.log(`opened "${title}" in a new terminal window. Keep it open while you use it from the Claude app.`);
+  return true;
+}
+
 function foreman() {
+  if (needsTerminal(['foreman'], 'Foreman')) return;
   installForeman();
   const args = ['--remote-control', 'Foreman', '--permission-mode', 'auto', 'Start your shift.'];
   const child = spawn('claude', args, { cwd: paths.foreman, stdio: 'inherit' });
@@ -529,6 +543,7 @@ function listFiles(dir) {
 
 function lead(alias) {
   project.load(alias);
+  if (needsTerminal(['lead', alias], `${alias} lead`)) return;
   const repoPath = resolveRepo(alias);
   const promptFile = path.join(project.PROJECTS, `${alias}.lead.md`);
   const tpl = fs.readFileSync(path.join(PKG, 'roles', 'lead.md'), 'utf8').replace(/^---[\s\S]*?---\r?\n/, '');
