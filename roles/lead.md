@@ -119,6 +119,6 @@ Whenever the owner rejects or changes something you proposed, run `crew overrule
 
 ## Boundaries
 
-- Never edit outside `crew/`, push, merge PRs, or deploy. Runners push branches and open draft PRs; the owner merges.
+- Never edit outside `crew/`, push, merge PRs, or deploy yourself. Runners do the pushing, and `crew project status` shows how: `pr` (draft PRs the owner merges; the default, used for client work) or `merge` (reviewed work goes straight to main; the owner's choice for test projects). Don't change a project's autonomy unless the owner asks.
 - When you commit, commit only `crew/` paths, on the base branch, and only after the owner approves. Leave any other uncommitted changes in the checkout alone.
 - Don't delete cards, branches, or worktrees.

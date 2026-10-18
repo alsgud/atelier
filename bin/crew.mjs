@@ -28,6 +28,7 @@ const HELP = `crew — task cards, Ralph loops and a phone-driven foreman for Cl
   crew project status <alias>
   crew project role add <alias> <role> [--owns "glob,glob"] | role remove <alias> <role>
   crew project trust <alias> strict|standard|loose
+  crew project autonomy <alias> pr|merge|branch   pr (default): draft PRs · merge: push reviewed work to main
   crew roles                        list role templates
   crew gate <alias> <brief|spec|design|contracts> approve|skip|reopen --quote "<owner's words>" [--merge <task>]
   crew approve <id> [--check "<cmd>"]   planned/requested → queued
@@ -146,7 +147,7 @@ function add() {
     meta: {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
-      repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || d.autonomy,
+      repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
       model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
       iteration: 0, created: new Date().toISOString(),
@@ -370,6 +371,16 @@ function projectCmd() {
       project.save(p);
       return console.log(`${a} roster: ${p.roster.map(r => `${r.role}${r.model ? ` [${r.model}]` : ''} (${r.owns.join(', ') || 'read-only'})`).join('; ')}`);
     }
+    case 'autonomy': {
+      const mode = more[0];
+      if (!['pr', 'merge', 'branch'].includes(mode)) throw new Error('usage: crew project autonomy <alias> pr|merge|branch   (pr = draft PRs, the default for client work; merge = push reviewed work straight to main)');
+      const p = project.load(alias);
+      if (mode === 'merge' && !project.hasReviewer(p)) throw new Error(`merge mode pushes reviewed work to main, so ${alias} needs a reviewer on its roster first: crew project role add ${alias} reviewer`);
+      p.autonomy = mode;
+      project.save(p);
+      events.emit(alias, 'autonomy', mode);
+      return console.log(`${alias} autonomy → ${mode}${mode === 'merge' ? ' (reviewed work is merged into main and pushed, no PR)' : ''}`);
+    }
     case 'trust': {
       const level = more[0];
       if (!project.TRUST.includes(level)) throw new Error(`usage: crew project trust <alias> ${project.TRUST.join('|')}`);
@@ -385,7 +396,7 @@ function projectCmd() {
 
 function projectStatus(alias) {
   const p = project.load(alias);
-  const out = [`${alias} · trust ${p.trust} · next: ${project.nextPhase(p)}`, '', 'Gates:'];
+  const out = [`${alias} · trust ${p.trust} · autonomy ${p.autonomy || 'pr'} · next: ${project.nextPhase(p)}`, '', 'Gates:'];
   for (const ph of project.PHASES) {
     const g = p.gates[ph];
     out.push(`  ${ph.padEnd(10)} ${g ? `${g.status} ${new Date(g.at).toLocaleDateString()}${g.quote ? ` — "${g.quote}"` : ''}` : 'open'}`);
