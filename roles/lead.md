@@ -66,14 +66,20 @@ At the start of every shift, start a Monitor on `atelier watch {{alias}}`. It pr
    - **Team checks**: every technical, testable detail behind those outcomes and the requirements (performance budgets, file safety, formats, edge cases). Add them as `test` or `property` criteria with an executable check under `atelier/acceptance/`. They default to team level and are approved by you, so don't send them to the owner. Each one's `--serves` names the owner outcome or requirement it protects.
    - For the most important checks, write **holdout tests** that specialists never see: draft them under `atelier/holdout-draft/`, then run `atelier holdout {{alias}} set atelier/holdout-draft --command "<cmd that runs them under .atelier-holdout/>"`. That moves them out of the repo.
    - Then request the spec gate.
-3. **Design.** Run a designer task (`--phase design --check "atelier verify design"`), show the owner the result, and request the gate.
-4. **Contracts.** Run a backend or systems task (`--phase contracts --check "atelier verify contracts"`), walk the owner through it, and request the gate. After this, the contracts change only by your ruling on a contract-change request.
+3. **Design and contracts, in parallel.** Start both as soon as the spec is approved. Design: run a designer task (`--phase design --check "atelier verify design"`), show the owner the result, and request the gate.
+4. **Contracts** (alongside design): run a backend or systems task (`--phase contracts --check "atelier verify contracts"`) and request the gate. If the owner delegated contracts, that approves it, and backend build tasks can start straight away. After this, the contracts change only by your ruling on a contract-change request.
 5. **Build and integrate.**
 
 ## Staffing and tasks
 
-Splitting work only pays where the parts are independent and an interface between them is frozen. Otherwise parallel agents make conflicting assumptions, and integration eats the gains.
+Splitting work only pays where the parts are independent and an interface between them is frozen. Otherwise parallel agents make conflicting assumptions, and integration eats the gains. Within that rule, **keep the whole team busy**: the owner expects specialists working side by side, not one phase at a time.
 
+- **What can run together once the spec is approved:**
+  - design (designer) alongside contracts (backend or systems);
+  - backend and systems build tasks as soon as the contracts are settled, still in parallel with design;
+  - frontend, gameplay and builder tasks once both design and contracts are settled.
+  Atelier enforces these dependencies; if `atelier add` refuses a task, the error names the gate it's waiting on.
+- **Don't wait for a phase you could overlap.** As soon as the spec is approved, start the design and contracts tasks together. When the contracts are settled, start the backend work immediately, without waiting for the design gate.
 - **One writer per piece of work by default.** Add a second concurrent writer only when the two tasks' files don't overlap (`--files`) and their criteria can tell their failures apart. Reviews, designer specs and research can run in parallel freely.
 - **Existing codebases and dynamically typed code** are reasons to split less and keep tasks smaller.
 - **Size each task** to finish and verify in roughly 3–10 iterations.

@@ -161,7 +161,7 @@ function add() {
   const role = flags.role || '';
   if (role) project.roleTemplate(role); // throws on an unknown role
   if (p) {
-    const missing = project.missingGates(p, { phase: flags.phase });
+    const missing = project.missingGates(p, { phase: flags.phase, role });
     if (missing.length) throw new Error(`${alias} needs these gates approved first: ${missing.join(', ')} (see atelier project status ${alias})`);
     if (role && !p.roster.some(r => r.role === role) && role !== 'builder') throw new Error(`${role} isn't on ${alias}'s roster. Add it: atelier project role add ${alias} ${role}`);
     // Once a project has criteria, every build task must cite the approved criteria it satisfies.
@@ -633,6 +633,12 @@ function criteriaCmd() {
   if (action === 'request') {
     events.emit(alias, 'criteria-request', `please review drafts: ${decisions.loadCriteria(alias).criteria.filter(c => c.status === 'draft').map(c => c.id).join(', ')}`);
     return console.log('asked the owner to review draft criteria');
+  }
+  // Team checks are the lead's own: it may retire one (say, superseded by a newer check) without the owner.
+  if (action === 'retire' && decisions.levelOf(decisions.findCriterion(decisions.loadCriteria(alias), id)) === 'team') {
+    decisions.setStatus(alias, id, 'retired', 'lead', typeof flags.note === 'string' ? flags.note : '');
+    events.emit(alias, 'criterion-retire', `${id} (team check, retired by the lead)`);
+    return console.log(`${id} retired`);
   }
   if (['approve', 'retire', 'accept', 'reject'].includes(action)) {
     owner.criterion(alias, id, action, typeof flags.note === 'string' ? flags.note : '');
