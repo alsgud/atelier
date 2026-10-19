@@ -37,7 +37,12 @@ atelier open
 
 This opens the dashboard in your browser and starts it if needed. Everything waiting on you is on the home page and behind the bell, each item with its one-tap action. Start a project's lead from its Overview tab, then talk to it in the Claude app (Code → "<project> lead").
 
-**On your phone:** run `atelier open --lan` and open the address it prints while you're on the same Wi-Fi. Enter the access token once. To reach it away from home, install Tailscale on the PC and your phone and use the PC's Tailscale address.
+**On your phone, anywhere (Wi-Fi or mobile data):** the dashboard reaches your phone through [Tailscale](https://tailscale.com), a private link between your own devices. Nothing is put on the public internet.
+
+1. Install Tailscale on the PC (tailscale.com/download) and on your phone (App Store / Play Store), and sign in to both with the same account. The free personal plan is enough.
+2. Run `atelier open`. When Tailscale is connected it prints a line like `on your phone, anywhere (Tailscale on): http://100.x.y.z:4747`. The dashboard listens only on this PC and on that address. If you started Tailscale after the dashboard, give it up to 30 seconds.
+
+If Windows asks whether Node.js may use the network, allow it. Use `--no-tailscale` to keep the dashboard on this PC only. To use it from the home Wi-Fi without Tailscale, run `atelier open --lan`, which opens it to every device on the home network.
 
 ## Starting a project
 
@@ -54,7 +59,7 @@ The lead interviews you (or listens to a ramble), drafts your charter and brief,
 
 | | |
 |---|---|
-| `atelier open [--lan]` | the dashboard |
+| `atelier open [--lan] [--no-tailscale]` | the dashboard |
 | `atelier project status <alias>` | everything about a project in one screen |
 | `atelier board <alias>` | tasks grouped by role |
 | `atelier audit <alias>` | run the auditor now |

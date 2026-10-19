@@ -59,7 +59,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier cloud <id>                   print the prompt to start this task as a cloud session
   atelier open                         open the dashboard (starts it if needed)
   atelier new <name> [--roster team|pair|game] [--ship merge|pr] [--no-github]   create a project from scratch
-  atelier dashboard [--lan] [--port N] run the dashboard server (--lan: reachable from your phone on Wi-Fi)
+  atelier dashboard [--lan] [--port N] run the dashboard server (also on Tailscale when connected; --lan: whole home Wi-Fi)
   atelier foreman                      start the foreman session with Remote Control
   atelier statusline                   (status line command; records plan limits)
   atelier run <id>                     (internal) run the Ralph loop in the foreground
@@ -593,7 +593,7 @@ function messagesCmd() {
 
 async function dashboardCmd() {
   const { serve } = await import('../lib/dashboard.mjs');
-  serve({ port: Number(flags.port) || 4747, lan: !!flags.lan });
+  serve({ port: Number(flags.port) || 4747, lan: !!flags.lan, tailscale: !flags['no-tailscale'] });
 }
 
 // Starts the dashboard in the background if it isn't running, then opens it in the browser.
@@ -601,13 +601,15 @@ async function openCmd() {
   const port = Number(flags.port) || 4747;
   const up = await fetch(`http://127.0.0.1:${port}/`).then(() => true, () => false);
   if (!up) {
-    const args = ['dashboard', '--port', String(port), ...(flags.lan ? ['--lan'] : [])];
+    const args = ['dashboard', '--port', String(port), ...(flags.lan ? ['--lan'] : []), ...(flags['no-tailscale'] ? ['--no-tailscale'] : [])];
     const out = fs.openSync(path.join(HOME, 'dashboard.log'), 'a');
     spawn(process.execPath, [path.join(PKG, 'bin', 'atelier.mjs'), ...args], { detached: true, stdio: ['ignore', out, out], windowsHide: true }).unref();
     for (let i = 0; i < 30 && !(await fetch(`http://127.0.0.1:${port}/`).then(() => true, () => false)); i++) await new Promise(r => setTimeout(r, 200));
   }
-  const { token } = await import('../lib/dashboard.mjs');
+  const { token, tailscaleAddress } = await import('../lib/dashboard.mjs');
   console.log(`Atelier dashboard: http://localhost:${port}\naccess token (enter once per device): ${token()}`);
+  const ts = !flags.lan && !flags['no-tailscale'] && tailscaleAddress();
+  if (ts) console.log(`on your phone, anywhere (Tailscale on): http://${ts}:${port}`);
   if (process.platform === 'win32') spawn('cmd', ['/c', 'start', '', `http://localhost:${port}`], { detached: true, stdio: 'ignore' }).unref();
 }
 
