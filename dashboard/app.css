@@ -237,3 +237,4 @@ pre.raw { font: 12px/1.55 var(--mono); background: var(--hover); padding: 10px 1
 }
 .ev-k { font-weight: 500; color: var(--fg); }
 .timeline li > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
+select { max-width: 100%; }

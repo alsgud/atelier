@@ -41,6 +41,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier request --to <role> "<what>" [--from <id>]   file a request card (agents: --from is automatic)
   atelier overrule <alias> "<proposal → what the owner wanted>"
   atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
+  atelier watch <alias>             stream owner decisions and task changes (the lead runs this under Monitor)
   atelier lead <alias>                 start the project's lead session with Remote Control
   atelier guard                        (PreToolUse hook: enforces role ownership and frozen docs)
 
@@ -86,6 +87,7 @@ async function main() {
     case 'gate': return gate();
     case 'approve': return approve(need(0, 'id'));
     case 'charter': return charterCmd();
+    case 'watch': return watchCmd();
     case 'msg': return msgCmd();
     case 'messages': return messagesCmd();
     case 'audit': return auditCmd();
@@ -447,7 +449,12 @@ function gate() {
   const p = project.load(alias);
   if (action === 'request') {
     // The lead asks; the owner decides (dashboard or their own terminal).
-    if (typeof flags.summary !== 'string' || !flags.summary.trim()) throw new Error('--summary is required: what the owner is approving, in a few lines');
+    if (typeof flags.summary !== 'string' || !flags.summary.trim()) throw new Error('--summary is required: what the owner is approving, in a few plain lines');
+    // Phases the owner delegated are approved by the lead at once, on the record; the auditor still runs.
+    if (!project.dials(p).ownerGates.includes(phase)) {
+      const next = owner.approveGateDelegated(alias, phase, flags.summary);
+      return console.log(`${alias}: ${phase} approved by you as lead (the owner delegated this phase). Next: ${next}. Carry on.`);
+    }
     p.gates[phase] = { status: 'requested', summary: flags.summary, at: new Date().toISOString() };
     project.save(p);
     events.emit(alias, 'gate-request', `${phase}: ${flags.summary.slice(0, 160)}`);
@@ -557,6 +564,38 @@ async function openCmd() {
   if (process.platform === 'win32') spawn('cmd', ['/c', 'start', '', `http://localhost:${port}`], { detached: true, stdio: 'ignore' }).unref();
 }
 
+// Streams one line per event the lead should act on now: the owner's decisions in the dashboard and
+// tasks that changed state. The lead runs it under its Monitor tool, so each line wakes it immediately
+// instead of at the next heartbeat.
+async function watchCmd() {
+  const [alias] = args;
+  project.load(alias);
+  const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted']);
+  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit']);
+  const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
+  let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
+  console.log(`watching ${alias}: owner decisions and task changes will appear here`);
+  for (;;) {
+    await new Promise(r => setTimeout(r, 2000));
+    if (!fs.existsSync(paths.events)) continue;
+    const size = fs.statSync(paths.events).size;
+    if (size <= offset) { offset = Math.min(offset, size); continue; }
+    const fd = fs.openSync(paths.events, 'r');
+    const buf = Buffer.alloc(size - offset);
+    fs.readSync(fd, buf, 0, buf.length, offset);
+    fs.closeSync(fd);
+    offset = size;
+    for (const line of buf.toString('utf8').split('\n').filter(Boolean)) {
+      let e; try { e = JSON.parse(line); } catch { continue; }
+      if (!mine(e.id)) continue;
+      // Approvals of task plans come from the owner; approvals of request cards come from the lead itself.
+      if (e.type === 'approved' && !/by owner/.test(e.msg)) continue;
+      if (OWNER.has(e.type)) console.log(`OWNER DECIDED · ${e.type} · ${e.id} · ${e.msg}`);
+      else if (TEAM.has(e.type)) console.log(`TEAM · ${e.type} · ${e.id} · ${e.msg}`);
+    }
+  }
+}
+
 function charterCmd() {
   const [alias, action] = args;
   if (action === 'approve') {
@@ -578,13 +617,18 @@ function criteriaCmd() {
     const data = decisions.loadCriteria(alias);
     if (flags.json) return console.log(JSON.stringify(data, null, 2));
     if (!data.criteria.length) return console.log('no criteria yet');
-    for (const c of data.criteria) console.log(`${c.id.padEnd(6)} ${c.status.padEnd(14)} ${c.kind.padEnd(8)} ${c.statement}  [serves ${c.serves}]`);
+    for (const lvl of decisions.LEVELS) {
+      const list = data.criteria.filter(c => decisions.levelOf(c) === lvl);
+      if (!list.length) continue;
+      console.log(lvl === 'owner' ? "Owner outcomes (the owner's to approve):" : 'Team checks (the lead approves these):');
+      for (const c of list) console.log(`  ${c.id.padEnd(6)} ${c.status.padEnd(14)} ${c.kind.padEnd(8)} ${c.statement}  [serves ${c.serves}]`);
+    }
     return;
   }
   if (action === 'add') {
-    const c = decisions.addCriterion(alias, { statement: args.slice(2).join(' ') || flags.statement, kind: flags.kind || 'test', verify: typeof flags.verify === 'string' ? flags.verify : '', serves: typeof flags.serves === 'string' ? flags.serves : '' });
-    events.emit(alias, 'criterion-draft', `${c.id}: ${c.statement}`);
-    return console.log(`added ${c.id} (draft; the owner approves it in the dashboard)`);
+    const c = decisions.addCriterion(alias, { statement: args.slice(2).join(' ') || flags.statement, kind: flags.kind || 'test', verify: typeof flags.verify === 'string' ? flags.verify : '', serves: typeof flags.serves === 'string' ? flags.serves : '', level: typeof flags.level === 'string' ? flags.level : undefined });
+    events.emit(alias, c.level === 'team' ? 'criterion-team' : 'criterion-draft', `${c.id}: ${c.statement}`);
+    return console.log(c.level === 'team' ? `added team check ${c.id} (approved by you as lead; no owner approval needed)` : `added owner outcome ${c.id} (draft; the owner approves it in the dashboard)`);
   }
   if (action === 'request') {
     events.emit(alias, 'criteria-request', `please review drafts: ${decisions.loadCriteria(alias).criteria.filter(c => c.status === 'draft').map(c => c.id).join(', ')}`);
@@ -594,7 +638,7 @@ function criteriaCmd() {
     owner.criterion(alias, id, action, typeof flags.note === 'string' ? flags.note : '');
     return console.log(`${id} ${action}d`);
   }
-  throw new Error('usage: atelier criteria <alias> list | add "<statement>" --kind test|property|review|owner --verify "<cmd>" --serves "<charter/R#/ruling>" | request | approve|retire|accept|reject <AC-n> (owner)');
+  throw new Error('usage: atelier criteria <alias> list | add "<statement>" --kind test|property|review|owner [--level team|owner] --verify "<cmd>" --serves "<charter/R#/ruling>" | request | approve|retire|accept|reject <AC-n> (owner)');
 }
 
 function rulingCmd() {
@@ -691,8 +735,11 @@ function lead(alias) {
   if (needsTerminal(['lead', alias], `${alias} lead`)) return;
   const repoPath = resolveRepo(alias);
   const promptFile = path.join(project.PROJECTS, `${alias}.lead.md`);
-  const tpl = fs.readFileSync(path.join(PKG, 'roles', 'lead.md'), 'utf8').replace(/^---[\s\S]*?---\r?\n/, '');
-  fs.writeFileSync(promptFile, tpl.replaceAll('{{alias}}', alias));
+  // Rewritten at every (re)launch, so a restart always picks up the latest lead instructions.
+  const writePrompt = () => {
+    const tpl = fs.readFileSync(path.join(PKG, 'roles', 'lead.md'), 'utf8').replace(/^---[\s\S]*?---\r?\n/, '');
+    fs.writeFileSync(promptFile, tpl.replaceAll('{{alias}}', alias));
+  };
   // The lead may read anything, edit only planning docs, run atelier and read-only git, and commit its docs.
   // dontAsk mode denies everything not on this list, so it can't write code even through the shell.
   const shells = ['Bash', 'PowerShell'];
@@ -707,7 +754,7 @@ function lead(alias) {
     permissions: {
       allow: [
         'Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite', 'Skill', 'ToolSearch',
-        'CronCreate', 'CronList', 'CronDelete', 'PushNotification',
+        'CronCreate', 'CronList', 'CronDelete', 'PushNotification', 'Monitor', 'TaskStop',
         'Edit(atelier/**)',
         ...shells.flatMap(s => allowShell.map(c => `${s}(${c})`)),
       ],
@@ -718,6 +765,7 @@ function lead(alias) {
   fs.rmSync(stopFlag, { force: true });
   const launch = first => {
     fs.rmSync(restartFlag, { force: true });
+    writePrompt();
     const claudeArgs = ['--remote-control', `${alias} lead`, '--permission-mode', 'dontAsk',
       '--append-system-prompt-file', promptFile, '--settings', JSON.stringify(settings),
       first ? 'Start your shift.' : 'Fresh restart: start your shift. Read atelier/PLAN.md and atelier/LEDGER.md first; nothing from before the restart is in your memory.'];
@@ -741,6 +789,8 @@ function leadContext(alias) {
   const parts = [
     `You are the lead for ${alias}. Your memory may have just been reset. The files are the source of truth; re-read them before acting.`,
     `Phase: ${project.nextPhase(p)} · trust ${p.trust} · reporting ${project.dials(p).reporting} · autonomy ${p.autonomy || 'pr'}`,
+    `The owner approves these phases personally: ${project.dials(p).ownerGates.join(', ') || 'none'}; the others you approve via \`atelier gate ... request\`. Write everything the owner reads in a ${project.dials(p).summaryStyle} style.`,
+    'Start the live watch now if it is not running: use the Monitor tool on `atelier watch ' + alias + '` so owner decisions wake you immediately.',
     decisions.charterTampered(alias, repo) ? 'WARNING: atelier/CHARTER.md changed since the owner approved it. Tell the owner immediately.' : '',
     p.charter ? 'The charter is approved: atelier/CHARTER.md.' : 'The charter is not approved yet: drafting it with the owner comes first.',
     `Criteria: ${crit.length ? crit.map(c => `${c.id} ${c.status}`).join(', ') : 'none yet'} (atelier criteria ${alias} list)`,

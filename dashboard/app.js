@@ -129,7 +129,7 @@ window.addEventListener('hashchange', () => { if (state) { renderChrome(); route
 // ---------- inbox (Linear) ----------
 const KIND = {
   gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], finding: ['alert', 'Drift'],
-  criterion: ['check', 'Criterion'], 'owner-criterion': ['eye', 'Your judgement'], plan: ['play', 'Task plan'], question: ['help', 'Question'], dial: ['dial', 'Trust'],
+  criterion: ['check', 'Outcome'], criteria: ['check', 'Outcomes'], 'owner-criterion': ['eye', 'Your judgement'], plan: ['play', 'Task plan'], question: ['help', 'Question'], dial: ['dial', 'Trust'],
 };
 
 function renderInbox(sel) {
@@ -176,7 +176,10 @@ function inboxDetail(x) {
     case 'charter': case 'charter-tampered': decide = `<div class="btns"><a class="btn primary" href="#/p/${p}/docs/charter">Open the charter</a></div>`; break;
     case 'criterion': decide = `<div class="btns"><button class="btn primary" data-do="criterion" data-verb="approve" data-project="${p}" data-id="${esc(x.id)}">Approve</button>
       <button class="btn danger" data-do="criterion" data-verb="retire" data-project="${p}" data-id="${esc(x.id)}">Retire</button></div>`; break;
-    case 'owner-criterion': decide = `<textarea id="d-text" placeholder="If you reject it, say what's wrong; it becomes a ruling"></textarea>
+    case 'criteria': decide = `<div class="label">These are the results you'll judge the product by. The lead handles the technical checks behind them.</div>
+      <div class="btns"><button class="btn primary" data-do="criteria-all" data-project="${p}" data-ids="${esc(x.id)}">Approve all</button>
+      <a class="btn ghost" href="#/p/${p}/criteria">Review one by one</a></div>`; break;
+    case 'owner-criterion': decide =`<textarea id="d-text" placeholder="If you reject it, say what's wrong; it becomes a ruling"></textarea>
       <div class="btns"><button class="btn primary" data-do="criterion" data-verb="accept" data-project="${p}" data-id="${esc(x.id)}">Accept</button>
       <button class="btn danger" data-do="criterion" data-verb="reject" data-project="${p}" data-id="${esc(x.id)}">Reject</button></div>`; break;
     case 'plan': decide = `<div class="btns"><button class="btn primary" data-do="plan-approve" data-id="${esc(x.id)}">Approve plan</button><a class="btn ghost" href="#/t/${esc(x.id)}">Read the brief</a></div>`; break;
@@ -298,13 +301,22 @@ function projTasks(p) {
   }).join('');
 }
 
+const levelOf = c => c.level || (c.kind === 'owner' ? 'owner' : 'team');
 function projCriteria(p) {
-  if (!p.criteria.length) return '<div class="empty"><b>No acceptance criteria yet</b>You and the lead write these during the spec phase. Every task must meet them.</div>';
-  return `<div class="list" style="margin-top:12px">${p.criteria.map(c => `<div class="item" style="cursor:default">
+  if (!p.criteria.length) return '<div class="empty"><b>No acceptance criteria yet</b>You and the lead agree on a handful of outcomes during the spec phase. The lead turns them into technical checks.</div>';
+  const row = c => `<div class="item" style="cursor:default">
     ${st(c.status)}<span class="id">${esc(c.id)}</span>
-    <span class="t" style="white-space:normal">${esc(c.statement)}<small>${esc(c.kind)} · ${esc(c.status)} · serves ${esc(c.serves)}</small></span>
+    <span class="t" style="white-space:normal">${esc(c.statement)}<small>${esc(c.status)} · serves ${esc(c.serves)}</small></span>
     ${c.status === 'draft' ? `<span class="btns"><button class="btn" data-do="criterion" data-verb="approve" data-project="${esc(p.alias)}" data-id="${esc(c.id)}">Approve</button></span>` : ''}
-  </div>`).join('')}</div>`;
+  </div>`;
+  const live = c => !['retired'].includes(c.status);
+  const mine = p.criteria.filter(c => levelOf(c) === 'owner' && live(c));
+  const team = p.criteria.filter(c => levelOf(c) === 'team' && live(c));
+  const met = team.filter(c => c.status === 'pass').length;
+  return `<div class="sec">Your outcomes<span class="faint"> · what you'll judge the product by</span></div>
+    ${mine.length ? `<div class="list">${mine.map(row).join('')}</div>` : '<div class="hint">None yet.</div>'}
+    <details style="margin-top:18px"><summary class="sec" style="cursor:pointer">Team checks · ${met} of ${team.length} passing <span class="faint">(the lead approves these; the auditor checks them)</span></summary>
+      <div class="list">${team.map(row).join('')}</div></details>`;
 }
 
 function projAudits(p) {
@@ -344,8 +356,11 @@ function projActivity(p) {
 function projSettings(p) {
   const a = esc(p.alias);
   const sel = (dial, value, options) => `<select data-dial="${dial}" data-project="${a}">${options.map(([v, l]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const gates = ['brief', 'spec', 'design', 'contracts'];
   return `<div class="sec">How much you're involved</div>
     <dl class="kv">
+      <dt>You approve</dt><dd><div class="btns">${gates.map(g => `<label class="tick"><input type="checkbox" data-gate="${g}" data-project="${a}" ${p.ownerGates.includes(g) ? 'checked' : ''}> ${g}</label>`).join('')}</div><div class="hint">Unticked phases are approved by the lead and logged. The auditor still checks after every phase. Your charter is always yours.</div></dd>
+      <dt>What you read</dt><dd>${sel('summaryStyle', p.summaryStyle, [['plain', 'Plain: short, non-technical summaries'], ['technical', 'Technical: full detail']])}</dd>
       <dt>Gating</dt><dd>${sel('trust', p.trust, [['strict', 'Strict: approve every phase and task'], ['standard', 'Standard: approve phases'], ['loose', 'Loose: approve the brief only']])}</dd>
       <dt>Reporting</dt><dd>${sel('reporting', p.reporting, [['everything', 'Everything'], ['daily', 'Daily digest'], ['exceptions', 'Exceptions only']])}</dd>
       <dt>Shipping</dt><dd>${sel('autonomy', p.autonomy, [['merge', 'Straight to main after review'], ['pr', 'Draft PRs you merge'], ['branch', 'Local branches only']])}</dd>
@@ -482,6 +497,7 @@ document.addEventListener('click', async e => {
       case 'gate-approve': if (!text) return toast('Write your approval in your own words first'); leaveInbox(await act({ action: 'gate-approve', project: d.project, phase: d.phase, quote: text }, `${d.phase} approved`)); break;
       case 'gate-skip': if (!text) return toast('Say why you\'re skipping this phase'); leaveInbox(await act({ action: 'gate-skip', project: d.project, phase: d.phase, quote: text }, `${d.phase} skipped`)); break;
       case 'criterion': if (d.verb === 'reject' && !text) return toast('Say what\'s wrong, so it can become a ruling'); leaveInbox(await act({ action: 'criterion', project: d.project, id: d.id, verb: d.verb, note: text }, `${d.id} ${d.verb === 'accept' ? 'accepted' : d.verb + 'd'}`)); break;
+      case 'criteria-all': leaveInbox(await act({ action: 'criteria-approve-all', project: d.project, ids: d.ids }, 'Outcomes approved')); break;
       case 'plan-approve': leaveInbox(await act({ action: 'plan-approve', id: d.id }, 'Approved. Work starts now')); break;
       case 'answer': if (!text) return toast('Write an answer first'); leaveInbox(await act({ action: 'answer', id: d.id, text }, 'Answer sent; the task resumes')); break;
       case 'finding': leaveInbox(await act({ action: 'finding', project: d.project, id: d.id, verdict: d.verdict, note: text }, d.verdict === 'confirm' ? 'Drift confirmed' : 'Dismissed')); break;
@@ -499,6 +515,11 @@ document.addEventListener('click', async e => {
 });
 
 document.addEventListener('change', e => {
+  const g = e.target.closest('input[data-gate]');
+  if (g) {
+    const list = [...document.querySelectorAll(`input[data-gate][data-project="${CSS.escape(g.dataset.project)}"]`)].filter(x => x.checked).map(x => x.dataset.gate);
+    return act({ action: 'dial', project: g.dataset.project, dial: 'ownerGates', value: list.join(',') }, list.length ? `You approve: ${list.join(', ')}` : 'All phases delegated to the lead');
+  }
   const s = e.target.closest('select[data-dial]');
   if (s) act({ action: 'dial', project: s.dataset.project, dial: s.dataset.dial, value: s.value }, 'Saved');
 });
