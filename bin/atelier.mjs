@@ -8,9 +8,14 @@ import * as events from '../lib/events.mjs';
 import * as limits from '../lib/limits.mjs';
 import * as gitx from '../lib/git.mjs';
 import { tick } from '../lib/tick.mjs';
-import { run, killTree, alive, atelierEnv } from '../lib/runner.mjs';
+import { run, killTree, alive, atelierEnv, spawnDetached } from '../lib/runner.mjs';
 import * as project from '../lib/project.mjs';
 import * as guard from '../lib/guard.mjs';
+import * as decisions from '../lib/decisions.mjs';
+import * as owner from '../lib/owner.mjs';
+import * as auditor from '../lib/auditor.mjs';
+import * as messages from '../lib/messages.mjs';
+import * as metrics from '../lib/metrics.mjs';
 
 const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for Claude Code
 
@@ -49,6 +54,8 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier events [--unseen] [--mark] [--since MIN]
   atelier limits                       last known plan usage
   atelier cloud <id>                   print the prompt to start this task as a cloud session
+  atelier open                         open the dashboard (starts it if needed)
+  atelier dashboard [--lan] [--port N] run the dashboard server (--lan: reachable from your phone on Wi-Fi)
   atelier foreman                      start the foreman session with Remote Control
   atelier statusline                   (status line command; records plan limits)
   atelier run <id>                     (internal) run the Ralph loop in the foreground
@@ -62,6 +69,7 @@ try {
   await main();
 } catch (err) {
   console.error(`atelier: ${err.message}`);
+  if (process.env.ATELIER_DEBUG) console.error(err.stack);
   process.exit(1);
 }
 
@@ -76,10 +84,18 @@ async function main() {
     case 'roles': return console.log(project.roles().map(r => `${r.padEnd(14)} ${project.roleTemplate(r).title} — owns ${project.roleTemplate(r).owns.join(', ') || 'nothing'}`).join('\n'));
     case 'gate': return gate();
     case 'approve': return approve(need(0, 'id'));
+    case 'charter': return charterCmd();
+    case 'msg': return msgCmd();
+    case 'messages': return messagesCmd();
+    case 'audit': return auditCmd();
+    case 'criteria': return criteriaCmd();
+    case 'ruling': return rulingCmd();
+    case 'holdout': return holdoutCmd();
     case 'request': return request();
     case 'overrule': return overrule(need(0, 'project'), args.slice(1).join(' '));
     case 'verify': return verify(need(0, 'design|contracts'));
     case 'lead': return lead(need(0, 'project'));
+    case 'lead-context': return leadContext(need(0, 'project'));
     case 'guard': return guardHook();
     case 'close': return close();
     case 'show': return show(need(0, 'id'));
@@ -96,6 +112,8 @@ async function main() {
     case 'limits': return console.log(limits.describe());
     case 'cloud': return cloud(need(0, 'id'));
     case 'foreman': return foreman();
+    case 'dashboard': return dashboardCmd();
+    case 'open': return openCmd();
     case 'statusline': return statusline();
     case undefined: case 'help': case '--help': case '-h': return console.log(HELP);
     default: throw new Error(`unknown command "${cmd}"\n\n${HELP}`);
@@ -138,6 +156,14 @@ function add() {
     const missing = project.missingGates(p, { phase: flags.phase });
     if (missing.length) throw new Error(`${alias} needs these gates approved first: ${missing.join(', ')} (see atelier project status ${alias})`);
     if (role && !p.roster.some(r => r.role === role) && role !== 'builder') throw new Error(`${role} isn't on ${alias}'s roster. Add it: atelier project role add ${alias} ${role}`);
+    // Once a project has criteria, every build task must cite the approved criteria it satisfies.
+    const known = decisions.loadCriteria(alias).criteria;
+    if (known.length && !flags.phase) {
+      const ids = typeof flags.criteria === 'string' ? flags.criteria.split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (!ids.length) throw new Error(`cite the acceptance criteria this task satisfies: --criteria AC-1,AC-2 (see atelier criteria ${alias} list)`);
+      const bad = ids.filter(i => !known.some(c => c.id === i && decisions.isApproved(c)));
+      if (bad.length) throw new Error(`${bad.join(', ')} aren't approved criteria yet; the owner approves criteria in the dashboard`);
+    }
   }
   // At strict trust every task waits for the owner to approve its plan.
   const initial = flags.hold ? 'paused' : (p?.trust === 'strict' ? 'planned' : 'queued');
@@ -147,6 +173,7 @@ function add() {
     meta: {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
+      criteria: typeof flags.criteria === 'string' ? flags.criteria : '', files: typeof flags.files === 'string' ? flags.files : '',
       repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
       model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
@@ -360,7 +387,7 @@ function projectCmd() {
       const p = project.init(alias, { roster: flags.roster || 'team', trust: flags.trust || 'strict' });
       const planDir = path.join(repoPath, 'atelier');
       fs.mkdirSync(path.join(planDir, 'acceptance'), { recursive: true });
-      for (const t of ['BRIEF.md', 'SPEC.md', 'PLAN.md']) {
+      for (const t of ['CHARTER.md', 'BRIEF.md', 'SPEC.md', 'PLAN.md', 'LEDGER.md']) {
         const dest = path.join(planDir, t);
         if (!fs.existsSync(dest)) fs.copyFileSync(path.join(PKG, 'templates', t), dest);
       }
@@ -385,88 +412,200 @@ function projectCmd() {
       project.save(p);
       return console.log(`${a} roster: ${p.roster.map(r => `${r.role}${r.model ? ` [${r.model}]` : ''} (${r.owns.join(', ') || 'read-only'})`).join('; ')}`);
     }
-    case 'autonomy': {
-      const mode = more[0];
-      if (!['pr', 'merge', 'branch'].includes(mode)) throw new Error('usage: atelier project autonomy <alias> pr|merge|branch   (pr = draft PRs, the default for client work; merge = push reviewed work straight to main)');
-      const p = project.load(alias);
-      if (mode === 'merge' && !project.hasReviewer(p)) throw new Error(`merge mode pushes reviewed work to main, so ${alias} needs a reviewer on its roster first: atelier project role add ${alias} reviewer`);
-      p.autonomy = mode;
-      project.save(p);
-      events.emit(alias, 'autonomy', mode);
-      return console.log(`${alias} autonomy → ${mode}${mode === 'merge' ? ' (reviewed work is merged into main and pushed, no PR)' : ''}`);
+    case 'autonomy': case 'trust': case 'reporting': {
+      // The owner's dials: settable only by the owner (dashboard or their own terminal).
+      owner.setDial(alias, sub, more[0]);
+      return console.log(`${alias} ${sub} → ${more[0]}`);
     }
-    case 'trust': {
-      const level = more[0];
-      if (!project.TRUST.includes(level)) throw new Error(`usage: atelier project trust <alias> ${project.TRUST.join('|')}`);
+    case 'suite': {
+      // The project's full test suite: run when a task claims done and again on merge.
       const p = project.load(alias);
-      p.trust = level;
+      p.suite = more.join(' ');
       project.save(p);
-      events.emit(alias, 'trust', level);
-      return console.log(`${alias} trust → ${level}`);
+      events.emit(alias, 'suite', p.suite);
+      return console.log(`${alias} full suite: ${p.suite}`);
     }
-    default: throw new Error('usage: atelier project init|status|role|trust ...');
+    default: throw new Error('usage: atelier project init|status|role|trust|reporting|autonomy|suite ...');
   }
 }
 
 function projectStatus(alias) {
-  const p = project.load(alias);
-  const out = [`${alias} · trust ${p.trust} · autonomy ${p.autonomy || 'pr'} · next: ${project.nextPhase(p)}`, '', 'Gates:'];
-  for (const ph of project.PHASES) {
-    const g = p.gates[ph];
-    out.push(`  ${ph.padEnd(10)} ${g ? `${g.status} ${new Date(g.at).toLocaleDateString()}${g.quote ? ` — "${g.quote}"` : ''}` : 'open'}`);
-  }
-  out.push('', 'Roster:');
-  for (const r of p.roster) out.push(`  ${r.role.padEnd(14)}${r.model ? ` [${r.model}]` : ''} owns ${r.owns.join(', ') || 'nothing (read-only)'}`);
-  const tasks = project.tasks(alias);
-  const counts = cards.STATES.map(s => [s, tasks.filter(t => t.meta.status === s).length]).filter(([, n]) => n);
-  out.push('', `Tasks: ${counts.length ? counts.map(([s, n]) => `${n} ${s}`).join(' · ') : 'none yet'}`);
-  const approvals = p.approvals || 0;
-  out.push(`Track record: ${approvals} approvals, ${p.overrules.length} overrules${p.overrules.length ? ` (latest: ${p.overrules.at(-1).text})` : ''}`);
-  console.log(out.join('\n'));
+  if (flags.json) return console.log(JSON.stringify(metrics.status(alias), null, 2));
+  console.log(metrics.render(metrics.status(alias)));
 }
 
 function gate() {
   const [alias, phase, action] = args;
-  if (!alias || !phase || !['approve', 'skip', 'reopen'].includes(action)) throw new Error('usage: atelier gate <alias> <phase> approve|skip|reopen --quote "<owner\'s words>" [--merge <task>]');
-  if (typeof flags.quote !== 'string' || !flags.quote.trim()) throw new Error('--quote is required: the owner\'s own words approving this');
+  const actions = ['request', 'approve', 'skip', 'reopen'];
+  if (!alias || !phase || !actions.includes(action)) throw new Error("usage: atelier gate <alias> <phase> request --summary '...' (lead) | approve|skip --quote '<your words>' (owner) | reopen --quote '<owner words>'");
   const p = project.load(alias);
-  const repoPath = resolveRepo(alias);
-  const base = gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || 'main';
-
-  if (action === 'approve') {
-    if (flags.merge) mergeTaskBranch(repoPath, base, String(flags.merge), phase);
-    const must = { brief: ['atelier/BRIEF.md'], spec: ['atelier/SPEC.md'], design: ['atelier/DESIGN.md'], contracts: ['atelier/contracts/README.md'] }[phase] || [];
-    const missing = must.filter(f => !gitx.git(repoPath, 'cat-file', '-e', `${base}:${f}`).ok);
-    if (missing.length) throw new Error(`can't approve ${phase}: ${missing.join(', ')} isn't committed on ${base} yet${['design', 'contracts'].includes(phase) ? ' (merge the task\'s PR, or pass --merge <task> for a local branch)' : ''}`);
-    p.approvals = (p.approvals || 0) + 1;
+  if (action === 'request') {
+    // The lead asks; the owner decides (dashboard or their own terminal).
+    if (typeof flags.summary !== 'string' || !flags.summary.trim()) throw new Error('--summary is required: what the owner is approving, in a few lines');
+    p.gates[phase] = { status: 'requested', summary: flags.summary, at: new Date().toISOString() };
+    project.save(p);
+    events.emit(alias, 'gate-request', `${phase}: ${flags.summary.slice(0, 160)}`);
+    return console.log(`${alias}: ${phase} gate requested; waiting for the owner's approval in the dashboard`);
   }
-  project.setGate(p, phase, action === 'approve' ? 'approved' : action === 'skip' ? 'skipped' : 'reopen', flags.quote);
-  events.emit(alias, 'gate', `${phase} ${action === 'reopen' ? 'reopened' : action === 'skip' ? 'skipped' : 'approved'}: "${flags.quote}"`);
-  console.log(`${alias}: ${phase} ${{ approve: 'approved', skip: 'skipped', reopen: 'reopened' }[action]} · next: ${project.nextPhase(project.load(alias))}`);
-}
-
-function mergeTaskBranch(repoPath, base, id, phase) {
-  const m = cards.load(id).meta;
-  if (!m.branch) throw new Error(`${id} has no branch`);
-  const current = gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out;
-  if (current !== base) throw new Error(`main checkout is on ${current}, not ${base}; switch it before merging`);
-  if (gitx.git(repoPath, 'status', '--porcelain', '--untracked-files=no').out) throw new Error(`main checkout has uncommitted changes; commit or stash them before merging ${m.branch}`);
-  gitx.must(repoPath, 'merge', '--no-ff', m.branch, '-m', `atelier: merge ${id} (${phase} approved)`);
-  console.log(`merged ${m.branch} into ${base}`);
+  if (typeof flags.quote !== 'string' || !flags.quote.trim()) throw new Error('--quote is required');
+  if (action === 'reopen') {
+    project.setGate(p, phase, 'reopen', flags.quote);
+    events.emit(alias, 'gate', `${phase} reopened: "${flags.quote}"`);
+    return console.log(`${alias}: ${phase} reopened`);
+  }
+  const next = owner.approveGate(alias, phase, flags.quote, { skip: action === 'skip', merge: typeof flags.merge === 'string' ? flags.merge : undefined });
+  console.log(`${alias}: ${phase} ${action === 'skip' ? 'skipped' : 'approved'} · next: ${next}`);
 }
 
 function approve(id) {
   const m = cards.load(id).meta;
-  if (!['planned', 'requested'].includes(m.status)) throw new Error(`${id} is ${m.status}; only planned or requested tasks need approval`);
+  if (m.status === 'planned') { owner.approveTask(id); console.log(`${id} approved and queued`); return tick(); }
+  if (m.status !== 'requested') throw new Error(`${id} is ${m.status}; only planned or requested tasks need approval`);
   if (m.role === 'lead') throw new Error(`${id} is a request for the lead: handle it yourself, then close it with: atelier close ${id} "<what you did>"`);
   const patch = { status: 'queued', reason: '' };
   if (typeof flags.check === 'string') patch.check = flags.check;
+  if (typeof flags.criteria === 'string') patch.criteria = flags.criteria;
   if (!m.check && !patch.check) throw new Error(`${id} has no done-check yet; approve it with --check "<cmd>"`);
   cards.update(id, patch);
-  if (m.project) { const p = project.load(m.project); p.approvals = (p.approvals || 0) + 1; project.save(p); }
-  events.emit(id, 'approved', m.title);
+  events.emit(id, 'approved', `request approved by lead: ${m.title}`);
   console.log(`${id} approved and queued`);
   tick();
+}
+
+// ---------- v3 decision layer ----------
+
+async function auditCmd() {
+  const [alias, action, id] = args;
+  project.load(alias);
+  if (!action || action === 'run') {
+    if (flags.bg) { spawnDetached(['audit', alias, 'run']); return console.log(`audit of ${alias} started in the background; results go to the dashboard`); }
+    const lockFile = path.join(project.dir(alias), 'audit.lock');
+    try { fs.writeFileSync(lockFile, String(process.pid), { flag: 'wx' }); } catch {
+      if (Date.now() - fs.statSync(lockFile).mtimeMs < 3 * 3600_000) return console.log('an audit is already running');
+      fs.writeFileSync(lockFile, String(process.pid));
+    }
+    try {
+      const r = await auditor.audit(alias, { log: () => {} });
+      console.log(`audit of ${r.product}: ${r.findings.length} finding(s) from ${r.candidates} candidates across ${r.checkers} checkers`);
+      for (const f of r.findings) console.log(`  ${f.id} [${f.severity}/${f.reversibility}] ${f.claim}`);
+    } finally { fs.rmSync(lockFile, { force: true }); }
+    return;
+  }
+  if (action === 'findings') {
+    const list = auditor.loadFindings(alias).filter(f => flags.all || f.status === 'open');
+    if (!list.length) return console.log('no open findings');
+    for (const f of list) console.log(`${f.id} ${f.status.padEnd(9)} [${f.severity}/${f.reversibility}] ${f.claim}\n    expected: ${f.expected}\n    observed: ${f.observed}`);
+    const h = auditor.hitRate(alias);
+    return console.log(`hit rate: ${h.confirmed}/${h.judged} confirmed`);
+  }
+  if (action === 'confirm' || action === 'dismiss') {
+    owner.assertOwner(`audit ${action}`);
+    const f = auditor.judge(alias, id, action, typeof flags.note === 'string' ? flags.note : '');
+    return console.log(`${f.id} ${f.status}`);
+  }
+  throw new Error('usage: atelier audit <alias> [run] [--bg] | findings [--all] | confirm|dismiss <F-n> (owner)');
+}
+
+function msgCmd() {
+  const text = args.join(' ');
+  const fromId = process.env.ATELIER_TASK || '';
+  const from = fromId ? cards.load(fromId).meta : null;
+  const alias = from?.project || (typeof flags.project === 'string' ? flags.project : '');
+  if (!alias || typeof flags.to !== 'string') throw new Error('usage: atelier msg --to <task-id|role> --type question|discovery|contract-change "<short message>"');
+  const type = typeof flags.type === 'string' ? flags.type : 'question';
+  const m = messages.send(alias, { from: fromId, fromRole: from?.role || '', to: flags.to, type, text, iter: process.env.ATELIER_ITER || '' });
+  // A contract change is a decision, so it also becomes a request card on the lead's desk.
+  if (type === 'contract-change') {
+    flags.kind = 'contract-change';
+    flags.to = 'lead';
+    args.splice(0, args.length, `[${m.id}] ${text}`);
+    request();
+  }
+  console.log(`sent ${m.id} to ${flags.to === 'lead' && type === 'contract-change' ? 'the lead (contract-change request)' : m.to}. It's information for them, not an instruction; keep working.`);
+}
+
+function messagesCmd() {
+  const [alias] = args;
+  const list = messages.all(alias).slice(-(Number(flags.last) || 30));
+  if (!list.length) return console.log('no messages yet');
+  for (const m of list) console.log(`${m.id} ${m.at.slice(5, 16).replace('T', ' ')} [${m.type}] ${m.fromRole || m.from} → ${m.to}: ${m.text}`);
+}
+
+async function dashboardCmd() {
+  const { serve } = await import('../lib/dashboard.mjs');
+  serve({ port: Number(flags.port) || 4747, lan: !!flags.lan });
+}
+
+// Starts the dashboard in the background if it isn't running, then opens it in the browser.
+async function openCmd() {
+  const port = Number(flags.port) || 4747;
+  const up = await fetch(`http://127.0.0.1:${port}/`).then(() => true, () => false);
+  if (!up) {
+    const args = ['dashboard', '--port', String(port), ...(flags.lan ? ['--lan'] : [])];
+    const out = fs.openSync(path.join(HOME, 'dashboard.log'), 'a');
+    spawn(process.execPath, [path.join(PKG, 'bin', 'atelier.mjs'), ...args], { detached: true, stdio: ['ignore', out, out], windowsHide: true }).unref();
+    for (let i = 0; i < 30 && !(await fetch(`http://127.0.0.1:${port}/`).then(() => true, () => false)); i++) await new Promise(r => setTimeout(r, 200));
+  }
+  const { token } = await import('../lib/dashboard.mjs');
+  console.log(`Atelier dashboard: http://localhost:${port}\naccess token (enter once per device): ${token()}`);
+  if (process.platform === 'win32') spawn('cmd', ['/c', 'start', '', `http://localhost:${port}`], { detached: true, stdio: 'ignore' }).unref();
+}
+
+function charterCmd() {
+  const [alias, action] = args;
+  if (action === 'approve') {
+    if (typeof flags.quote !== 'string') throw new Error('usage: atelier charter <alias> approve --quote "<your words>"');
+    return console.log(`charter approved (${owner.approveCharter(alias, flags.quote)})`);
+  }
+  if (action === 'status') {
+    const p = project.load(alias);
+    const tampered = decisions.charterTampered(alias, resolveRepo(alias));
+    return console.log(p.charter ? `approved ${p.charter.approvedAt.slice(0, 10)} (${p.charter.hash})${tampered ? ' — CHANGED SINCE APPROVAL' : ''}` : 'not approved yet');
+  }
+  throw new Error('usage: atelier charter <alias> approve|status');
+}
+
+function criteriaCmd() {
+  const [alias, action, id] = args;
+  project.load(alias);
+  if (action === 'list' || !action) {
+    const data = decisions.loadCriteria(alias);
+    if (flags.json) return console.log(JSON.stringify(data, null, 2));
+    if (!data.criteria.length) return console.log('no criteria yet');
+    for (const c of data.criteria) console.log(`${c.id.padEnd(6)} ${c.status.padEnd(14)} ${c.kind.padEnd(8)} ${c.statement}  [serves ${c.serves}]`);
+    return;
+  }
+  if (action === 'add') {
+    const c = decisions.addCriterion(alias, { statement: args.slice(2).join(' ') || flags.statement, kind: flags.kind || 'test', verify: typeof flags.verify === 'string' ? flags.verify : '', serves: typeof flags.serves === 'string' ? flags.serves : '' });
+    events.emit(alias, 'criterion-draft', `${c.id}: ${c.statement}`);
+    return console.log(`added ${c.id} (draft; the owner approves it in the dashboard)`);
+  }
+  if (action === 'request') {
+    events.emit(alias, 'criteria-request', `please review drafts: ${decisions.loadCriteria(alias).criteria.filter(c => c.status === 'draft').map(c => c.id).join(', ')}`);
+    return console.log('asked the owner to review draft criteria');
+  }
+  if (['approve', 'retire', 'accept', 'reject'].includes(action)) {
+    owner.criterion(alias, id, action, typeof flags.note === 'string' ? flags.note : '');
+    return console.log(`${id} ${action}d`);
+  }
+  throw new Error('usage: atelier criteria <alias> list | add "<statement>" --kind test|property|review|owner --verify "<cmd>" --serves "<charter/R#/ruling>" | request | approve|retire|accept|reject <AC-n> (owner)');
+}
+
+function rulingCmd() {
+  const [alias, action] = args;
+  if (action !== 'add') throw new Error("usage: atelier ruling <alias> add '<the owner ruling>' [--source '<what prompted it>']");
+  const text = args.slice(2).join(' ');
+  if (!text) throw new Error('missing ruling text');
+  const id = decisions.addRuling(resolveRepo(alias), text, typeof flags.source === 'string' ? flags.source : '');
+  events.emit(alias, 'ruling', `${id}: ${text}`);
+  console.log(`recorded ${id} in atelier/RULINGS.md. Commit it, and add a criterion if it can be checked mechanically.`);
+}
+
+function holdoutCmd() {
+  const [alias, action, from] = args;
+  if (action !== 'set' || !from || typeof flags.command !== 'string') throw new Error('usage: atelier holdout <alias> set <folder-with-tests> --command "<cmd; tests appear under .atelier-holdout/>"');
+  owner.setHoldout(alias, path.resolve(from), flags.command);
+  console.log(`holdout tests stored outside the repo; specialists won't see them. Runs as: ${flags.command}`);
 }
 
 function request() {
@@ -485,14 +624,14 @@ function request() {
   cards.save({
     meta: {
       id, title: `Request: ${text.slice(0, 70)}${text.length > 70 ? '…' : ''}`, status: 'requested',
-      project: alias, role: to, requested_by: fromId || '', repo: repoPath,
+      project: alias, role: to, requested_by: fromId || '', kind: typeof flags.kind === 'string' ? flags.kind : '', repo: repoPath,
       base: from?.base || gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || d.base,
       where: 'local', autonomy: d.autonomy, check: '', iterations: 6, hours: 2, priority: 2, iteration: 0,
       created: new Date().toISOString(),
     },
     body: `## Goal\n\n${text}\n\nRequested by ${fromId ? `task ${fromId} (${from.role || 'builder'}: ${from.title})` : 'the owner'}.\n`,
   });
-  events.emit(id, 'requested', `${from?.role || 'owner'} → ${to}: ${text.slice(0, 100)}`);
+  events.emit(id, 'requested', `${flags.kind ? `[${flags.kind}] ` : ''}${from?.role || 'owner'} → ${to}: ${text.slice(0, 100)}`);
   console.log(`filed request ${id} for ${to}. Keep working on anything that doesn't depend on it.`);
 }
 
@@ -548,15 +687,60 @@ function lead(alias) {
   const promptFile = path.join(project.PROJECTS, `${alias}.lead.md`);
   const tpl = fs.readFileSync(path.join(PKG, 'roles', 'lead.md'), 'utf8').replace(/^---[\s\S]*?---\r?\n/, '');
   fs.writeFileSync(promptFile, tpl.replaceAll('{{alias}}', alias));
+  // The lead may read anything, edit only planning docs, run atelier and read-only git, and commit its docs.
+  // dontAsk mode denies everything not on this list, so it can't write code even through the shell.
+  const shells = ['Bash', 'PowerShell'];
+  const allowShell = ['atelier *', 'git status*', 'git log*', 'git diff*', 'git show*', 'git add atelier*', 'git commit *', 'git pull --ff-only*'];
   const settings = {
-    ...guard.hookSettings(),
+    hooks: {
+      ...guard.hookSettings().hooks,
+      // Fresh start or compaction: reload the decision layer and ledger, so files stay the source of truth.
+      SessionStart: [{ matcher: 'startup|compact|resume|clear', hooks: [{ type: 'command', command: `atelier lead-context ${alias}` }] }],
+    },
     statusLine: { type: 'command', command: 'atelier statusline' },
-    permissions: { allow: ['Bash(atelier *)', 'PowerShell(atelier *)', 'Bash(git add atelier*)', 'Bash(git commit *)'] },
+    permissions: {
+      allow: [
+        'Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite', 'Skill', 'ToolSearch',
+        'CronCreate', 'CronList', 'CronDelete', 'PushNotification',
+        'Edit(atelier/**)',
+        ...shells.flatMap(s => allowShell.map(c => `${s}(${c})`)),
+      ],
+    },
   };
-  const claudeArgs = ['--remote-control', `${alias} lead`, '--permission-mode', 'auto',
-    '--append-system-prompt-file', promptFile, '--settings', JSON.stringify(settings), 'Start your shift.'];
-  const child = spawn('claude', claudeArgs, { cwd: repoPath, stdio: 'inherit', env: atelierEnv({ role: 'lead', project: alias }, '', repoPath) });
-  child.on('exit', code => process.exit(code ?? 0));
+  const stopFlag = path.join(project.dir(alias), 'lead.stop');
+  const restartFlag = path.join(project.dir(alias), 'lead.restart');
+  fs.rmSync(stopFlag, { force: true });
+  const launch = first => {
+    fs.rmSync(restartFlag, { force: true });
+    const claudeArgs = ['--remote-control', `${alias} lead`, '--permission-mode', 'dontAsk',
+      '--append-system-prompt-file', promptFile, '--settings', JSON.stringify(settings),
+      first ? 'Start your shift.' : 'Fresh restart: start your shift. Read atelier/PLAN.md and atelier/LEDGER.md first; nothing from before the restart is in your memory.'];
+    const child = spawn('claude', claudeArgs, { cwd: repoPath, stdio: 'inherit', env: atelierEnv({ role: 'lead', project: alias }, '', repoPath) });
+    fs.writeFileSync(path.join(project.dir(alias), 'lead.pid'), String(child.pid));
+    events.emit(alias, 'lead', first ? 'lead started' : 'lead restarted fresh');
+    child.on('exit', code => {
+      // The dashboard's "restart lead" ends the session with a restart flag; anything else ends the loop.
+      if (fs.existsSync(restartFlag) && !fs.existsSync(stopFlag)) return launch(false);
+      process.exit(code ?? 0);
+    });
+  };
+  launch(true);
+}
+
+// SessionStart hook for the lead: hands it the decision layer and ledger as fresh context.
+function leadContext(alias) {
+  const repo = resolveRepo(alias);
+  const p = project.load(alias);
+  const crit = decisions.loadCriteria(alias).criteria;
+  const parts = [
+    `You are the lead for ${alias}. Your memory may have just been reset. The files are the source of truth; re-read them before acting.`,
+    `Phase: ${project.nextPhase(p)} · trust ${p.trust} · reporting ${project.dials(p).reporting} · autonomy ${p.autonomy || 'pr'}`,
+    decisions.charterTampered(alias, repo) ? 'WARNING: atelier/CHARTER.md changed since the owner approved it. Tell the owner immediately.' : '',
+    p.charter ? 'The charter is approved: atelier/CHARTER.md.' : 'The charter is not approved yet: drafting it with the owner comes first.',
+    `Criteria: ${crit.length ? crit.map(c => `${c.id} ${c.status}`).join(', ') : 'none yet'} (atelier criteria ${alias} list)`,
+    'Read now: atelier/CHARTER.md, atelier/RULINGS.md, atelier/PLAN.md, atelier/LEDGER.md. Then run `atelier digest` and `atelier board ' + alias + '`.',
+  ].filter(Boolean);
+  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: parts.join('\n') } }));
 }
 
 async function guardHook() {

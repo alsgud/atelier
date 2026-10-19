@@ -1,96 +1,71 @@
-# atelier
+# Atelier
 
-A personal agent atelier for Claude Code. You hand out tasks from your phone, agents grind on them for hours in Ralph loops, and you get pinged only when something needs you.
+Your own agent studio. You work like a senior manager: you give deep briefs to a team lead, approve the decisions that matter, and a flat team of specialist agents does the work. An independent auditor tells you, not the lead, whether the product is drifting from what you asked for.
 
-It was inspired by Agent Office (sessions as desks with working / needs-you / finished / stale states), OpenClaw's heartbeat, and Hermes's self-written skills, but none of their code is used. atelier is a few hundred lines of dependency-free Node on top of features Claude Code already ships with: headless `claude -p`, auto mode, git worktrees, Remote Control, and push notifications.
+The design is in [SPEC-v3.md](SPEC-v3.md). The evidence behind it is in [reports/](reports) and [docs/research-team-design.md](docs/research-team-design.md).
 
 ## How it fits together
 
 ```
- phone (Claude app)
-      │  Remote Control
-      ▼
- Foreman session ──── atelier CLI ──── ~/.atelier/board/<id>.md   (task cards)
-  heartbeat every 15m      │
-                           ├─ tick: start queued tasks up to maxParallel, pace on plan limits
-                           ▼
-                     runner (detached, one per task)
-                       loop: fresh `claude -p` in its own worktree
-                             → commit → run the done-check
-                       until check passes + agent says DONE  → push branch, draft PR
-                          or agent BLOCKED / budget spent    → needs-you
-                          or nothing changes 3x               → stalled
+You ── dashboard (desktop + phone) and the lead chat in the Claude app
+ │       approve gates, criteria, plans, the charter; judge drift; answer questions
+Lead ── the only decision-maker below you; locked to planning docs; restarts fresh from files
+ ├── Specialists ── fresh-context Ralph loops in their own worktrees; one writer per area
+ └── Reviewer ───── Opus 5.5, high effort; light or full review by risk
+Auditor ── never sees the lead's plan; checks the product against your words; reports to you
 ```
 
-- **Task card**: goal, a done-check command, a budget (iterations and hours), and autonomy (`pr` or `branch`). Board states: `queued → running → needs-you → review → done`, plus `stalled`, `failed`, and `paused`.
-- **Ralph runner** (`lib/runner.mjs`): every iteration starts with fresh context, and state lives in files: `PROGRESS.md`, `DECISIONS.md`, `QUESTIONS.md`, git history, and a per-repo lessons file. *Done* is decided by running the check, not by the model saying so.
-- **Standing orders** (`prompts/standing-orders.md`): the rule is "assume and flag". Agents make routine calls themselves and log them, and stop only for irreversible, outward-facing, money, credential, or product-direction decisions.
-- **Guardrails**: auto mode answers permission prompts, and anything it would still ask about is denied instead of left hanging (`--permission-prompts none`). A deny list blocks push, merge, and deploy commands. The runner itself pushes the branch and opens a *draft* PR, so you always do the merge.
-- **Pacing**: each headless run reports plan usage (`rate_limit_event`) and atelier saves it to `~/.atelier/limits.json`. Runners and the scheduler hold work when the 5-hour window passes 90% or the 7-day window passes 97% (set in `config.json`), and resume after the reset.
-- **Foreman** (`foreman/CLAUDE.md`): a Remote Control session you talk to from the Claude app. It turns messages into cards, runs the heartbeat, and pushes you only for needs-you, review, stalled, or failed.
-
-## Teams (v2)
-
-[SPEC-v2.md](SPEC-v2.md) has the full design. In short: a **project** is a repo with a roster, a trust level and four gates. You talk to the project's **lead** (`atelier lead <alias>`, which shows up in the Claude app as "<alias> lead"). The lead walks you through brief → spec → design → contracts, and nothing gets built until you approve each gate. Specialists then work in parallel, each one locked by a `PreToolUse` hook to the files its role owns. Approved planning docs are frozen. The reviewer checks every task before its PR opens. Anything that crosses a boundary goes through a request card to the lead.
-
-```bash
-atelier repo add mygame ~/Documents/mygame
-atelier project init mygame --roster game --trust strict   # scaffolds atelier/BRIEF.md, SPEC.md, acceptance/
-atelier lead mygame                                        # then open "mygame lead" on your phone
-```
-
-Role templates live in [roles/](roles) and can be listed with `atelier roles`. Each project's roster sets which files every role owns in that repo (`atelier project role add <alias> <role> --owns "src/ui/**"`). Where ownership overlaps, the most specific glob wins.
-
-## Setup (once)
-
-```bash
-cd ~/Documents/atelier && npm link      # puts `atelier` on PATH
-atelier init
-atelier repo add sandbox ~/Documents/atelier-sandbox
-```
-
-In Claude Code, run `/config` and turn on **Push when actions required** and **Push when Claude decides**. Open the Claude app on your phone once so it registers for push.
+- **The decision layer** is what everyone obeys:
+  - **Your charter**: only you change it, and any edit after approval is detected.
+  - **Your rulings**: corrections that become precedents.
+  - **Acceptance criteria**: you approve them. Only verification can mark one passing, and some need your judgement.
+  - **Hidden holdout tests** that specialists never see.
+- **Owner-only actions:** gates, criteria, task plans, the charter and the dials can only be approved by you, in the dashboard or your own terminal. Agents' shells are refused.
+- **Specialists talk directly** with typed messages (question, discovery, contract-change). A message never binds anyone; only the lead changes contracts.
+- **Verification in tiers:**
+  1. The task's own check, every iteration.
+  2. When a task claims done: its criteria, the holdout tests, and the full suite.
+  3. The reviewer.
+  4. The full suite again on merge.
+- **Trust dials** loosen by rule when the team has earned it, and tighten automatically when you confirm high-severity drift.
 
 ## Daily use
 
-At the PC, start the foreman and leave the window open:
-
 ```bash
-atelier foreman
+atelier open
 ```
 
-From your phone, open the **Foreman** session in the Claude app and talk to it:
+This opens the dashboard in your browser and starts it if needed. Everything waiting on you is on the home page and behind the bell, each item with its one-tap action. Start a project's lead from its Overview tab, then talk to it in the Claude app (Code → "<project> lead").
 
-- "in sandbox: add a `todo clear` command that removes completed todos"
-- "status"
-- "jmfv: use ISO dates, not locale dates"
-- "more time for jmfv"
+**On your phone:** run `atelier open --lan` and open the address it prints while you're on the same Wi-Fi. Enter the access token once. To reach it away from home, install Tailscale on the PC and your phone and use the PC's Tailscale address.
 
-Or drive it directly from any terminal:
+## Starting a project
 
 ```bash
-atelier add sandbox "Clear command" --check "npm test" --goal "..." --iterations 6
-atelier digest
-atelier show <id>
-atelier answer <id> "go with option B"
+atelier repo add mygame ~/Documents/mygame
+atelier project init mygame --roster game     # or pair / team
+atelier project suite mygame npm test         # the full test suite
+atelier open                                  # then "Start the lead" on the project page
 ```
 
-## Writing good tasks
+The lead interviews you (or listens to a ramble), drafts your charter and brief, and asks you to approve them. Criteria, design and contracts each come to you the same way, and only then does the team build.
 
-The done-check matters most. It should fail now and pass only when the work is really finished. The pattern used in `atelier-sandbox` is to write an acceptance spec first (`spec/*.spec.mjs`), commit it on main, and set the check to `npm test && npm run spec`. The agent can't weaken the spec without breaking the standing orders, and the draft PR shows any changes to it.
+## Commands you might use yourself
+
+| | |
+|---|---|
+| `atelier open [--lan]` | the dashboard |
+| `atelier project status <alias>` | everything about a project in one screen |
+| `atelier board <alias>` | tasks grouped by role |
+| `atelier audit <alias>` | run the auditor now |
+| `atelier criteria <alias> list` | acceptance criteria and their status |
+| `atelier help` | everything else |
 
 ## Files
 
 | Path | What |
 |---|---|
-| `~/.atelier/board/<id>.md` | task cards |
-| `~/.atelier/runs/<id>/` | progress, decisions, questions, per-iteration stream logs, last check output |
-| `~/.atelier/worktrees/<id>/` | each task's git worktree (branch `atelier/<id>`) |
-| `~/.atelier/lessons/<repo>.md` | durable lessons agents leave for the next agent in that repo |
-| `~/.atelier/events.jsonl` | event log the foreman's heartbeat reads |
-| `~/.atelier/config.json` | `maxParallel`, pace thresholds, timeouts, defaults, deny list |
-
-## Limits
-
-- Local runners and Remote Control need the PC on. Remote Control reconnects after sleep, but a session exits if the PC stays awake with no network for about 10 minutes.
-- `where: cloud` tasks aren't dispatched automatically yet. `atelier cloud <id>` prints a `/goal` prompt with the standing orders, ready to paste into a cloud session from the Claude app for when the PC is off.
+| `<repo>/atelier/` | charter, rulings, brief, spec, design, contracts, plan, ledger, acceptance tests |
+| `~/.atelier/projects/<alias>/` | criteria, holdout tests, audits, messages, lead state |
+| `~/.atelier/board/`, `runs/`, `worktrees/` | task cards, run logs, each task's worktree |
+| `~/.atelier/config.json` | parallelism, pacing, timeouts, deny list |

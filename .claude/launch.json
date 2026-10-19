@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "atelier-dashboard",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["bin/atelier.mjs", "dashboard", "--port", "4747"],
+      "port": 4747
+    }
+  ]
+}

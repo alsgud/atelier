@@ -22,6 +22,8 @@ The runner runs `{{check}}` in your worktree after you finish. The task is done 
 
 {{syncNote}}
 
+{{inbox}}
+
 ## Last check result
 
 {{lastCheck}}

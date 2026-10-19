@@ -1,4 +1,8 @@
-You are the reviewer for atelier task {{id}}, review round {{round}}. A {{role}} agent built this on branch `{{branch}}` (based on `{{base}}`), and its done-check `{{check}}` passes.
+You are the reviewer for atelier task {{id}}, review round {{round}}.
+
+{{depth}}
+
+A {{role}} agent built this on branch `{{branch}}` (based on `{{base}}`), and its done-check `{{check}}` passes.
 
 {{reviewerRole}}
 
