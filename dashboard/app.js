@@ -1,16 +1,59 @@
-// Atelier dashboard. Plain JS, hash routes: #/ (home), #/p/<project>/<tab>, #/t/<task>.
-// Everything agents write is untrusted text: it's escaped before it reaches the page.
-const app = document.getElementById('app');
+// Atelier dashboard. Plain JS, hash routes:
+//   #/inbox[/<key>]  #/activity  #/projects  #/new
+//   #/p/<project>/<tab>[/<doc>]   tabs: overview tasks criteria audits docs activity settings
+//   #/t/<task>
+// Everything agents write is untrusted text: esc() it, or render it through md() (which escapes first).
+const $ = id => document.getElementById(id);
 let state = null;
+let loadedVersion = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ago = iso => {
-  if (!iso) return '';
-  const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
-  return m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`;
+  const t = Date.parse(iso); if (!t) return '';
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? 'now' : m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`;
 };
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
 
+// ---------- icons ----------
+const ICON = {
+  inbox: '<path d="M4 13h4l1.5 2.5h5L16 13h4M4 13l2.4-7.2A1 1 0 0 1 7.35 5h9.3a1 1 0 0 1 .95.8L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>',
+  projects: '<path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h4l2 2h7A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/>',
+  activity: '<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  gate: '<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>',
+  doc: '<path d="M7 3h7l4 4v14H7zM14 3v4h4M9.5 12h6M9.5 16h6"/>',
+  alert: '<path d="M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.3"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z"/>',
+  help: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6v.5M12 16.8v.3"/>',
+  dial: '<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  back: '<path d="M14.5 6 8.5 12l6 6"/>',
+};
+const icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name] || ''}</svg>`;
+
+// Linear-style status glyphs: outline = not started, half = in progress, filled = finished.
+function st(status, title = status) {
+  const c = { lilac: 'var(--lilac)', red: 'var(--red)', green: 'var(--green)', muted: 'var(--faint)', fg: 'var(--fg2)' };
+  const svg = inner => `<svg class="st" viewBox="0 0 14 14" aria-label="${esc(title)}" role="img">${inner}</svg>`;
+  switch (status) {
+    case 'planned': case 'draft': case 'requested': return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.muted}" stroke-width="1.5" stroke-dasharray="1.6 1.8"/>`);
+    case 'queued': case 'approved': case 'open': return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.fg}" stroke-width="1.5"/>`);
+    case 'running': return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.lilac}" stroke-width="1.5"/><path d="M7 3.5a3.5 3.5 0 0 1 0 7z" fill="${c.lilac}"/>`);
+    case 'review': case 'awaiting-owner': return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.lilac}" stroke-width="1.5"/><path d="M7 3.5a3.5 3.5 0 1 1-3.5 3.5H7z" fill="${c.lilac}"/>`);
+    case 'done': case 'pass': case 'accepted': case 'confirmed': return svg(`<circle cx="7" cy="7" r="6.2" fill="${c.green}"/><path d="M4.3 7.2l1.9 1.9 3.6-3.8" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`);
+    case 'needs-you': case 'fail': case 'stalled': case 'high': return svg(`<circle cx="7" cy="7" r="6.2" fill="${c.red}"/><path d="M7 3.8v3.6M7 9.8v.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`);
+    case 'failed': case 'rejected': case 'retired': case 'dismissed': case 'cancelled': return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.muted}" stroke-width="1.5"/><path d="M5 5l4 4M9 5l-4 4" stroke="${c.muted}" stroke-width="1.4" stroke-linecap="round"/>`);
+    case 'paused': return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.muted}" stroke-width="1.5"/><path d="M5.8 5v4M8.2 5v4" stroke="${c.muted}" stroke-width="1.4" stroke-linecap="round"/>`);
+    case 'medium': case 'low': return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.fg}" stroke-width="1.5"/><path d="M7 4.2v3.4M7 9.6v.2" stroke="${c.fg}" stroke-width="1.5" stroke-linecap="round"/>`);
+    default: return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.muted}" stroke-width="1.5"/>`);
+  }
+}
+const taskStatus = t => t.status === 'failed' && /cancelled/.test(t.reason || '') ? 'cancelled' : t.status;
+const STATUS_WORD = { 'needs-you': 'Needs you', running: 'Working', queued: 'Queued', planned: 'Waiting for your OK', requested: 'Request', review: 'In review', done: 'Done', stalled: 'Stalled', failed: 'Failed', cancelled: 'Cancelled', paused: 'Paused' };
+
+// ---------- data ----------
 async function get(path) {
   const r = await fetch(path, { credentials: 'same-origin' });
   if (r.status === 401) { renderLogin(); throw new Error('signed out'); }
@@ -19,409 +62,455 @@ async function get(path) {
 
 async function act(body, done = 'Done') {
   const r = await fetch('/api/action', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Atelier': '1' }, body: JSON.stringify(body) });
-  const j = await r.json();
-  if (!r.ok || j.error) { toast(j.error || 'Something went wrong'); return false; }
+  const j = await r.json().catch(() => ({ error: 'Something went wrong' }));
+  if (!r.ok || j.error) { toast(j.error || 'Something went wrong'); return null; }
   toast(done);
   await refresh();
-  return true;
+  return j.result ?? true;
 }
 
 function toast(text) {
-  const t = document.getElementById('toast');
+  const t = $('toast');
   t.textContent = text; t.hidden = false;
   clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), 2600);
 }
 
-// ---------- login ----------
-
-function renderLogin() {
-  const failed = location.search.includes('login=failed');
-  app.innerHTML = `<form class="login" method="post" action="/login">
-    <h1>Atelier</h1>
-    <p>Enter the access token printed when the dashboard started (once per device).</p>
-    ${failed ? '<p class="fail">That token didn\'t match.</p>' : ''}
-    <input type="password" name="token" autocomplete="current-password" aria-label="Access token" required autofocus>
-    <button class="act" type="submit">Sign in</button>
-  </form>`;
-  document.getElementById('bell').hidden = true;
-}
-
-// ---------- data + routing ----------
-
 async function refresh() {
   state = await get('/api/overview');
-  renderBell();
-  document.getElementById('usage').textContent = state.limitsText.startsWith('limits:') ? '' : `Plan: ${state.limitsText.replace(/ · read.*$/, '')}`;
+  // A new version of the dashboard was installed: reload so the owner always sees the latest.
+  if (loadedVersion && state.version && state.version !== loadedVersion) return location.reload();
+  loadedVersion = loadedVersion || state.version;
+  renderChrome();
   await route();
 }
 
-async function route() {
-  const [, kind, a, b] = location.hash.split('/');
-  if (kind === 'p' && a) return renderProject(a, b || 'overview');
-  if (kind === 't' && a) return renderTask(a);
-  if (kind === 'new') return renderNew();
-  renderHome();
-}
-
-window.addEventListener('hashchange', () => { closeDropdown(); route(); });
-
-// ---------- the "needs you" queue ----------
-
-function queueRow(q, { compact = false } = {}) {
-  const p = esc(q.project);
-  const alert = q.kind === 'finding' && q.severity === 'high' || q.kind === 'charter-tampered';
-  const meta = `${p} · ${({ gate: 'gate', charter: 'charter', 'charter-tampered': 'charter', criterion: 'criterion', 'owner-criterion': 'your judgement', plan: 'task plan', question: 'question', finding: `drift · ${q.severity} · ${q.reversibility === 'hard' ? 'hard to undo' : 'easy to undo'}`, dial: 'trust' })[q.kind] || q.kind}`;
-  if (compact) return `<div class="row" data-go="${q.kind === 'question' || q.kind === 'plan' ? `#/t/${esc(q.id)}` : `#/p/${p}/${q.kind === 'finding' ? 'audit' : q.kind.includes('criterion') ? 'criteria' : q.kind.startsWith('charter') ? 'decisions' : 'overview'}`}"><div class="title ${alert ? 'alert' : ''}">${esc(q.title)}</div><div class="meta">${meta}</div></div>`;
-  const key = `${q.kind}:${q.project}:${q.id || q.phase || ''}`;
-  let actions = '';
-  switch (q.kind) {
-    case 'gate': actions = `<textarea data-k="${esc(key)}" placeholder="Your approval, in your own words (this is the record)"></textarea>
-      <div class="actions"><button class="act" data-do="gate-approve" data-project="${p}" data-phase="${esc(q.phase)}" data-k="${esc(key)}">Approve</button>
-      <button class="act" data-do="gate-skip" data-project="${p}" data-phase="${esc(q.phase)}" data-k="${esc(key)}">Skip this phase</button>
-      <a href="#/p/${p}/decisions">Read the documents</a></div>`; break;
-    case 'charter': case 'charter-tampered': actions = `<div class="actions"><a href="#/p/${p}/decisions">Read and approve the charter</a></div>`; break;
-    case 'criterion': actions = `<div class="actions"><button class="act" data-do="criterion" data-verb="approve" data-project="${p}" data-id="${esc(q.id)}">Approve</button>
-      <button class="act danger" data-do="criterion" data-verb="retire" data-project="${p}" data-id="${esc(q.id)}">Retire</button></div>`; break;
-    case 'owner-criterion': actions = `<textarea data-k="${esc(key)}" placeholder="Note (required if you reject: what's wrong, so the lead can turn it into a ruling)"></textarea>
-      <div class="actions"><button class="act" data-do="criterion" data-verb="accept" data-project="${p}" data-id="${esc(q.id)}" data-k="${esc(key)}">Accept</button>
-      <button class="act danger" data-do="criterion" data-verb="reject" data-project="${p}" data-id="${esc(q.id)}" data-k="${esc(key)}">Reject</button></div>`; break;
-    case 'plan': actions = `<div class="actions"><button class="act" data-do="plan-approve" data-id="${esc(q.id)}">Approve plan</button><a href="#/t/${esc(q.id)}">Read the brief</a></div>`; break;
-    case 'question': actions = `<textarea data-k="${esc(key)}" placeholder="Your answer"></textarea>
-      <div class="actions"><button class="act" data-do="answer" data-id="${esc(q.id)}" data-k="${esc(key)}">Send answer</button><a href="#/t/${esc(q.id)}">Open task</a></div>`; break;
-    case 'finding': actions = `<textarea data-k="${esc(key)}" placeholder="Optional note"></textarea>
-      <div class="actions"><button class="act" data-do="finding" data-verdict="confirm" data-project="${p}" data-id="${esc(q.id)}" data-k="${esc(key)}">Confirm drift</button>
-      <button class="act" data-do="finding" data-verdict="dismiss" data-project="${p}" data-id="${esc(q.id)}" data-k="${esc(key)}">Dismiss</button></div>`; break;
-    case 'dial': actions = `<div class="actions"><button class="act" data-do="dial" data-project="${p}" data-dial="${esc(q.dial)}" data-value="${esc(q.to)}">Loosen to ${esc(q.to)}</button></div>`; break;
-  }
-  return `<div class="row"><div class="title ${alert ? 'alert' : ''}">${esc(q.title)}</div><div class="meta">${meta}</div>${q.detail ? `<div class="detail">${esc(q.detail)}</div>` : ''}${actions}</div>`;
-}
-
-function renderBell() {
+// ---------- chrome: sidebar + phone tab bar ----------
+function renderChrome() {
+  const here = location.hash || '#/inbox';
   const n = state.queue.length;
-  const bell = document.getElementById('bell');
-  bell.hidden = false;
-  const c = document.getElementById('bell-count');
-  c.hidden = !n; c.textContent = n;
-  bell.classList.toggle('ringing', state.queue.some(q => q.priority <= 1));
+  const lim = state.limits || {};
+  const meter = (label, w) => w ? `<div class="meter"><span>${label}</span><div class="bar"><i class="${w.used_percentage >= 85 ? 'hot' : ''}" style="width:${Math.min(100, Math.round(w.used_percentage))}%"></i></div><span>${Math.round(w.used_percentage)}%</span></div>` : '';
+  $('side').innerHTML = `
+    <div class="brand"><img src="icon.svg" alt="">Atelier</div>
+    <a class="nav ${here.startsWith('#/inbox') ? 'on' : ''}" href="#/inbox">${icon('inbox')}Inbox<span class="count ${n ? 'hot' : ''}">${n || ''}</span></a>
+    <a class="nav ${here.startsWith('#/activity') ? 'on' : ''}" href="#/activity">${icon('activity')}Activity</a>
+    <div class="side-h"><span>Projects</span><a href="#/new" title="New project" aria-label="New project">+</a></div>
+    ${state.projects.map(p => {
+      const needs = state.queue.filter(q => q.project === p.alias).length;
+      return `<a class="nav ${here.startsWith(`#/p/${p.alias}/`) ? 'on' : ''}" href="#/p/${esc(p.alias)}/overview"><span class="pdot ${p.lead?.running ? 'live' : ''}" title="${p.lead?.running ? 'Lead is on' : 'Lead is off'}"></span>${esc(p.alias)}<span class="count ${needs ? 'hot' : ''}">${needs || ''}</span></a>`;
+    }).join('')}
+    <a class="nav" href="#/new">${icon('plus')}New project</a>
+    <div class="side-foot">Plan usage${meter('5h', lim.five_hour)}${meter('7d', lim.seven_day)}${!lim.five_hour ? '<div class="faint">shows after the first run</div>' : ''}</div>`;
+  $('tabbar').innerHTML = `
+    <a class="${here.startsWith('#/inbox') ? 'on' : ''}" href="#/inbox">${icon('inbox')}Inbox${n ? `<span class="badge">${n}</span>` : ''}</a>
+    <a class="${/^#\/(projects|p\/|t\/|new)/.test(here) ? 'on' : ''}" href="#/projects">${icon('projects')}Projects</a>
+    <a class="${here.startsWith('#/activity') ? 'on' : ''}" href="#/activity">${icon('activity')}Activity</a>`;
+  document.title = n ? `(${n}) Atelier` : 'Atelier';
 }
 
-function closeDropdown() {
-  document.getElementById('dropdown').hidden = true;
-  document.getElementById('bell').setAttribute('aria-expanded', 'false');
+const topbar = (crumbs, right = '') => `<div class="top"><div class="crumbs">${crumbs}</div><div class="spacer"></div>${right}</div>`;
+
+// ---------- routing ----------
+async function route() {
+  const [, kind, a, b, c] = (location.hash || '#/inbox').split('/');
+  try {
+    if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c);
+    if (kind === 't' && a) return await renderTask(decodeURIComponent(a));
+    if (kind === 'new') return renderNew();
+    if (kind === 'projects') return renderProjects();
+    if (kind === 'activity') return renderActivity();
+    return renderInbox(a ? decodeURIComponent(a) : null);
+  } catch (e) {
+    if (e.message !== 'signed out') $('app').innerHTML = `${topbar('<b>Error</b>')}<div class="empty"><b>That didn't load</b>${esc(e.message)}</div>`;
+  }
 }
+window.addEventListener('hashchange', () => { if (state) { renderChrome(); route(); } });
 
-document.getElementById('bell').addEventListener('click', e => {
-  e.stopPropagation();
-  const d = document.getElementById('dropdown');
-  if (!d.hidden) return closeDropdown();
-  d.innerHTML = state.queue.length
-    ? `<div class="rows">${state.queue.map(q => queueRow(q, { compact: true })).join('')}</div><a class="row small muted" href="#/">See everything on the home page</a>`
-    : '<p class="pad muted">Nothing needs you right now.</p>';
-  d.hidden = false;
-  document.getElementById('bell').setAttribute('aria-expanded', 'true');
-});
-document.addEventListener('click', e => {
-  const go = e.target.closest('[data-go]');
-  if (go) { location.hash = go.dataset.go; return; }
-  if (!e.target.closest('#dropdown')) closeDropdown();
-});
+// ---------- inbox (Linear) ----------
+const KIND = {
+  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], finding: ['alert', 'Drift'],
+  criterion: ['check', 'Criterion'], 'owner-criterion': ['eye', 'Your judgement'], plan: ['play', 'Task plan'], question: ['help', 'Question'], dial: ['dial', 'Trust'],
+};
 
-// ---------- home ----------
-
-function renderHome() {
+function renderInbox(sel) {
   const q = state.queue;
-  app.innerHTML = `
-    <h1>${q.length ? `${q.length} thing${q.length > 1 ? 's' : ''} need${q.length > 1 ? '' : 's'} you` : 'Nothing needs you'}</h1>
-    <p class="sub">${q.length ? 'Most urgent first.' : 'The team is working. You\'ll see items here, and on the bell, when a decision is yours.'}</p>
-    ${q.length ? `<div class="rows">${q.map(x => queueRow(x)).join('')}</div>` : ''}
-    <h2>Projects</h2>
-    <div class="rows">${state.projects.map(p => p.error ? `<div class="row"><div class="title">${esc(p.alias)}</div><div class="meta fail">${esc(p.error)}</div></div>` : `
-      <a class="row" href="#/p/${esc(p.alias)}/overview">
-        <div class="split"><div class="title"><span class="dot ${p.lead.running ? 'live' : ''}"></span>${esc(p.alias)}</div><span class="meta">${esc(p.phase)} · ${esc(p.trust)}</span></div>
-        <div class="meta">${taskSummary(p.tasks)} · criteria ${p.metrics.criteriaMet}/${p.metrics.criteriaTotal} met · ${p.lead.running ? 'lead is on' : 'lead is off'}</div>
-      </a>`).join('')}
-      <a class="row" href="#/new"><div class="title">+ New project</div><div class="meta">Name it, pick the team shape, and the lead takes it from there</div></a></div>
-    <h2>Recent activity</h2>
-    <div class="rows">${state.events.slice(0, 15).map(eventRow).join('')}</div>`;
+  const pick = sel ? q.find(x => x.key === sel) : null;
+  const rows = q.map(x => {
+    const [ic, label] = KIND[x.kind] || ['inbox', x.kind];
+    const hot = x.priority <= 1 || (x.kind === 'finding' && x.severity === 'high');
+    return `<a class="item ${pick && pick.key === x.key ? 'on' : ''} ${hot ? 'urgent' : ''}" href="#/inbox/${encodeURIComponent(x.key)}">
+      <span style="color:${hot ? 'var(--red)' : 'var(--muted)'}">${icon(ic, 'st')}</span>
+      <span class="t">${esc(x.title)}<small>${esc(x.project)} · ${label}</small></span>
+      <span class="r">${esc(ago(x.at))}</span></a>`;
+  }).join('');
+  $('app').innerHTML = `${topbar('<b>Inbox</b>')}
+    <div class="inbox ${pick ? 'has-detail' : ''}">
+      <div class="col">
+        <div class="seg"><a class="on">Needs you<span class="n">${q.length}</span></a></div>
+        ${q.length ? `<div>${rows}</div>` : `<div class="empty"><b>You're all caught up</b>Decisions that need you show up here.</div>`}
+      </div>
+      <div class="col">${pick ? inboxDetail(pick) : (q.length ? '<div class="empty">Select an item</div>' : nothingDetail())}</div>
+    </div>`;
+}
+
+function nothingDetail() {
+  const working = state.projects.flatMap(p => (p.tasks || []).filter(t => t.status === 'running').map(t => ({ ...t, project: p.alias })));
+  return `<div class="detail">
+    <h1>Nothing needs you</h1>
+    <div class="sub">${working.length ? `${working.length} task${working.length > 1 ? 's are' : ' is'} being worked on.` : 'No one is working right now.'}</div>
+    ${working.length ? `<div class="list">${working.map(t => taskRow(t, { project: true })).join('')}</div>` : `<div class="btns"><a class="btn primary" href="#/new">${icon('plus', 'st')}New project</a></div>`}
+  </div>`;
+}
+
+function inboxDetail(x) {
+  const p = esc(x.project);
+  const [, label] = KIND[x.kind] || ['', x.kind];
+  const back = `<a class="btn ghost" href="#/inbox" style="margin:-6px 0 6px -10px">${icon('back', 'st')}Inbox</a>`;
+  let decide = '';
+  switch (x.kind) {
+    case 'gate': decide = `<div class="label">Approve in your own words; it's kept as the record</div>
+      <textarea id="d-text" placeholder="e.g. Yes, this is the game I want"></textarea>
+      <div class="btns"><button class="btn primary" data-do="gate-approve" data-project="${p}" data-phase="${esc(x.phase)}">Approve ${esc(x.phase)}</button>
+      <button class="btn" data-do="gate-skip" data-project="${p}" data-phase="${esc(x.phase)}">Skip this phase</button>
+      <a class="btn ghost" href="#/p/${p}/docs/${x.phase === 'spec' ? 'spec' : 'brief'}">Read the document</a></div>`; break;
+    case 'charter': case 'charter-tampered': decide = `<div class="btns"><a class="btn primary" href="#/p/${p}/docs/charter">Open the charter</a></div>`; break;
+    case 'criterion': decide = `<div class="btns"><button class="btn primary" data-do="criterion" data-verb="approve" data-project="${p}" data-id="${esc(x.id)}">Approve</button>
+      <button class="btn danger" data-do="criterion" data-verb="retire" data-project="${p}" data-id="${esc(x.id)}">Retire</button></div>`; break;
+    case 'owner-criterion': decide = `<textarea id="d-text" placeholder="If you reject it, say what's wrong; it becomes a ruling"></textarea>
+      <div class="btns"><button class="btn primary" data-do="criterion" data-verb="accept" data-project="${p}" data-id="${esc(x.id)}">Accept</button>
+      <button class="btn danger" data-do="criterion" data-verb="reject" data-project="${p}" data-id="${esc(x.id)}">Reject</button></div>`; break;
+    case 'plan': decide = `<div class="btns"><button class="btn primary" data-do="plan-approve" data-id="${esc(x.id)}">Approve plan</button><a class="btn ghost" href="#/t/${esc(x.id)}">Read the brief</a></div>`; break;
+    case 'question': decide = `<textarea id="d-text" placeholder="Your answer"></textarea>
+      <div class="btns"><button class="btn primary" data-do="answer" data-id="${esc(x.id)}">Send answer</button><a class="btn ghost" href="#/t/${esc(x.id)}">Open task</a></div>`; break;
+    case 'finding': decide = `<textarea id="d-text" placeholder="Optional note"></textarea>
+      <div class="btns"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${p}" data-id="${esc(x.id)}">Confirm drift</button>
+      <button class="btn" data-do="finding" data-verdict="dismiss" data-project="${p}" data-id="${esc(x.id)}">Dismiss</button></div>`; break;
+    case 'dial': decide = `<div class="btns"><button class="btn primary" data-do="dial" data-project="${p}" data-dial="${esc(x.dial)}" data-value="${esc(x.to)}">Loosen to ${esc(x.to)}</button></div>`; break;
+  }
+  return `<div class="detail">${back}
+    <div class="sub">${icon((KIND[x.kind] || ['inbox'])[0], 'st')} ${label}${x.kind === 'finding' ? ` · ${esc(x.severity)} · ${x.reversibility === 'hard' ? 'hard to undo' : 'easy to undo'}` : ''} · <a href="#/p/${p}/overview">${p}</a>${x.at ? ` · ${esc(ago(x.at))} ago` : ''}</div>
+    <h1>${esc(x.title)}</h1>
+    ${x.detail ? md(x.detail) : ''}
+    <div class="box decide">${decide}</div>
+  </div>`;
+}
+
+// ---------- projects list (phone) ----------
+function renderProjects() {
+  $('app').innerHTML = `${topbar('<b>Projects</b>', `<a class="btn" href="#/new">${icon('plus', 'st')}New</a>`)}
+    <div class="list">${state.projects.map(p => `<a class="item" href="#/p/${esc(p.alias)}/overview">
+      <span class="pdot ${p.lead?.running ? 'live' : ''}"></span>
+      <span class="t">${esc(p.alias)}<small>${esc(p.phase)} · ${taskSummary(p.tasks || [])}</small></span>
+      <span class="r">${state.queue.filter(q => q.project === p.alias).length || ''}</span></a>`).join('') || '<div class="empty"><b>No projects yet</b>Create one to get started.</div>'}</div>`;
 }
 
 function taskSummary(tasks) {
   const n = s => tasks.filter(t => t.status === s).length;
-  const parts = [[n('running'), 'working'], [n('needs-you'), 'need you'], [n('queued'), 'queued'], [n('review'), 'in review'], [n('done'), 'done']].filter(([c]) => c);
-  return parts.length ? parts.map(([c, l]) => `${c} ${l}`).join(', ') : 'no tasks yet';
+  const parts = [[n('running'), 'working'], [n('needs-you'), 'need you'], [n('queued'), 'queued'], [n('done'), 'done']].filter(([x]) => x);
+  return parts.length ? parts.map(([x, l]) => `${x} ${l}`).join(', ') : 'no tasks yet';
 }
 
-function eventRow(e) {
-  const bad = /failed|stalled|FAIL|demoted|tampered|high/.test(`${e.type} ${e.msg}`);
-  return `<div class="row small"><span class="${bad ? 'fail' : ''}">${esc(e.id)} · ${esc(e.type)}</span> <span class="muted">${esc(ago(e.ts))}</span><div class="meta">${esc(e.msg)}</div></div>`;
+// ---------- activity ----------
+const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iteration', criteria: 'Criteria', suite: 'Full suite', 'review-started': 'Review started', reviewed: 'Reviewed', done: 'Finished', review: 'Ready for review', 'needs-you': 'Needs you', stalled: 'Stalled', failed: 'Failed', approved: 'Approved', answered: 'Answered', gate: 'Gate', 'gate-request': 'Gate requested', audit: 'Audit', 'audit-started': 'Audit started', 'finding-confirmed': 'Drift confirmed', 'finding-dismissed': 'Finding dismissed', 'criterion-draft': 'Criterion drafted', 'criterion-approve': 'Criterion approved', 'criterion-accept': 'Criterion accepted', 'criterion-reject': 'Criterion rejected', ruling: 'Ruling', message: 'Message', requested: 'Request', 'test-touch': 'Tests changed', 'owner-review': 'Needs your judgement', trust: 'Gating', reporting: 'Reporting', autonomy: 'Shipping', lead: 'Lead', charter: 'Charter', demoted: 'Trust tightened', ownership: 'Out-of-bounds edit reverted', paced: 'Paused for plan limits', queued: 'Queued', project: 'Project' };
+function eventLine(e, showProject = true) {
+  const bad = /failed|stalled|FAIL|demoted|tampered|reverted/.test(`${e.type} ${e.msg}`);
+  const good = /^(done|approved|criterion-accept|finding-confirmed)$/.test(e.type) || / pass|approve/.test(e.msg);
+  return `<li><span>${st(bad ? 'needs-you' : good ? 'done' : 'queued')}</span>
+    <span>${showProject ? `<span class="mono faint">${esc(e.id)}</span> ` : ''}<span class="ev-k">${esc(EVENT_WORD[e.type] || e.type.replace(/-/g, ' '))}</span> <span class="muted">${esc(e.msg)}</span></span>
+    <span class="when">${esc(ago(e.ts))}</span></li>`;
 }
 
-// ---------- new project ----------
-
-function renderNew() {
-  app.innerHTML = `
-    <h1>New project</h1>
-    <p class="sub">Atelier creates the folder and repo and sets up the team. Then you give the lead your brief.</p>
-    <form id="new-form" class="pad form">
-      <label>Name<input type="text" name="name" placeholder="e.g. Pocket Garden" required autocomplete="off"></label>
-      <label>One line about it <span class="muted">(optional)</span><input type="text" name="description" placeholder="A tiny idle game about growing a garden"></label>
-      <fieldset><legend>Team shape</legend>
-        <label class="choice"><input type="radio" name="roster" value="pair"> <strong>Pair</strong>: a builder and a reviewer. <span class="muted">Small apps and quick ideas.</span></label>
-        <label class="choice"><input type="radio" name="roster" value="team" checked> <strong>Team</strong>: designer, frontend, backend, reviewer. <span class="muted">Web apps with a UI and an API.</span></label>
-        <label class="choice"><input type="radio" name="roster" value="game"> <strong>Game</strong>: game designer, gameplay, systems, reviewer. <span class="muted">Games.</span></label>
-        <p class="small muted">The lead can change the team later, with your approval.</p>
-      </fieldset>
-      <fieldset><legend>Shipping</legend>
-        <label class="choice"><input type="radio" name="ship" value="merge" checked> <strong>Straight to main</strong> once checks and the reviewer pass. <span class="muted">For your own and test projects.</span></label>
-        <label class="choice"><input type="radio" name="ship" value="pr"> <strong>Draft PRs</strong> that you merge. <span class="muted">For client work.</span></label>
-      </fieldset>
-      <label class="choice"><input type="checkbox" name="github" checked> Create a private GitHub repo</label>
-      <label class="choice"><input type="checkbox" name="startLead" checked> Start the lead right away</label>
-      <div class="actions"><button class="act" type="submit">Create project</button><a href="#/">Cancel</a></div>
-    </form>`;
-  document.getElementById('new-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    const btn = e.target.querySelector('button');
-    btn.disabled = true; btn.textContent = 'Creating…';
-    const r = await fetch('/api/action', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Atelier': '1' },
-      body: JSON.stringify({ action: 'project-create', name: f.get('name'), description: f.get('description'), roster: f.get('roster'), ship: f.get('ship'), github: f.get('github') === 'on', startLead: f.get('startLead') === 'on' }) });
-    const j = await r.json();
-    if (!r.ok || j.error) { btn.disabled = false; btn.textContent = 'Create project'; return toast(j.error || 'Could not create the project'); }
-    toast(`Created ${j.result.alias}`);
-    await refresh();
-    location.hash = `#/p/${j.result.alias}/overview`;
-  });
+function renderActivity() {
+  $('app').innerHTML = `${topbar('<b>Activity</b>')}<div class="page"><ul class="timeline">${state.events.slice(0, 120).map(e => eventLine(e)).join('') || '<div class="empty">No activity yet</div>'}</ul></div>`;
 }
 
-// ---------- markdown (escaped first, so agent-written text can't inject markup) ----------
-
-function md(src) {
-  const lines = esc(src || '').replace(/&lt;!--[\s\S]*?--&gt;/g, '').split('\n');
-  const inline = s => s.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[\s(])_([^_]+)_(?=[\s).,]|$)/g, '$1<em>$2</em>');
-  let html = '', list = null, code = false, para = [];
-  const flush = () => { if (para.length) { html += `<p>${inline(para.join(' '))}</p>`; para = []; } if (list) { html += `</${list}>`; list = null; } };
-  for (const raw of lines) {
-    const l = raw.trimEnd();
-    if (l.startsWith('```')) { flush(); html += code ? '</pre>' : '<pre class="code">'; code = !code; continue; }
-    if (code) { html += l + '\n'; continue; }
-    let m;
-    if ((m = l.match(/^(#{1,4})\s+(.*)/))) { flush(); html += `<h${m[1].length + 2}>${inline(m[2])}</h${m[1].length + 2}>`; continue; }
-    if ((m = l.match(/^\s*[-*]\s+(?:\[( |x)\]\s+)?(.*)/))) { if (para.length) { html += `<p>${inline(para.join(' '))}</p>`; para = []; } if (list !== 'ul') { if (list) html += `</${list}>`; html += '<ul>'; list = 'ul'; } html += `<li>${m[1] === 'x' ? '☑ ' : m[1] === ' ' ? '☐ ' : ''}${inline(m[2])}</li>`; continue; }
-    if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (para.length) { html += `<p>${inline(para.join(' '))}</p>`; para = []; } if (list !== 'ol') { if (list) html += `</${list}>`; html += '<ol>'; list = 'ol'; } html += `<li>${inline(m[1])}</li>`; continue; }
-    if (/^\|/.test(l)) { flush(); if (!/^\|[\s:-]+\|/.test(l.replace(/[^|:\s-]/g, '') + '|') || /[a-z0-9]/i.test(l)) html += `<div class="tr">${l.split('|').slice(1, -1).map(c => `<span>${inline(c.trim())}</span>`).join('')}</div>`; continue; }
-    if (!l.trim()) { flush(); continue; }
-    if (list) { html += `</${list}>`; list = null; }
-    para.push(l.trim());
-  }
-  flush();
-  if (code) html += '</pre>';
-  return `<div class="md">${html}</div>`;
-}
-
-// ---------- project ----------
-
-async function renderProject(alias, tab) {
+// ---------- project (Vercel) ----------
+async function renderProject(alias, tab, sub) {
   const p = await get(`/api/project/${encodeURIComponent(alias)}`);
-  const tabs = [['overview', 'Overview'], ['board', 'Board'], ['criteria', 'Criteria'], ['audit', 'Auditor'], ['messages', 'Messages'], ['decisions', 'Decisions'], ['activity', 'Activity']];
-  const phaseIdx = PHASES.indexOf(p.phase);
-  app.innerHTML = `
-    <h1>${esc(p.alias)}</h1>
-    <div class="phases">${PHASES.map((ph, i) => `<span class="${i < phaseIdx ? 'done' : i === phaseIdx ? 'now' : ''}">${ph}</span>`).join('')}</div>
-    <nav class="tabs">${tabs.map(([k, l]) => `<a href="#/p/${esc(alias)}/${k}" class="${k === tab ? 'on' : ''}">${l}</a>`).join('')}</nav>
-    <div id="tab"></div>`;
-  const el = document.getElementById('tab');
-  const views = { overview: projOverview, board: projBoard, criteria: projCriteria, audit: projAudit, messages: projMessages, decisions: projDecisions, activity: projActivity };
-  el.innerHTML = (views[tab] || projOverview)(p);
+  const a = esc(p.alias);
+  const own = state.queue.filter(q => q.project === p.alias);
+  const step = nextStep(p, own);
+  const idx = PHASES.indexOf(p.phase);
+  const n = s => p.tasks.filter(t => t.status === s).length;
+  const leadBtn = p.lead.running ? `<button class="btn ghost" data-do="lead-restart" data-project="${a}" title="Start a fresh lead session from its files">Restart lead</button>` : '';
+  const tabs = [['overview', 'Overview'], ['tasks', 'Tasks', p.tasks.filter(t => !['done', 'failed'].includes(t.status)).length], ['criteria', 'Criteria', p.criteria.length],
+    ['audits', 'Audits', p.findings.filter(f => f.status === 'open').length], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings']];
+  const views = { overview: projOverview, tasks: projTasks, criteria: projCriteria, audits: projAudits, docs: projDocs, activity: projActivity, settings: projSettings };
+  $('app').innerHTML = `${topbar(`<a href="#/projects">Projects</a><span>/</span><b>${a}</b>`, leadBtn)}
+    <div class="page">
+      <div class="phead"><h1>${a}</h1><span class="chip"><span class="pdot ${p.lead.running ? 'live' : ''}"></span>${p.lead.running ? `Lead on · talk to "${a} lead" in the Claude app` : 'Lead off'}</span></div>
+      <div class="now">
+        <div><div class="k">Now</div><div class="big">${step.title}</div><div class="txt">${step.detail}</div>${step.action ? `<div class="btns">${step.action}</div>` : ''}
+          <div class="steps">${PHASES.map((ph, i) => `<span class="${i < idx ? 'done' : i === idx ? 'cur' : ''}">${ph}</span>`).join('')}</div></div>
+        <div class="stats">
+          <div class="stat"><div class="v">${n('running')}</div><div class="l">working now</div></div>
+          <div class="stat"><div class="v">${own.length}</div><div class="l">waiting on you</div></div>
+          <div class="stat"><div class="v">${p.metrics.criteriaTotal ? `${p.metrics.criteriaMet}<span class="faint">/${p.metrics.criteriaTotal}</span>` : '—'}</div><div class="l">criteria met</div></div>
+          <div class="stat"><div class="v">$${p.metrics.cost}</div><div class="l">API-equivalent spend</div></div>
+        </div>
+      </div>
+      <nav class="tabs">${tabs.map(([k, l, c]) => `<a href="#/p/${a}/${k}" class="${k === tab ? 'on' : ''}">${l}${c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>
+      <div id="tab">${(views[tab] || projOverview)(p, sub)}</div>
+    </div>`;
 }
 
-// The single most useful thing to know about a project right now, in plain words.
+// One plain sentence about what happens next.
 function nextStep(p, own) {
   const a = esc(p.alias);
-  const leadBtn = `<div class="actions"><button class="act" data-do="lead-start" data-project="${a}">Start the lead</button></div>`;
-  if (p.charter?.tampered) return { title: 'Your charter was changed after you approved it', detail: 'Check the Decisions tab: approve it again if the change is yours, or restore it.' };
-  if (own.length) return { title: `${own.length} decision${own.length > 1 ? 's' : ''} waiting on you`, detail: 'They\'re listed below, most urgent first. The team keeps working on anything that doesn\'t depend on them.' };
-  if (!p.lead.running && p.phase !== 'build') return { title: 'Start the lead, then give it your brief', detail: `The lead opens in a terminal window on this PC. Then open the Claude app → Code → "${a} lead" and tell it what you want built. It will interview you, or just talk freely and it will distil it.`, action: leadBtn };
-  if (!p.charter && p.phase !== 'build') return { title: 'Give the lead your deep brief', detail: `In the Claude app, open "${a} lead". From your brief it drafts your charter (your vision, quality bar and taste), which comes back here for your approval.` };
-  const phaseText = {
-    brief: 'The lead is shaping the brief with you. It will ask you to approve it here.',
-    spec: 'The lead is writing requirements and drafting acceptance criteria with you. Both come here for approval.',
-    design: 'The designer is working. You\'ll approve the design here before anything is built.',
-    contracts: 'The API and interfaces are being drafted. You\'ll approve them before the build starts.',
-  };
-  if (phaseText[p.phase]) return { title: `Phase: ${p.phase}`, detail: phaseText[p.phase] + (p.lead.running ? '' : ' The lead is off, so nothing moves until you start it.'), action: p.lead.running ? '' : leadBtn };
+  const start = `<button class="btn primary" data-do="lead-start" data-project="${a}">Start lead</button>`;
+  if (p.charter?.tampered) return { title: 'Your charter changed after you approved it', detail: 'Read it in Docs and approve it again if the change is yours.', action: `<a class="btn" href="#/p/${a}/docs/charter">Open charter</a>` };
+  if (own.length) return { title: `${own.length} decision${own.length > 1 ? 's' : ''} waiting on you`, detail: 'The team keeps going on anything that doesn\'t depend on them.', action: `<a class="btn primary" href="#/inbox/${encodeURIComponent(own[0].key)}">Review ${own.length > 1 ? 'first' : 'it'}</a>` };
+  if (!p.lead.running && p.phase !== 'build') return { title: 'Start the lead, then brief it', detail: `Then open "${a} lead" in the Claude app and describe what you want. It drafts your charter and brings it back here.`, action: start };
+  if (!p.charter && p.phase !== 'build') return { title: 'Brief the lead', detail: `Open "${a} lead" in the Claude app. Talk it through, or let it interview you.` };
+  const phaseText = { brief: 'The lead is shaping the brief with you.', spec: 'Requirements and acceptance criteria are being written.', design: 'The designer is working on the look and flows.', contracts: 'The interfaces between parts are being drafted.' };
+  if (phaseText[p.phase]) return { title: `${p.phase[0].toUpperCase()}${p.phase.slice(1)} in progress`, detail: phaseText[p.phase] + ' It comes to you for approval.', action: p.lead.running ? '' : start };
   const n = s => p.tasks.filter(t => t.status === s).length;
-  if (n('running') || n('queued')) return { title: 'The team is building', detail: `${n('running')} working, ${n('queued')} queued. Nothing needs you. The bell rings when something does.` };
-  if (p.tasks.length && !n('planned')) return { title: 'All current work is finished', detail: p.lead.running ? 'Tell the lead what\'s next, or review the result.' : 'Start the lead to plan what\'s next.', action: p.lead.running ? '' : leadBtn };
-  return { title: 'Waiting for the lead to plan the build', detail: p.lead.running ? 'The lead will propose tasks; at strict gating you approve each plan here.' : 'Start the lead to plan the build.', action: p.lead.running ? '' : leadBtn };
+  if (n('running') || n('queued')) return { title: 'The team is building', detail: `${n('running')} working, ${n('queued')} queued. Nothing needs you.` };
+  if (p.tasks.length) return { title: 'All current work is finished', detail: p.lead.running ? 'Tell the lead what\'s next.' : 'Start the lead to plan what\'s next.', action: p.lead.running ? '' : start };
+  return { title: 'Waiting for the lead to plan the build', detail: 'Task plans come here for your approval.', action: p.lead.running ? '' : start };
+}
+
+function taskRow(t, { project = false } = {}) {
+  const s = taskStatus(t);
+  return `<a class="item ${s === 'needs-you' ? 'urgent' : ''}" href="#/t/${esc(t.id)}">
+    ${st(s, STATUS_WORD[s] || s)}<span class="id">${esc(t.id)}</span>
+    <span class="t">${esc(t.title)}<small>${s === 'running' && t.now ? esc(t.now) : `${esc(t.role || 'builder')}${project ? ` · ${esc(t.project)}` : ''}${t.reason && s !== 'done' ? ` · ${esc(t.reason)}` : ''}`}</small></span>
+    <span class="r">${t.iteration ? `${t.iteration}/${t.iterations}` : ''}</span></a>`;
 }
 
 function projOverview(p) {
   const own = state.queue.filter(q => q.project === p.alias);
-  const sel = (dial, value, options) => `<select data-dial="${dial}" data-project="${esc(p.alias)}">${options.map(o => `<option ${o === value ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
-  const running = p.tasks.filter(t => t.status === 'running');
-  const step = nextStep(p, own);
+  const active = p.tasks.filter(t => ['running', 'needs-you', 'queued', 'planned', 'review'].includes(t.status));
   return `
-    <div class="next"><div class="label">What happens next</div><div class="title">${step.title}</div><div class="meta">${step.detail}</div>${step.action || ''}</div>
-    ${own.length ? `<h2>Needs you</h2><div class="rows">${own.map(x => queueRow(x)).join('')}</div>` : ''}
-    ${running.length ? `<h2>Working now</h2><div class="rows">${running.map(t => `<a class="row" href="#/t/${esc(t.id)}"><div class="split"><div class="title"><span class="dot live"></span>${esc(t.title)}</div><span class="meta">${esc(t.role || 'builder')} · ${t.iteration || 0}/${t.iterations}</span></div><div class="meta">${esc(t.now)}</div></a>`).join('')}</div>` : ''}
-    <h2>Lead</h2>
-    <div class="rows"><div class="row">
-      <div class="title"><span class="dot ${p.lead.running ? 'live' : ''}"></span>${p.lead.running ? 'The lead is on' : 'The lead is off'}</div>
-      <div class="meta">${p.lead.running ? `Talk to it in the Claude app: "${esc(p.alias)} lead".` : 'Start it to plan, brief and run the team. It opens a terminal window on this PC that has to stay open.'}</div>
-      <div class="actions">${p.lead.running
-        ? `<button class="act" data-do="lead-restart" data-project="${esc(p.alias)}">Restart fresh</button><button class="act danger" data-do="lead-stop" data-project="${esc(p.alias)}">Stop</button>`
-        : `<button class="act" data-do="lead-start" data-project="${esc(p.alias)}">Start the lead</button>`}</div>
-    </div></div>
-    <h2>Dials</h2>
-    <dl class="kv">
-      <dt>Gating</dt><dd>${sel('trust', p.trust, ['strict', 'standard', 'loose'])}</dd>
-      <dt>Reporting</dt><dd>${sel('reporting', p.reporting, ['everything', 'daily', 'exceptions'])}</dd>
-      <dt>Shipping</dt><dd>${sel('autonomy', p.autonomy, ['pr', 'merge', 'branch'])} <span class="muted small">${p.autonomy === 'merge' ? 'reviewed work goes straight to main' : p.autonomy === 'pr' ? 'draft PRs you merge' : 'local branches only'}</span></dd>
-      <dt>Next dial</dt><dd>${p.suggestion ? `${esc(p.suggestion.dial)} → ${esc(p.suggestion.to)}: ${p.suggestion.ready ? '<strong>earned</strong>' : 'not yet'} <span class="muted small">(${esc(p.suggestion.why)})</span>` : '—'}</dd>
-    </dl>
-    <h2>Numbers</h2>
-    <dl class="kv">
-      <dt>Criteria met</dt><dd>${p.metrics.criteriaMet} of ${p.metrics.criteriaTotal} approved</dd>
-      <dt>Auditor</dt><dd>${p.lastAudit ? `last ran ${esc(ago(p.lastAudit.at))} · ` : 'never run · '}${p.findings.filter(f => f.status === 'open').length} open · hit rate ${p.hit.confirmed}/${p.hit.judged} <button class="act small" data-do="audit" data-project="${esc(p.alias)}">Run now</button></dd>
-      <dt>Cost</dt><dd>$${p.metrics.cost} API-equivalent${p.metrics.costPerCriterion !== null ? ` · $${p.metrics.costPerCriterion} per criterion met` : ''}</dd>
-      <dt>Your time</dt><dd>${p.metrics.approvals} approvals · ${p.metrics.overrules} overrules · ${p.metrics.findingsJudged} findings judged</dd>
-      <dt>Charter</dt><dd>${p.charter ? `approved ${esc(p.charter.approvedAt.slice(0, 10))}${p.charter.tampered ? ' <span class="fail">— changed since</span>' : ''}` : 'not approved yet'}</dd>
-    </dl>
-    <h2>Team</h2>
-    <div class="rows">${p.roster.map(r => `<div class="row"><div class="title">${esc(r.role)}${r.model ? ` <span class="muted small">${esc(r.model)}</span>` : ''}</div><div class="meta">${r.owns.length ? `owns ${esc(r.owns.join(', '))}` : 'read-only'}</div></div>`).join('')}</div>`;
+    ${own.length ? `<div class="sec">Waiting on you</div><div class="list">${own.map(x => `<a class="item urgent" href="#/inbox/${encodeURIComponent(x.key)}">${icon((KIND[x.kind] || ['inbox'])[0], 'st')}<span class="t">${esc(x.title)}<small>${(KIND[x.kind] || ['', x.kind])[1]}</small></span><span class="r">${esc(ago(x.at))}</span></a>`).join('')}</div>` : ''}
+    <div class="sec">In progress</div>
+    ${active.length ? `<div class="list">${active.map(t => taskRow(t)).join('')}</div>` : '<div class="hint">No active tasks.</div>'}
+    <div class="sec">Recent</div>
+    <ul class="timeline">${p.events.slice(0, 8).map(e => eventLine(e, false)).join('') || '<div class="hint">Nothing yet.</div>'}</ul>`;
 }
 
-const STATUS_ORDER = ['needs-you', 'running', 'planned', 'requested', 'queued', 'review', 'stalled', 'failed', 'paused', 'done'];
-function projBoard(p) {
-  const tasks = [...p.tasks].sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
-  if (!tasks.length) return '<p class="pad muted">No tasks yet.</p>';
-  const roles = [...new Set(tasks.map(t => t.role || 'builder'))];
-  return roles.map(r => `<h2>${esc(r)}</h2><div class="rows">${tasks.filter(t => (t.role || 'builder') === r).map(t => `
-    <a class="row" href="#/t/${esc(t.id)}">
-      <div class="split"><div class="title ${t.status === 'needs-you' || t.status === 'stalled' || (t.status === 'failed' && !/cancelled/.test(t.reason || '')) ? 'alert' : ''}">${esc(t.title)}</div><span class="meta">${t.status === 'failed' && /cancelled/.test(t.reason || '') ? 'cancelled' : esc(t.status)}</span></div>
-      <div class="meta">${esc(t.id)}${t.iteration ? ` · ${t.iteration}/${t.iterations}` : ''}${t.criteria ? ` · ${esc(t.criteria)}` : ''}${t.cost ? ` · ${t.cost.toFixed(2)}` : ''}${t.reason ? ` · ${esc(t.reason)}` : ''}</div>${t.now ? `<div class="meta"><span class="dot live"></span>${esc(t.now)}</div>` : ''}
-    </a>`).join('')}</div>`).join('');
+const GROUPS = [['needs-you', 'Needs you'], ['running', 'Working'], ['review', 'In review'], ['queued', 'Queued'], ['planned', 'Waiting for your OK'], ['requested', 'Requests'], ['stalled', 'Stalled'], ['paused', 'Paused'], ['done', 'Done'], ['failed', 'Failed'], ['cancelled', 'Cancelled']];
+function projTasks(p) {
+  if (!p.tasks.length) return '<div class="empty"><b>No tasks yet</b>The lead plans tasks after your brief and spec are approved.</div>';
+  return GROUPS.map(([s, label]) => {
+    const list = p.tasks.filter(t => taskStatus(t) === s);
+    return list.length ? `<div class="group">${st(s)} ${label}<span class="n">${list.length}</span></div><div class="list">${list.map(t => taskRow(t)).join('')}</div>` : '';
+  }).join('');
 }
 
 function projCriteria(p) {
-  if (!p.criteria.length) return '<p class="pad muted">No acceptance criteria yet. The lead drafts them with you during the spec phase.</p>';
-  const cls = s => s === 'pass' || s === 'accepted' ? 'pass' : s === 'fail' || s === 'rejected' ? 'fail' : '';
-  return `<div class="rows">${p.criteria.map(c => `<div class="row">
-    <div class="split"><div class="title">${esc(c.id)} · ${esc(c.statement)}</div><span class="meta ${cls(c.status)}">${esc(c.status)}</span></div>
-    <div class="meta">${esc(c.kind)}${c.verify ? ` · <code>${esc(c.verify)}</code>` : ''} · serves ${esc(c.serves)}</div>
-    ${c.status === 'draft' ? `<div class="actions"><button class="act" data-do="criterion" data-verb="approve" data-project="${esc(p.alias)}" data-id="${esc(c.id)}">Approve</button><button class="act danger" data-do="criterion" data-verb="retire" data-project="${esc(p.alias)}" data-id="${esc(c.id)}">Retire</button></div>` : ''}
+  if (!p.criteria.length) return '<div class="empty"><b>No acceptance criteria yet</b>You and the lead write these during the spec phase. Every task must meet them.</div>';
+  return `<div class="list" style="margin-top:12px">${p.criteria.map(c => `<div class="item" style="cursor:default">
+    ${st(c.status)}<span class="id">${esc(c.id)}</span>
+    <span class="t" style="white-space:normal">${esc(c.statement)}<small>${esc(c.kind)} · ${esc(c.status)} · serves ${esc(c.serves)}</small></span>
+    ${c.status === 'draft' ? `<span class="btns"><button class="btn" data-do="criterion" data-verb="approve" data-project="${esc(p.alias)}" data-id="${esc(c.id)}">Approve</button></span>` : ''}
   </div>`).join('')}</div>`;
 }
 
-function projAudit(p) {
-  const open = p.findings.filter(f => f.status === 'open');
-  const closed = p.findings.filter(f => f.status !== 'open');
-  const row = f => `<div class="row"><div class="title ${f.severity === 'high' && f.status !== 'dismissed' ? 'alert' : ''}">${esc(f.id)} · ${esc(f.claim)}</div>
-    <div class="meta">${esc(f.severity)} · ${f.reversibility === 'hard' ? 'hard to undo' : 'easy to undo'} · ${esc(f.source || '')} · product ${esc(f.product)}${f.status !== 'open' ? ` · ${esc(f.status)}` : ''}</div>
-    <div class="detail">Expected: ${esc(f.expected)}\nObserved: ${esc(f.observed)}\nEvidence: ${esc(f.evidence)}</div>
-    ${f.status === 'open' ? `<div class="actions"><button class="act" data-do="finding" data-verdict="confirm" data-project="${esc(p.alias)}" data-id="${esc(f.id)}">Confirm drift</button><button class="act" data-do="finding" data-verdict="dismiss" data-project="${esc(p.alias)}" data-id="${esc(f.id)}">Dismiss</button></div>` : ''}</div>`;
-  return `<p class="sub" style="margin-top:12px">The auditor never sees the lead's plan. It checks the product against your charter, rulings and approved criteria, and reports here, to you. <button class="act" data-do="audit" data-project="${esc(p.alias)}">Run an audit now</button></p>
-    ${open.length ? `<h2>Open</h2><div class="rows">${open.map(row).join('')}</div>` : '<p class="pad muted">No open findings.</p>'}
-    ${closed.length ? `<h2>Judged</h2><div class="rows">${closed.slice(-20).reverse().map(row).join('')}</div>` : ''}`;
+function projAudits(p) {
+  const list = [...p.findings].reverse();
+  const head = `<div class="btns" style="margin:14px 0"><button class="btn" data-do="audit" data-project="${esc(p.alias)}">Run audit now</button>
+    <span class="hint">The auditor never sees the lead's plan. It checks the product against your own words and reports only to you.${p.lastAudit ? ` Last run ${esc(ago(p.lastAudit.at))} ago.` : ''}</span></div>`;
+  if (!list.length) return head + '<div class="empty"><b>No findings</b>Audits run after each gate you approve, and daily while the team works.</div>';
+  return head + `<div class="list">${list.map(f => `<details class="item" style="display:block;cursor:default"><summary style="display:flex;gap:10px;align-items:center;cursor:pointer;list-style:none">
+      ${st(f.status === 'open' ? f.severity : f.status)}<span class="id">${esc(f.id)}</span><span class="t">${esc(f.claim)}<small>${esc(f.severity)} · ${f.reversibility === 'hard' ? 'hard to undo' : 'easy to undo'} · ${esc(f.status)}</small></span></summary>
+      <div style="padding:8px 0 4px 24px">${md(`**Your words:** ${f.expected}\n\n**What the product does:** ${f.observed}\n\n**Evidence:** ${f.evidence}`)}
+      ${f.status === 'open' ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${esc(p.alias)}" data-id="${esc(f.id)}">Confirm drift</button><button class="btn" data-do="finding" data-verdict="dismiss" data-project="${esc(p.alias)}" data-id="${esc(f.id)}">Dismiss</button></div>` : ''}</div></details>`).join('')}</div>`;
 }
 
-function projMessages(p) {
-  if (!p.messages.length) return '<p class="pad muted">No messages between specialists yet.</p>';
-  return `<p class="sub" style="margin-top:12px">Specialists talk directly. Nothing here binds anyone: decisions go through the lead into contracts and criteria.</p>
-    <div class="rows">${p.messages.map(m => `<div class="row"><div class="split"><div class="title">${esc(m.fromRole || m.from)} → ${esc(m.to)}</div><span class="meta">${esc(m.type)} · ${esc(ago(m.at))}</span></div><div class="detail">${esc(m.text)}</div></div>`).join('')}</div>`;
-}
-
-function projDecisions(p) {
-  return `
-    <h2>Your charter</h2>
-    <p class="sub">Only you change this. Every agent reads it every iteration, and the auditor checks the product against it.</p>
-    <div class="pad" style="padding-top:0"><textarea class="doc" id="charter-text">${esc(p.docs.charter)}</textarea>
-      <div class="actions"><button class="act" data-do="charter-save" data-project="${esc(p.alias)}">Save changes</button></div>
-      <p class="small muted" style="margin-bottom:4px">${p.charter ? `Approved ${esc(p.charter.approvedAt.slice(0, 10))}${p.charter.tampered ? ' — <span class="fail">it has changed since; approve again if the changes are yours</span>' : ''}` : 'Not approved yet.'}</p>
-      <textarea id="charter-quote" placeholder="Approve in your own words, e.g. 'Yes, this is what I want built'"></textarea>
-      <div class="actions"><button class="act" data-do="charter-approve" data-project="${esc(p.alias)}">Approve the charter</button></div></div>
-    <h2>Rulings</h2>
-    ${md(p.docs.rulings || 'No rulings yet.')}
-    <div class="pad"><textarea id="ruling-text" placeholder="Add a ruling directly, e.g. 'No modal dialogs: edit inline'"></textarea><div class="actions"><button class="act" data-do="ruling" data-project="${esc(p.alias)}">Add ruling</button></div></div>
-    <h2>Lead's ledger</h2>${md(p.docs.ledger || 'Empty.')}
-    <h2>Lead's plan</h2>${md(p.docs.plan || 'Empty.')}
-    <h2>Brief</h2>${md(p.docs.brief || 'Empty.')}
-    <h2>Spec</h2>${md(p.docs.spec || 'Empty.')}`;
+const DOCS = [['charter', 'Charter'], ['rulings', 'Rulings'], ['brief', 'Brief'], ['spec', 'Spec'], ['plan', "Lead's plan"], ['ledger', "Lead's ledger"], ['messages', 'Team messages']];
+function projDocs(p, sub = 'charter') {
+  const a = esc(p.alias);
+  let body;
+  if (sub === 'charter') {
+    body = `<div class="btns" style="margin-bottom:10px"><span class="hint">${p.charter ? `Approved ${esc(ago(p.charter.approvedAt))} ago${p.charter.tampered ? ' · <span style="color:var(--red)">changed since</span>' : ''}.` : 'Not approved yet.'} Only you change this; every agent reads it.</span></div>
+      <textarea class="code" id="charter-text">${esc(p.docs.charter)}</textarea>
+      <div class="btns"><button class="btn" data-do="charter-save" data-project="${a}">Save</button></div>
+      <div class="box decide"><div class="label">Approve in your own words</div><textarea id="d-text" placeholder="e.g. Yes, this is what I want built"></textarea><button class="btn primary" data-do="charter-approve" data-project="${a}">Approve charter</button></div>`;
+  } else if (sub === 'rulings') {
+    body = `${md(p.docs.rulings || 'No rulings yet.')}<div class="box"><div class="label">Add a ruling</div><textarea id="d-text" placeholder="e.g. No modal dialogs: edit inline"></textarea><button class="btn" data-do="ruling" data-project="${a}">Add ruling</button></div>`;
+  } else if (sub === 'messages') {
+    body = p.messages.length ? `<div class="hint" style="margin-bottom:8px">Specialists message each other directly. Nothing here binds anyone; decisions go through the lead.</div><ul class="timeline">${p.messages.map(m => `<li><span>${st('queued')}</span><span><span class="muted">${esc(m.fromRole || m.from)} → ${esc(m.to)} · ${esc(m.type)}</span><br>${esc(m.text)}</span><span class="when">${esc(ago(m.at))}</span></li>`).join('')}</ul>` : '<div class="hint">No messages yet.</div>';
+  } else {
+    body = md(p.docs[sub] || 'Empty.');
+  }
+  return `<div class="docs"><nav>${DOCS.map(([k, l]) => `<a href="#/p/${a}/docs/${k}" class="${k === sub ? 'on' : ''}">${l}</a>`).join('')}</nav><div>${body}</div></div>`;
 }
 
 function projActivity(p) {
-  return `<div class="rows">${p.events.map(eventRow).join('') || '<p class="pad muted">No activity yet.</p>'}</div>`;
+  return `<ul class="timeline" style="margin-top:12px">${p.events.map(e => eventLine(e)).join('') || '<div class="hint">Nothing yet.</div>'}</ul>`;
 }
 
-// ---------- task ----------
+function projSettings(p) {
+  const a = esc(p.alias);
+  const sel = (dial, value, options) => `<select data-dial="${dial}" data-project="${a}">${options.map(([v, l]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  return `<div class="sec">How much you're involved</div>
+    <dl class="kv">
+      <dt>Gating</dt><dd>${sel('trust', p.trust, [['strict', 'Strict: approve every phase and task'], ['standard', 'Standard: approve phases'], ['loose', 'Loose: approve the brief only']])}</dd>
+      <dt>Reporting</dt><dd>${sel('reporting', p.reporting, [['everything', 'Everything'], ['daily', 'Daily digest'], ['exceptions', 'Exceptions only']])}</dd>
+      <dt>Shipping</dt><dd>${sel('autonomy', p.autonomy, [['merge', 'Straight to main after review'], ['pr', 'Draft PRs you merge'], ['branch', 'Local branches only']])}</dd>
+      <dt>Earned trust</dt><dd>${p.suggestion ? `${esc(p.suggestion.dial)} → ${esc(p.suggestion.to)}: ${p.suggestion.ready ? '<b>earned</b>' : 'not yet'} <span class="hint">(${esc(p.suggestion.why)})</span>` : '—'}</dd>
+    </dl>
+    <div class="sec">Team</div>
+    <div class="list">${p.roster.map(r => `<div class="item" style="cursor:default"><span class="t">${esc(r.role)}<small>${r.owns.length ? esc(r.owns.join(', ')) : 'read-only'}</small></span><span class="r">${esc(r.model || '')}</span></div>`).join('')}</div>
+    <div class="sec">Lead</div>
+    <div class="btns">${p.lead.running ? `<button class="btn" data-do="lead-restart" data-project="${a}">Restart fresh</button><button class="btn danger" data-do="lead-stop" data-project="${a}">Stop lead</button>` : `<button class="btn primary" data-do="lead-start" data-project="${a}">Start lead</button>`}</div>
+    <div class="sec">Numbers</div>
+    <dl class="kv"><dt>Your approvals</dt><dd>${p.metrics.approvals}</dd><dt>Overrules</dt><dd>${p.metrics.overrules}</dd><dt>Audit hit rate</dt><dd>${p.hit.confirmed}/${p.hit.judged} confirmed</dd><dt>Full test suite</dt><dd>${p.suite ? `<code>${esc(p.suite)}</code>` : '<span class="hint">not set (the lead sets it)</span>'}</dd><dt>Folder</dt><dd class="mono">${esc(p.repo)}</dd></dl>`;
+}
 
+// ---------- task (Cursor / Devin agent view) ----------
 async function renderTask(id) {
   const t = await get(`/api/task/${encodeURIComponent(id)}`);
   const m = t.meta;
-  const section = (title, body, raw = false) => body && body.trim() ? `<h2>${title}</h2>${raw ? `<pre class="doc">${esc(body.trim())}</pre>` : md(body.trim())}` : '';
-  app.innerHTML = `
-    <h1>${esc(m.title)}</h1>
-    <p class="sub">${esc(m.id)} · ${esc(m.role || 'builder')} · ${esc(m.status)}${m.reason ? ` — ${esc(m.reason)}` : ''}${m.project ? ` · <a href="#/p/${esc(m.project)}/board">${esc(m.project)}</a>` : ''}</p>
-    <dl class="kv">
-      <dt>Progress</dt><dd>${esc(m.iteration || 0)} of ${esc(m.iterations)} iterations · check ${esc(m.last_check || 'not run')}</dd>
-      <dt>Criteria</dt><dd>${esc(m.criteria || '—')}</dd>
-      <dt>Done-check</dt><dd><code>${esc(m.check)}</code></dd>
-      ${m.files ? `<dt>Files</dt><dd>${esc(m.files)}</dd>` : ''}
-      ${m.pr ? `<dt>PR</dt><dd><a href="${esc(m.pr)}" target="_blank" rel="noopener">${esc(m.pr)}</a></dd>` : ''}
-      ${m.test_touch ? `<dt>Flagged</dt><dd class="fail">changed existing tests: ${esc(m.test_touch)}</dd>` : ''}
-    </dl>
-    ${m.status === 'planned' ? `<div class="pad"><button class="act" data-do="plan-approve" data-id="${esc(m.id)}">Approve this plan</button></div>` : ''}
-    ${m.status === 'needs-you' ? `<div class="pad"><textarea id="answer-text" placeholder="Your answer"></textarea><div class="actions"><button class="act" data-do="answer" data-id="${esc(m.id)}" data-src="answer-text">Send answer</button></div></div>` : ''}
-    ${['running', 'queued'].includes(m.status) ? `<div class="pad"><button class="act danger" data-do="task-stop" data-id="${esc(m.id)}">Stop this task</button></div>` : ''}
-    ${section('Brief', t.body)}
-    ${section('Questions', t.questions)}
-    ${section('Review', t.review)}
-    ${section('Progress', t.progress)}
-    ${section('Decisions made without you', t.decisions)}
-    ${section('Last check', t.lastCheck, true)}`;
+  const s = taskStatus(m);
+  const crit = t.criteria || [];
+  const right = m.status === 'planned' ? `<button class="btn primary" data-do="plan-approve" data-id="${esc(m.id)}">Approve plan</button>`
+    : ['running', 'queued'].includes(m.status) ? `<button class="btn danger" data-do="task-stop" data-id="${esc(m.id)}">Stop</button>` : '';
+  const evIcon = e => st(/failed|FAIL|stalled/.test(`${e.type} ${e.msg}`) ? 'needs-you' : e.type === 'done' || /pass|approve/.test(e.msg) ? 'done' : e.type === 'started' || e.type === 'iteration' ? 'running' : 'queued');
+  $('app').innerHTML = `${topbar(`${m.project ? `<a href="#/p/${esc(m.project)}/tasks">${esc(m.project)}</a><span>/</span>` : ''}<b>${esc(m.id)}</b>`, right)}
+    <div class="page"><div class="task">
+      <div>
+        <div class="muted" style="display:flex;gap:8px;align-items:center">${st(s)} ${STATUS_WORD[s] || s}${m.reason ? ` · ${esc(m.reason)}` : ''}</div>
+        <h1 style="font-size:20px;font-weight:600;margin:6px 0 4px">${esc(m.title)}</h1>
+        ${m.status === 'needs-you' ? `<div class="box decide"><div class="label">The agent needs you</div>${md(t.questions.split(/^## /m).slice(-1)[0] || m.reason)}<textarea id="d-text" placeholder="Your answer"></textarea><button class="btn primary" data-do="answer" data-id="${esc(m.id)}">Send answer</button></div>` : ''}
+        <div class="sec">Timeline</div>
+        <ul class="timeline">${t.timeline.map(e => `<li><span>${evIcon(e)}</span><span><span class="ev-k">${esc(EVENT_WORD[e.type] || e.type.replace(/-/g, ' '))}</span> <span class="muted">${esc(e.msg)}</span></span><span class="when">${esc(ago(e.ts))}</span></li>`).join('') || '<div class="hint">Not started yet.</div>'}</ul>
+        ${t.review ? `<div class="sec">Review</div><div class="box">${md(t.review)}</div>` : ''}
+        ${t.progress ? `<details open data-auto><summary class="sec" style="cursor:pointer">Progress notes</summary>${md(t.progress)}</details>` : ''}
+        ${t.decisions && t.decisions.split('\n').length > 2 ? `<details><summary class="sec" style="cursor:pointer">Decisions made without you</summary>${md(t.decisions)}</details>` : ''}
+        <details><summary class="sec" style="cursor:pointer">Brief</summary>${md(t.body)}</details>
+        ${t.lastCheck ? `<details><summary class="sec" style="cursor:pointer">Last check output</summary><pre class="raw">${esc(t.lastCheck)}</pre></details>` : ''}
+      </div>
+      <aside>
+        <dl class="props">
+          <dt>Status</dt><dd>${st(s)} ${STATUS_WORD[s] || s}</dd>
+          <dt>Role</dt><dd>${esc(m.role || 'builder')}</dd>
+          <dt>Progress</dt><dd>${esc(m.iteration || 0)} of ${esc(m.iterations)} iterations</dd>
+          <dt>Acceptance criteria</dt><dd>${crit.length ? crit.map(c => `<div class="check-row">${st(c.status)}<span>${esc(c.id)} · ${esc(c.statement)}</span></div>`).join('') : '<span class="hint">none cited</span>'}</dd>
+          <dt>Done when</dt><dd><code>${esc(m.check)}</code></dd>
+          ${m.files ? `<dt>Owns</dt><dd class="mono">${esc(m.files)}</dd>` : ''}
+          ${m.test_touch ? `<dt>Flagged</dt><dd style="color:var(--red)">changed existing tests: ${esc(m.test_touch)}</dd>` : ''}
+          ${m.pr ? `<dt>Pull request</dt><dd><a href="${esc(m.pr)}" target="_blank" rel="noopener" style="text-decoration:underline">${esc(m.pr.replace(/^https:\/\/github.com\//, ''))}</a></dd>` : ''}
+          <dt>Spend</dt><dd>$${Number(m.cost_usd || 0).toFixed(2)} API-equivalent</dd>
+        </dl>
+      </aside>
+    </div></div>`;
+}
+
+// ---------- new project ----------
+function renderNew() {
+  $('app').innerHTML = `${topbar('<a href="#/projects">Projects</a><span>/</span><b>New project</b>')}
+    <div class="page"><form id="new-form" class="form">
+      <div class="f"><label for="nf-name">Name</label><input type="text" id="nf-name" name="name" placeholder="Pocket Garden" required autocomplete="off"></div>
+      <div class="f"><label for="nf-desc">One line about it <span class="faint">(optional)</span></label><input type="text" id="nf-desc" name="description" placeholder="A tiny idle game about growing a garden"></div>
+      <fieldset><legend>Team</legend>
+        <label class="opt"><input type="radio" name="roster" value="pair"><div><b>Pair</b><span>Builder + reviewer. Small apps and quick ideas.</span></div></label>
+        <label class="opt"><input type="radio" name="roster" value="team" checked><div><b>Team</b><span>Designer, frontend, backend, reviewer. Web apps.</span></div></label>
+        <label class="opt"><input type="radio" name="roster" value="game"><div><b>Game</b><span>Game designer, gameplay, systems, reviewer.</span></div></label>
+      </fieldset>
+      <fieldset><legend>Shipping</legend>
+        <label class="opt"><input type="radio" name="ship" value="merge" checked><div><b>Straight to main</b><span>After checks and review pass. For your own projects.</span></div></label>
+        <label class="opt"><input type="radio" name="ship" value="pr"><div><b>Draft PRs</b><span>You merge each one. For client work.</span></div></label>
+      </fieldset>
+      <label class="tick"><input type="checkbox" name="github" checked> Private GitHub repo</label>
+      <label class="tick"><input type="checkbox" name="startLead" checked> Start the lead now</label>
+      <div class="btns" style="margin-top:18px"><button class="btn primary" type="submit">Create project</button><a class="btn ghost" href="#/inbox">Cancel</a></div>
+    </form></div>`;
+  $('new-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    const r = await act({ action: 'project-create', name: f.get('name'), description: f.get('description'), roster: f.get('roster'), ship: f.get('ship'), github: f.get('github') === 'on', startLead: f.get('startLead') === 'on' }, 'Project created');
+    if (r && r.alias) location.hash = `#/p/${encodeURIComponent(r.alias)}/overview`;
+    else { btn.disabled = false; btn.textContent = 'Create project'; }
+  });
+}
+
+// ---------- markdown (escaped first, so agent-written text can't inject markup) ----------
+function md(src) {
+  const lines = esc(src || '').replace(/&lt;!--[\s\S]*?--&gt;/g, '').split('\n');
+  const inline = s => s.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[\s(])_([^_]+)_(?=[\s).,]|$)/g, '$1<em>$2</em>');
+  let html = '', list = null, code = false, para = [];
+  const endPara = () => { if (para.length) { html += `<p>${inline(para.join(' '))}</p>`; para = []; } };
+  const endList = () => { if (list) { html += `</${list}>`; list = null; } };
+  for (const raw of lines) {
+    const l = raw.trimEnd();
+    if (l.startsWith('```')) { endPara(); endList(); html += code ? '</pre>' : '<pre class="code">'; code = !code; continue; }
+    if (code) { html += l + '\n'; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,4})\s+(.*)/))) { endPara(); endList(); html += `<h${m[1].length + 2}>${inline(m[2])}</h${m[1].length + 2}>`; continue; }
+    if ((m = l.match(/^\s*[-*]\s+(?:\[( |x)\]\s+)?(.*)/))) { endPara(); if (list !== 'ul') { endList(); html += '<ul>'; list = 'ul'; } html += `<li>${m[1] === 'x' ? '☑ ' : m[1] === ' ' ? '☐ ' : ''}${inline(m[2])}</li>`; continue; }
+    if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { endPara(); if (list !== 'ol') { endList(); html += '<ol>'; list = 'ol'; } html += `<li>${inline(m[1])}</li>`; continue; }
+    if (/^\|/.test(l)) { endPara(); endList(); if (/[a-z0-9]/i.test(l)) html += `<div class="tr">${l.split('|').slice(1, -1).map(c => `<span>${inline(c.trim())}</span>`).join('')}</div>`; continue; }
+    if (!l.trim()) { endPara(); endList(); continue; }
+    endList();
+    para.push(l.trim());
+  }
+  endPara(); endList();
+  if (code) html += '</pre>';
+  return `<div class="md">${html}</div>`;
+}
+
+// ---------- login ----------
+function renderLogin() {
+  const failed = location.search.includes('login=failed');
+  $('side').style.display = 'none';
+  $('tabbar').style.display = 'none';
+  document.querySelector('.shell').style.display = 'block';
+  $('app').innerHTML = `<form class="login" method="post" action="/login">
+    <img src="icon.svg" width="28" height="28" alt="">
+    <h1>Sign in to Atelier</h1>
+    <p>Paste the access token from <code>atelier open</code>. You only do this once per device.</p>
+    ${failed ? '<p style="color:var(--red)">That token didn\'t match.</p>' : ''}
+    <input type="password" name="token" autocomplete="current-password" aria-label="Access token" required autofocus>
+    <button class="btn primary" type="submit">Sign in</button>
+  </form>`;
 }
 
 // ---------- actions ----------
-
+const leaveInbox = ok => { if (ok && location.hash.startsWith('#/inbox/')) location.hash = '#/inbox'; };
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-do]');
   if (!b) return;
   const d = b.dataset;
-  const text = d.k ? (document.querySelector(`textarea[data-k="${CSS.escape(d.k)}"]`)?.value || '').trim()
-    : d.src ? (document.getElementById(d.src)?.value || '').trim() : '';
+  const text = ($('d-text')?.value || '').trim();
   b.disabled = true;
   try {
     switch (d.do) {
-      case 'gate-approve': if (!text) return toast('Write your approval in your own words first'); await act({ action: 'gate-approve', project: d.project, phase: d.phase, quote: text }, `${d.phase} approved`); break;
-      case 'gate-skip': if (!text) return toast('Say why you\'re skipping this phase'); await act({ action: 'gate-skip', project: d.project, phase: d.phase, quote: text }, `${d.phase} skipped`); break;
-      case 'criterion': if (d.verb === 'reject' && !text) return toast('Say what\'s wrong, so it can become a ruling'); await act({ action: 'criterion', project: d.project, id: d.id, verb: d.verb, note: text }, `${d.id} ${d.verb === 'accept' ? 'accepted' : d.verb + 'd'}`); break;
-      case 'plan-approve': await act({ action: 'plan-approve', id: d.id }, 'Plan approved; work starts'); break;
-      case 'answer': if (!text) return toast('Write an answer first'); await act({ action: 'answer', id: d.id, text }, 'Answer sent; the task resumes'); break;
-      case 'finding': await act({ action: 'finding', project: d.project, id: d.id, verdict: d.verdict, note: text }, d.verdict === 'confirm' ? 'Drift confirmed' : 'Finding dismissed'); break;
+      case 'gate-approve': if (!text) return toast('Write your approval in your own words first'); leaveInbox(await act({ action: 'gate-approve', project: d.project, phase: d.phase, quote: text }, `${d.phase} approved`)); break;
+      case 'gate-skip': if (!text) return toast('Say why you\'re skipping this phase'); leaveInbox(await act({ action: 'gate-skip', project: d.project, phase: d.phase, quote: text }, `${d.phase} skipped`)); break;
+      case 'criterion': if (d.verb === 'reject' && !text) return toast('Say what\'s wrong, so it can become a ruling'); leaveInbox(await act({ action: 'criterion', project: d.project, id: d.id, verb: d.verb, note: text }, `${d.id} ${d.verb === 'accept' ? 'accepted' : d.verb + 'd'}`)); break;
+      case 'plan-approve': leaveInbox(await act({ action: 'plan-approve', id: d.id }, 'Approved. Work starts now')); break;
+      case 'answer': if (!text) return toast('Write an answer first'); leaveInbox(await act({ action: 'answer', id: d.id, text }, 'Answer sent; the task resumes')); break;
+      case 'finding': leaveInbox(await act({ action: 'finding', project: d.project, id: d.id, verdict: d.verdict, note: text }, d.verdict === 'confirm' ? 'Drift confirmed' : 'Dismissed')); break;
       case 'dial': await act({ action: 'dial', project: d.project, dial: d.dial, value: d.value }, `${d.dial} → ${d.value}`); break;
-      case 'audit': await act({ action: 'audit', project: d.project }, 'Audit started; findings appear here in a few minutes'); break;
-      case 'lead-start': await act({ action: 'lead-start', project: d.project }, 'Lead starting in a terminal window'); break;
-      case 'lead-restart': await act({ action: 'lead-restart', project: d.project }, 'Lead restarting fresh'); break;
+      case 'audit': await act({ action: 'audit', project: d.project }, 'Audit started; findings arrive in a few minutes'); break;
+      case 'lead-start': await act({ action: 'lead-start', project: d.project }, 'Lead starting in a terminal window on this PC'); break;
+      case 'lead-restart': if (confirm('Restart the lead fresh from its files?')) await act({ action: 'lead-restart', project: d.project }, 'Lead restarting'); break;
       case 'lead-stop': if (confirm('Stop the lead session?')) await act({ action: 'lead-stop', project: d.project }, 'Lead stopped'); break;
       case 'task-stop': if (confirm('Stop this task? You can resume it later.')) await act({ action: 'task-stop', id: d.id }, 'Task stopped'); break;
-      case 'charter-save': await act({ action: 'charter-save', project: d.project, text: document.getElementById('charter-text').value }, 'Charter saved'); break;
-      case 'charter-approve': { const q = document.getElementById('charter-quote').value.trim(); if (!q) return toast('Approve in your own words'); await act({ action: 'charter-approve', project: d.project, quote: q }, 'Charter approved'); break; }
-      case 'ruling': { const r = document.getElementById('ruling-text').value.trim(); if (!r) return toast('Write the ruling first'); await act({ action: 'ruling', project: d.project, text: r }, 'Ruling added'); break; }
+      case 'charter-save': await act({ action: 'charter-save', project: d.project, text: $('charter-text').value }, 'Charter saved'); break;
+      case 'charter-approve': if (!text) return toast('Approve in your own words'); await act({ action: 'charter-approve', project: d.project, quote: text }, 'Charter approved'); break;
+      case 'ruling': if (!text) return toast('Write the ruling first'); await act({ action: 'ruling', project: d.project, text }, 'Ruling added'); break;
     }
   } finally { b.disabled = false; }
 });
 
 document.addEventListener('change', e => {
   const s = e.target.closest('select[data-dial]');
-  if (s) act({ action: 'dial', project: s.dataset.project, dial: s.dataset.dial, value: s.value }, `${s.dataset.dial} → ${s.value}`);
+  if (s) act({ action: 'dial', project: s.dataset.project, dial: s.dataset.dial, value: s.value }, 'Saved');
 });
 
-// Refresh every 20 seconds while visible; don't clobber something the owner is typing.
+// Refresh every 15 seconds while visible; never while the owner is typing or reading an open finding.
 setInterval(() => {
-  if (document.hidden) return;
-  const typing = document.activeElement && ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName);
-  if (!typing) refresh().catch(() => {});
-}, 20000);
+  if (document.hidden || !state) return;
+  const el = document.activeElement;
+  if (el && ['TEXTAREA', 'INPUT', 'SELECT'].includes(el.tagName)) return;
+  if (document.querySelector("details[open]:not([data-auto])")) return;
+  refresh().catch(() => {});
+}, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && state) refresh().catch(() => {}); });
 
 refresh().catch(() => {});
