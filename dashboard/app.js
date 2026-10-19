@@ -140,7 +140,7 @@ window.addEventListener('hashchange', () => { if (state) { renderChrome(); route
 
 // ---------- inbox (Linear) ----------
 const KIND = {
-  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], github: ['alert', 'GitHub'], finding: ['alert', 'Drift'],
+  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], github: ['alert', 'GitHub'], budget: ['alert', 'Budget'], finding: ['alert', 'Drift'],
   criterion: ['check', 'Outcome'], criteria: ['check', 'Outcomes'], 'owner-criterion': ['eye', 'Your judgement'], plan: ['play', 'Task plan'], question: ['help', 'Question'], dial: ['dial', 'Trust'],
 };
 
@@ -212,6 +212,7 @@ function inboxDetail(x) {
       <textarea id="d-text" placeholder="Optional: anything to add. It goes to the lead with your answer, and the auditor won't raise it again if you say it's fine."></textarea>
       <div class="btns"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${p}" data-id="${esc(x.id)}">Yes, fix it</button>
       <button class="btn" data-do="finding" data-verdict="dismiss" data-project="${p}" data-id="${esc(x.id)}">No, it's fine</button></div>`; break;
+    case 'budget': decide = `<div class="btns"><button class="btn primary" data-do="dial" data-project="${p}" data-dial="budgetDay" data-value="${esc(x.to)}">Raise today's limit to ${esc(x.to)}</button><a class="btn ghost" href="#/p/${p}/settings">Budget settings</a></div><div class="hint">Or do nothing: work resumes tomorrow on its own.</div>`; break;
     case 'dial': decide = `<div class="btns"><button class="btn primary" data-do="dial" data-project="${p}" data-dial="${esc(x.dial)}" data-value="${esc(x.to)}">Loosen to ${esc(x.to)}</button></div>`; break;
   }
   return `<div class="detail">${back}
@@ -280,7 +281,7 @@ function officeDesks(p) {
   const desks = (p.team?.agents || []).map(x => {
     const spend = x.spend || 0;
     const meta = x.kind === 'task' || (x.kind === 'reviewer' && x.id)
-      ? (x.state === 'needs' ? 'answer it in your inbox' : x.state === 'stuck' ? 'the lead will replan it' : `iteration ${x.iteration} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}${spend ? ` · ${money(spend)}` : ''}`)
+      ? (x.state === 'needs' ? 'answer it in your inbox' : x.state === 'stuck' ? 'the lead will replan it' : esc(progressLine(x)))
       : esc(x.meta || '');
     return { order: x.state, d: { href: x.href ? esc(x.href) : '', cls: x.kind === 'lead' ? 'lead' : '', state: x.state,
       who: x.reviewingFor ? `reviewer <span class="faint">on ${esc(x.reviewingFor)}'s work</span>` : x.kind === 'lead' ? 'Lead' : esc(x.who),
@@ -370,7 +371,7 @@ async function renderProject(alias, tab, sub) {
           <div class="stat"><div class="v">${p.team.working}</div><div class="l">working now</div></div>
           <div class="stat"><div class="v">${own.length}</div><div class="l">waiting on you</div></div>
           <div class="stat"><div class="v">${p.metrics.criteriaTotal ? `${p.metrics.criteriaMet}<span class="faint">/${p.metrics.criteriaTotal}</span>` : '—'}</div><div class="l">criteria met</div></div>
-          <div class="stat"><div class="v">${money(p.metrics.cost + (p.metrics.liveCost || 0))}</div><div class="l">spent so far${p.metrics.liveCost ? ` (≈${money(p.metrics.liveCost)} in progress)` : ''}</div></div>
+          <div class="stat"><div class="v" style="${p.budget?.today?.over ? 'color:var(--red)' : ''}">${money(p.budget?.today?.spent || 0)}<span class="faint">/${money(p.budget?.day || 0)}</span></div><div class="l">spent today · ${money(p.metrics.cost + (p.metrics.liveCost || 0))} in total</div></div>
         </div>
       </div>
       <nav class="tabs">${tabs.map(([k, l, c]) => `<a href="#/p/${a}/${k}" class="${k === tab ? 'on' : ''}">${l}${c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>
@@ -403,12 +404,29 @@ function nextStep(p, own) {
   return { title: 'Waiting for the lead to plan the build', detail: 'Task plans come here for your approval.', action: p.lead.running ? '' : start };
 }
 
+// What a task is doing right now, in one line: the iteration underway, how long it's been going, how many
+// steps the agent has taken and its latest one, and spend against the task's budget.
+function progressLine(t) {
+  const c = t.live?.current;
+  const spend = (t.cost || 0) + (t.liveCost || 0);
+  const money2 = spend ? `${money(spend)}${t.budget ? ` of ${money(t.budget)}` : ''}` : '';
+  if (!c) return [`iteration ${t.iteration || 0} of ${t.iterations}`, money2].filter(Boolean).join(' · ');
+  return [`iteration ${c.n} of ${t.iterations}, ${c.minutes}m in`, `${c.actions} steps`, c.recent[0] || '', money2].filter(Boolean).join(' · ');
+}
+
+// Finished iterations as a row of dots (green: check passed, red: failed) plus the one underway.
+function iterDots(t) {
+  const h = t.live?.history || [];
+  const dot = (cls, title) => `<span class="idot ${cls}" title="${esc(title)}"></span>`;
+  return `<span class="idots">${h.map(x => dot(x.check === 'pass' ? 'pass' : x.check === 'fail' ? 'fail' : '', `#${x.n}: ${x.outcome}, check ${x.check}`)).join('')}${t.live?.current ? dot('now', `#${t.live.current.n}: underway`) : ''}</span>`;
+}
+
 function taskRow(t, { project = false } = {}) {
   const s = taskStatus(t);
   return `<a class="item ${s === 'needs-you' ? 'urgent' : ''}" href="#/t/${esc(t.id)}">
     ${st(s, STATUS_WORD[s] || s)}<span class="id">${esc(t.id)}</span>
-    <span class="t">${esc(t.title)}<small>${s === 'running' && t.now ? esc(t.now) : `${esc(t.role || 'builder')}${project ? ` · ${esc(t.project)}` : ''}${t.reason && s !== 'done' ? ` · ${esc(t.reason)}` : ''}`}</small></span>
-    <span class="r">${s === 'running' && t.eta ? `${t.iteration || 0}/${t.iterations} · ${t.eta.low}–${t.eta.high}m` : t.iteration ? `${t.iteration}/${t.iterations}` : ''}${(t.cost || t.liveCost) ? `<br>${money((t.cost || 0) + (t.liveCost || 0))}` : ''}</span></a>`;
+    <span class="t">${esc(t.title)}<small>${s === 'running' ? esc(progressLine(t)) : `${esc(t.role || 'builder')}${project ? ` · ${esc(t.project)}` : ''}${t.reason && s !== 'done' ? ` · ${esc(t.reason)}` : ''}`}</small></span>
+    <span class="r">${iterDots(t)}${s === 'running' && t.eta ? `<br>${etaText(t.eta)}` : ''}</span></a>`;
 }
 
 function projOverview(p) {
@@ -430,7 +448,7 @@ function busyList(p) {
   if (!busy.length) return '<div class="hint">Nobody is working right now.</div>';
   return `<div class="list">${busy.map(x => {
     const who = x.kind === 'lead' ? 'Lead' : x.reviewingFor ? `Reviewer on ${esc(x.reviewingFor)}'s work` : esc(x.who[0].toUpperCase() + x.who.slice(1));
-    const sub = x.kind === 'auditor' ? esc(x.meta) : x.id ? `iteration ${x.iteration} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}` : esc(x.meta || '');
+    const sub = x.kind === 'auditor' ? esc(x.meta) : x.id ? esc(progressLine(x)) : esc(x.meta || '');
     const inner = `${st('running')}<span class="t">${who}: ${esc(x.what)}<small>${sub}</small></span>`;
     return x.href ? `<a class="item" href="${esc(x.href)}">${inner}</a>` : `<div class="item" style="cursor:default">${inner}</div>`;
   }).join('')}</div>`;
@@ -533,6 +551,8 @@ function projSettings(p) {
       <dt>Gating</dt><dd>${sel('trust', p.trust, [['strict', 'Strict: approve every phase and task'], ['standard', 'Standard: approve phases'], ['loose', 'Loose: approve the brief only']])}</dd>
       <dt>Reporting</dt><dd>${sel('reporting', p.reporting, [['everything', 'Everything'], ['daily', 'Daily digest'], ['exceptions', 'Exceptions only']])}</dd>
       <dt>Shipping</dt><dd>${sel('autonomy', p.autonomy, [['merge', 'Straight to main after review'], ['pr', 'Draft PRs you merge'], ['branch', 'Local branches only']])}</dd>
+      <dt>Spend per task</dt><dd>${sel('budgetTask', String(p.budget?.task), [...new Set([5, 10, 15, 20, 30, 50, Number(p.budget?.task)])].sort((x, y) => x - y).map(v => [String(v), `${v} (then the lead decides whether to extend)`]))}</dd>
+      <dt>Spend per day</dt><dd>${sel('budgetDay', String(p.budget?.day), [...new Set([20, 40, 60, 100, 150, 250, 400, Number(p.budget?.day)])].sort((x, y) => x - y).map(v => [String(v), `${v} for the whole team, lead included`]))}<div class="hint">API-equivalent dollars: on your plan this measures usage, not a bill. When the day's budget is used up, new work waits until tomorrow.</div></dd>
       <dt>Earned trust</dt><dd>${p.suggestion ? `${esc(p.suggestion.dial)} → ${esc(p.suggestion.to)}: ${p.suggestion.ready ? '<b>earned</b>' : 'not yet'} <span class="hint">(${esc(p.suggestion.why)})</span>` : '—'}</dd>
     </dl>
     <div class="sec">Team</div>
@@ -558,6 +578,11 @@ async function renderTask(id) {
         <div class="muted" style="display:flex;gap:8px;align-items:center">${st(s)} ${STATUS_WORD[s] || s}${m.reason ? ` · ${esc(m.reason)}` : ''}</div>
         <h1 style="font-size:20px;font-weight:600;margin:6px 0 4px">${esc(m.title)}</h1>
         ${m.status === 'needs-you' ? `<div class="box decide"><div class="label">The agent needs you</div>${md(t.questions.split(/^## /m).slice(-1)[0] || m.reason)}<textarea id="d-text" placeholder="Your answer"></textarea><button class="btn primary" data-do="answer" data-id="${esc(m.id)}">Send answer</button></div>` : ''}
+        ${t.live?.current || t.live?.history?.length ? `<div class="box" style="margin-top:12px">
+          <div class="label">Progress ${iterDots({ live: t.live })} <span class="faint">${(t.live.history || []).length} of ${esc(m.iterations)} iterations finished${t.spend ? ` · ${money(t.spend.spent)} of its ${money(t.spend.limit)} budget` : ''}</span></div>
+          ${t.live.current ? `<div>Iteration ${t.live.current.n} is ${t.live.current.minutes} min in: ${t.live.current.actions} steps so far, ${t.live.current.edited} file${t.live.current.edited === 1 ? '' : 's'} changed.</div>
+            <ul class="hint" style="margin:6px 0 0 18px;padding:0">${t.live.current.recent.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+        </div>` : ''}
         <div class="sec">Timeline</div>
         <ul class="timeline">${t.timeline.map(e => `<li><span>${evIcon(e)}</span><span><span class="ev-k">${esc(EVENT_WORD[e.type] || e.type.replace(/-/g, ' '))}</span> <span class="muted">${esc(e.msg)}</span></span><span class="when">${esc(ago(e.ts))}</span></li>`).join('') || '<div class="hint">Not started yet.</div>'}</ul>
         ${t.review ? `<div class="sec">Review</div><div class="box">${md(t.review)}</div>` : ''}

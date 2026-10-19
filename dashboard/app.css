@@ -305,3 +305,12 @@ a.desk.busy:hover, a.desk.needs:hover { transform: translateY(-2px); }
   .desk.busy .sdot { animation: pulse-dot 1.8s ease-in-out infinite; }
   @keyframes pulse-dot { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--lilac) 0%, transparent); } }
 }
+
+/* Iteration trail: one dot per finished iteration (green = check passed, red = failed), lilac = underway. */
+.idots { display: inline-flex; gap: 3px; align-items: center; vertical-align: middle; }
+.idot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+.idot.pass { background: var(--green); }
+.idot.fail { background: var(--red); }
+.idot.now { background: var(--lilac); animation: idot-pulse 1.6s ease-in-out infinite; }
+@keyframes idot-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .idot.now { animation: none; } }

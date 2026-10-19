@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { HOME, PKG, paths, ensureHome, config, readJson, writeJson, resolveRepo, repoAlias, runDir } from '../lib/home.mjs';
@@ -8,7 +9,8 @@ import * as events from '../lib/events.mjs';
 import * as limits from '../lib/limits.mjs';
 import * as gitx from '../lib/git.mjs';
 import { tick } from '../lib/tick.mjs';
-import { run, killTree, alive, atelierEnv, spawnDetached } from '../lib/runner.mjs';
+import { run, killTree, alive, atelierEnv, spawnDetached, runCheck } from '../lib/runner.mjs';
+import * as budget from '../lib/budget.mjs';
 import * as project from '../lib/project.mjs';
 import * as guard from '../lib/guard.mjs';
 import * as decisions from '../lib/decisions.mjs';
@@ -101,6 +103,7 @@ async function main() {
     case 'lead': return lead(need(0, 'project'));
     case 'lead-context': return leadContext(need(0, 'project'));
     case 'guard': return guardHook();
+    case 'lead-stop': return leadStopHook(need(0, 'project'));
     case 'close': return close();
     case 'show': return show(need(0, 'id'));
     case 'digest': return digest();
@@ -111,6 +114,7 @@ async function main() {
     case 'stop': return stop(need(0, 'id'));
     case 'resume': case 'retry': return requeue(need(0, 'id'), cmd);
     case 'cancel': return cancel(need(0, 'id'));
+    case 'land': return land(need(0, 'id'));
     case 'clean': return clean(need(0, 'id'));
     case 'events': return printEvents();
     case 'limits': return console.log(limits.describe());
@@ -263,10 +267,14 @@ function extend(id) {
   const m = cards.load(id).meta;
   const iterations = Number(m.iterations) + num(flags.iterations, 5);
   const hours = Number(m.hours) + num(flags.hours, 1);
-  const requeue = ['needs-you', 'stalled', 'failed'].includes(m.status);
-  cards.update(id, { iterations, hours, ...(requeue ? { status: 'queued', reason: '' } : {}) });
-  events.emit(id, 'extended', `${iterations} iterations, ${hours}h`);
-  console.log(`${id}: budget now ${iterations} iterations / ${hours}h${requeue ? ', requeued' : ''}`);
+  // --budget N raises the task's spend limit by N dollars (default: one more task-sized allowance if it's at its limit).
+  const cap = budget.taskLimit(m), spent = m.project ? budget.taskSpend(m) : 0;
+  const newCap = flags.budget !== undefined ? cap + num(flags.budget, 0) : (m.project && spent >= cap ? cap + budget.limits(m.project).task : cap);
+  if (m.project && budget.today(m.project).over) throw new Error(`${m.project} has used today's budget; only the owner can raise it (dashboard settings). The task resumes tomorrow on its own.`);
+  const requeue = ['needs-you', 'stalled', 'failed'].includes(m.status) || (m.status === 'paused' && /^for the lead:/.test(m.reason || ''));
+  cards.update(id, { iterations, hours, ...(m.project ? { budget: newCap } : {}), ...(requeue ? { status: 'queued', reason: '' } : {}) });
+  events.emit(id, 'extended', `${iterations} iterations, ${hours}h${m.project ? `, $${newCap} budget` : ''}`);
+  console.log(`${id}: now ${iterations} iterations / ${hours}h${m.project ? ` / $${newCap} budget ($${spent.toFixed(2)} spent)` : ''}${requeue ? ', requeued' : ''}`);
   if (requeue) tick();
 }
 
@@ -290,9 +298,36 @@ function requeue(id, verb) {
 function cancel(id) {
   const m = cards.load(id).meta;
   if (alive(m.pid)) killTree(m.pid);
-  cards.update(id, { status: 'failed', reason: 'cancelled by owner', pid: '' });
-  events.emit(id, 'failed', 'cancelled by owner');
+  const by = process.env.ATELIER_ROLE === 'lead' ? 'the lead' : 'owner';
+  cards.update(id, { status: 'failed', reason: `cancelled by ${by}`, pid: '' });
+  events.emit(id, 'failed', `cancelled by ${by}`);
   console.log(`cancelled ${id}; its branch ${m.branch || '(none)'} is kept`);
+}
+
+// The lead brings a finished (or good-enough) task branch into the base branch itself, instead of
+// asking the owner to: latest base merged in, the check (or the project's full suite) re-run, then a
+// fast-forward of base. The GitHub sync pushes it within a couple of minutes.
+function land(id) {
+  const m = cards.load(id).meta;
+  if (!m.branch) throw new Error(`${id} has no branch to land`);
+  if (alive(m.pid)) throw new Error(`${id} is still running; stop it first (atelier stop ${id}) or let it finish`);
+  const p = m.project ? project.tryLoad(m.project) : null;
+  if ((p?.autonomy || 'pr') === 'pr') throw new Error(`${m.project} ships through pull requests; finished tasks open their own`);
+  const { worktree } = gitx.ensureWorktree(m);
+  try { gitx.mergeBases(worktree, m.base || 'main'); } catch { throw new Error(`${m.branch} conflicts with the latest ${m.base || 'main'}; extend the task so its specialist resolves it`); }
+  const cmd = p?.suite || m.check;
+  const check = runCheck(cmd, worktree, config().checkTimeoutMin);
+  if (!check.ok) throw new Error(`the check fails on ${m.branch} merged with the latest base (${cmd}):\n${String(check.tail || '').split('\n').slice(-12).join('\n')}`);
+  const base = m.base || 'main';
+  const tip = gitx.head(worktree);
+  if (!gitx.git(m.repo, 'merge-base', '--is-ancestor', base, tip).ok) throw new Error(`${base} moved while landing; run land again`);
+  const onBase = gitx.git(m.repo, 'symbolic-ref', '--short', 'HEAD').out === base;
+  if (onBase) gitx.must(m.repo, 'merge', '--ff-only', tip);
+  else gitx.must(m.repo, 'update-ref', `refs/heads/${base}`, tip);
+  const sha = tip.slice(0, 7);
+  cards.update(id, { status: 'done', reason: `landed on ${base} by the lead (${sha})`, pid: '' });
+  events.emit(id, 'done', `landed on ${base} by the lead (${sha}); GitHub sync pushes it shortly`);
+  console.log(`landed ${id} on ${base} (${sha}); it reaches GitHub within a couple of minutes`);
 }
 
 function clean(id) {
@@ -583,7 +618,7 @@ async function watchCmd() {
   const [alias] = args;
   project.load(alias);
   const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted']);
-  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed']);
+  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed', 'needs-lead', 'budget-day']);
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
   console.log(`watching ${alias}: owner decisions and task changes will appear here`);
@@ -758,22 +793,25 @@ function lead(alias) {
     const tpl = fs.readFileSync(path.join(PKG, 'roles', 'lead.md'), 'utf8').replace(/^---[\s\S]*?---\r?\n/, '');
     fs.writeFileSync(promptFile, tpl.replaceAll('{{alias}}', alias));
   };
-  // The lead may read anything, edit only planning docs, run atelier and read-only git, and commit its docs.
+  // The lead may read anything, edit planning docs and housekeeping files, run atelier and read-only git,
+  // and commit. Landing task branches and pushing go through atelier (land, the GitHub sync), not raw git.
   // dontAsk mode denies everything not on this list, so it can't write code even through the shell.
   const shells = ['Bash', 'PowerShell'];
-  const allowShell = ['atelier *', 'git status*', 'git log*', 'git diff*', 'git show*', 'git add atelier*', 'git commit *', 'git pull --ff-only*'];
+  const allowShell = ['atelier *', 'git status*', 'git log*', 'git diff*', 'git show*', 'git add atelier*', 'git add .gitignore*', 'git add .gitattributes*', 'git add *.gitignore', 'git add .editorconfig', 'git commit *', 'git pull --ff-only*', 'git fetch*'];
   const settings = {
     hooks: {
       ...guard.hookSettings().hooks,
       // Fresh start or compaction: reload the decision layer and ledger, so files stay the source of truth.
       SessionStart: [{ matcher: 'startup|compact|resume|clear', hooks: [{ type: 'command', command: `atelier lead-context ${alias}` }] }],
+      // Before the lead goes idle: record its spend, and send it back only for concrete, affordable work.
+      Stop: [{ hooks: [{ type: 'command', command: `atelier lead-stop ${alias}` }] }],
     },
     statusLine: { type: 'command', command: 'atelier statusline' },
     permissions: {
       allow: [
         'Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite', 'Skill', 'ToolSearch',
         'CronCreate', 'CronList', 'CronDelete', 'PushNotification', 'Monitor', 'TaskStop',
-        'Edit(atelier/**)',
+        'Edit(atelier/**)', ...project.HOUSEKEEPING.map(g => `Edit(${g})`),
         ...shells.flatMap(s => allowShell.map(c => `${s}(${c})`)),
       ],
     },
@@ -817,6 +855,40 @@ function leadContext(alias) {
     'Read now: atelier/CHARTER.md, atelier/RULINGS.md, atelier/PLAN.md, atelier/LEDGER.md. Then run `atelier digest` and `atelier board ' + alias + '`.',
   ].filter(Boolean);
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: parts.join('\n') } }));
+}
+
+// Stop hook for the lead. It may go idle when nothing is waiting on it; its live watch wakes it for
+// anything new. It's sent back only for concrete items, only within today's budget, and never more than
+// twice for the same list (or six times an hour), so it can't loop or burn tokens spinning.
+async function leadStopHook(alias) {
+  let raw = '';
+  for await (const chunk of process.stdin) raw += chunk;
+  let input = {};
+  try { input = JSON.parse(raw); } catch { /* still decide */ }
+  if (input.session_id) budget.recordLead(alias, input.session_id, input.transcript_path);
+  const day = budget.today(alias);
+  if (day.over) return;
+  const p = project.load(alias);
+  const mine = cards.all().map(c => c.meta).filter(m => m.project === alias);
+  const items = [
+    ...mine.filter(m => m.status === 'requested').map(m => `request ${m.id} (${m.title}) is waiting for your ruling`),
+    ...mine.filter(m => m.status === 'paused' && /^for the lead:/.test(m.reason || '')).map(m => `task ${m.id} ${m.reason.replace(/^for the lead: /, '').split(';')[0]}: extend, land or cancel it`),
+    ...mine.filter(m => m.status === 'stalled').map(m => `task ${m.id} stalled: resume or replan it`),
+    ...mine.filter(m => m.status === 'review').map(m => `task ${m.id} is ready for review: ${(m.reason || '').slice(0, 80)}`),
+  ];
+  const fixes = auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status)).length;
+  if (fixes) items.push(`${fixes} auditor item(s) to fix or delegate (atelier audit ${alias} findings --lead)`);
+  if (p.github?.problem) items.push(`work isn't reaching GitHub: ${p.github.problem}`);
+  if (!items.length) return;
+  const stateFile = path.join(project.dir(alias), 'lead-continue.json');
+  let st = {}; try { st = JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch { /* first time */ }
+  const hash = crypto.createHash('sha1').update(items.join('|')).digest('hex').slice(0, 12);
+  const hour = new Date().toISOString().slice(0, 13);
+  const same = st.hash === hash ? (st.same || 0) + 1 : 1;
+  const inHour = st.hour === hour ? (st.inHour || 0) + 1 : 1;
+  fs.writeFileSync(stateFile, JSON.stringify({ hash, same, hour, inHour }));
+  if (same > 2 || inHour > 6) return;
+  console.log(JSON.stringify({ decision: 'block', reason: `Before going idle, these are waiting on you (today's spend $${day.spent} of $${day.limit}):\n- ${items.join('\n- ')}\nHandle each, or note in LEDGER.md why it waits, then stop. Your watch wakes you for anything new.` }));
 }
 
 async function guardHook() {
