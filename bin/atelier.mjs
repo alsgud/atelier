@@ -8,50 +8,50 @@ import * as events from '../lib/events.mjs';
 import * as limits from '../lib/limits.mjs';
 import * as gitx from '../lib/git.mjs';
 import { tick } from '../lib/tick.mjs';
-import { run, killTree, alive, crewEnv } from '../lib/runner.mjs';
+import { run, killTree, alive, atelierEnv } from '../lib/runner.mjs';
 import * as project from '../lib/project.mjs';
 import * as guard from '../lib/guard.mjs';
 
-const HELP = `crew — task cards, Ralph loops and a phone-driven foreman for Claude Code
+const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for Claude Code
 
-  crew init                         create ~/.crew and the foreman folder
-  crew repo add <alias> <path>      register a repo under a short name
-  crew repo list
-  crew add <repo> "<title>" --check "<cmd>" [--goal "..."] [--iterations N] [--hours H]
+  atelier init                         create ~/.atelier and the foreman folder
+  atelier repo add <alias> <path>      register a repo under a short name
+  atelier repo list
+  atelier add <repo> "<title>" --check "<cmd>" [--goal "..."] [--iterations N] [--hours H]
            [--role R] [--phase design|contracts] [--autonomy pr|branch] [--where local|cloud]
            [--model M] [--effort E] [--priority 1-5] [--base main] [--hold]
-  crew list [--all] [--json]        the board (done tasks hidden unless --all)
-  crew board [project]              tasks grouped by role
+  atelier list [--all] [--json]        the board (done tasks hidden unless --all)
+  atelier board [project]              tasks grouped by role
 
  projects and teams (v2)
-  crew project init <alias> [--roster team|pair|game] [--trust strict|standard|loose]
-  crew project status <alias>
-  crew project role add <alias> <role> [--owns "glob,glob"] | role remove <alias> <role>
-  crew project trust <alias> strict|standard|loose
-  crew project autonomy <alias> pr|merge|branch   pr (default): draft PRs · merge: push reviewed work to main
-  crew roles                        list role templates
-  crew gate <alias> <brief|spec|design|contracts> approve|skip|reopen --quote "<owner's words>" [--merge <task>]
-  crew approve <id> [--check "<cmd>"]   planned/requested → queued
-  crew close <id> "<note>"          mark a request for the lead handled (resumes tasks waiting on it)
-  crew request --to <role> "<what>" [--from <id>]   file a request card (agents: --from is automatic)
-  crew overrule <alias> "<proposal → what the owner wanted>"
-  crew verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
-  crew lead <alias>                 start the project's lead session with Remote Control
-  crew guard                        (PreToolUse hook: enforces role ownership and frozen docs)
+  atelier project init <alias> [--roster team|pair|game] [--trust strict|standard|loose]
+  atelier project status <alias>
+  atelier project role add <alias> <role> [--owns "glob,glob"] | role remove <alias> <role>
+  atelier project trust <alias> strict|standard|loose
+  atelier project autonomy <alias> pr|merge|branch   pr (default): draft PRs · merge: push reviewed work to main
+  atelier roles                        list role templates
+  atelier gate <alias> <brief|spec|design|contracts> approve|skip|reopen --quote "<owner's words>" [--merge <task>]
+  atelier approve <id> [--check "<cmd>"]   planned/requested → queued
+  atelier close <id> "<note>"          mark a request for the lead handled (resumes tasks waiting on it)
+  atelier request --to <role> "<what>" [--from <id>]   file a request card (agents: --from is automatic)
+  atelier overrule <alias> "<proposal → what the owner wanted>"
+  atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
+  atelier lead <alias>                 start the project's lead session with Remote Control
+  atelier guard                        (PreToolUse hook: enforces role ownership and frozen docs)
 
-  crew show <id>                    card, recent progress, open questions, last check
-  crew digest                       phone-sized summary of everything
-  crew tick                         reconcile and start queued tasks
-  crew answer <id> "<text>"         answer the agent's question and requeue it
-  crew extend <id> [--iterations N] [--hours H]   more budget, requeue
-  crew stop <id> | resume <id> | retry <id> | cancel <id>
-  crew clean <id>                   remove a finished task's worktree (branch stays)
-  crew events [--unseen] [--mark] [--since MIN]
-  crew limits                       last known plan usage
-  crew cloud <id>                   print the prompt to start this task as a cloud session
-  crew foreman                      start the foreman session with Remote Control
-  crew statusline                   (status line command; records plan limits)
-  crew run <id>                     (internal) run the Ralph loop in the foreground
+  atelier show <id>                    card, recent progress, open questions, last check
+  atelier digest                       phone-sized summary of everything
+  atelier tick                         reconcile and start queued tasks
+  atelier answer <id> "<text>"         answer the agent's question and requeue it
+  atelier extend <id> [--iterations N] [--hours H]   more budget, requeue
+  atelier stop <id> | resume <id> | retry <id> | cancel <id>
+  atelier clean <id>                   remove a finished task's worktree (branch stays)
+  atelier events [--unseen] [--mark] [--since MIN]
+  atelier limits                       last known plan usage
+  atelier cloud <id>                   print the prompt to start this task as a cloud session
+  atelier foreman                      start the foreman session with Remote Control
+  atelier statusline                   (status line command; records plan limits)
+  atelier run <id>                     (internal) run the Ralph loop in the foreground
 `;
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -61,7 +61,7 @@ try {
   ensureHome();
   await main();
 } catch (err) {
-  console.error(`crew: ${err.message}`);
+  console.error(`atelier: ${err.message}`);
   process.exit(1);
 }
 
@@ -104,14 +104,14 @@ async function main() {
 
 function init() {
   installForeman();
-  console.log(`crew home: ${HOME}\nforeman:   ${paths.foreman}\nconfig:    ${paths.config}`);
+  console.log(`atelier home: ${HOME}\nforeman:   ${paths.foreman}\nconfig:    ${paths.config}`);
 }
 
 function repo() {
   const repos = readJson(paths.repos, {});
   if (args[0] === 'add') {
     const [, alias, p] = args;
-    if (!alias || !p) throw new Error('usage: crew repo add <alias> <path>');
+    if (!alias || !p) throw new Error('usage: atelier repo add <alias> <path>');
     const abs = path.resolve(p);
     gitx.must(abs, 'rev-parse', '--git-dir');
     repos[alias] = abs;
@@ -125,7 +125,7 @@ function add() {
   const cfg = config();
   const [repoArg, ...titleParts] = args;
   const title = titleParts.join(' ') || flags.title;
-  if (!repoArg || !title) throw new Error('usage: crew add <repo> "<title>" --check "<cmd>" [--goal "..."]');
+  if (!repoArg || !title) throw new Error('usage: atelier add <repo> "<title>" --check "<cmd>" [--goal "..."]');
   if (!flags.check) throw new Error('every task needs --check: a command that exits 0 only when the task is done');
   const repoPath = resolveRepo(repoArg);
   const d = cfg.defaults;
@@ -136,8 +136,8 @@ function add() {
   if (role) project.roleTemplate(role); // throws on an unknown role
   if (p) {
     const missing = project.missingGates(p, { phase: flags.phase });
-    if (missing.length) throw new Error(`${alias} needs these gates approved first: ${missing.join(', ')} (see crew project status ${alias})`);
-    if (role && !p.roster.some(r => r.role === role) && role !== 'builder') throw new Error(`${role} isn't on ${alias}'s roster. Add it: crew project role add ${alias} ${role}`);
+    if (missing.length) throw new Error(`${alias} needs these gates approved first: ${missing.join(', ')} (see atelier project status ${alias})`);
+    if (role && !p.roster.some(r => r.role === role) && role !== 'builder') throw new Error(`${role} isn't on ${alias}'s roster. Add it: atelier project role add ${alias} ${role}`);
   }
   // At strict trust every task waits for the owner to approve its plan.
   const initial = flags.hold ? 'paused' : (p?.trust === 'strict' ? 'planned' : 'queued');
@@ -155,7 +155,7 @@ function add() {
     body: `## Goal\n\n${goal.trim()}\n`,
   });
   events.emit(id, 'added', title);
-  console.log(`added ${id}: ${title} [${alias}${role ? ` · ${role}` : ''}]${initial === 'planned' ? ` — planned; start it with: crew approve ${id}` : ''}`);
+  console.log(`added ${id}: ${title} [${alias}${role ? ` · ${role}` : ''}]${initial === 'planned' ? ` — planned; start it with: atelier approve ${id}` : ''}`);
   if (initial === 'queued' && (flags.where || d.where) === 'local') tick();
 }
 
@@ -205,7 +205,7 @@ function digest() {
 }
 
 function answer(id, text) {
-  if (!text) throw new Error('usage: crew answer <id> "<text>"');
+  if (!text) throw new Error('usage: atelier answer <id> "<text>"');
   const dir = runDir(id);
   fs.appendFileSync(path.join(dir, 'QUESTIONS.md'), `\n### ANSWER from owner (${new Date().toLocaleString()})\n${text}\n`);
   const m = cards.load(id).meta;
@@ -239,7 +239,7 @@ function stop(id) {
   if (alive(m.pid)) killTree(m.pid);
   cards.update(id, { status: 'paused', reason: 'stopped by owner', pid: '' });
   events.emit(id, 'paused', 'stopped by owner');
-  console.log(`stopped ${id}; resume with: crew resume ${id}`);
+  console.log(`stopped ${id}; resume with: atelier resume ${id}`);
 }
 
 function requeue(id, verb) {
@@ -283,7 +283,7 @@ function cloud(id) {
   const m = card.meta;
   const orders = fs.readFileSync(path.join(PKG, 'prompts', 'standing-orders.md'), 'utf8');
   console.log([
-    `/goal \`${m.check}\` exits 0 and the work for "${m.title}" is committed on branch crew/${m.id} with a draft PR open. Stop after ${m.iterations * 3} turns if not reached.`,
+    `/goal \`${m.check}\` exits 0 and the work for "${m.title}" is committed on branch atelier/${m.id} with a draft PR open. Stop after ${m.iterations * 3} turns if not reached.`,
     '',
     card.body,
     '',
@@ -295,9 +295,9 @@ function cloud(id) {
 // or from another tool) claude answers its first prompt and exits. Reopen in a console window.
 function needsTerminal(args, title) {
   if (process.stdin.isTTY) return false;
-  if (process.platform !== 'win32') throw new Error(`crew ${args.join(' ')} needs an interactive terminal; run it in a terminal window`);
+  if (process.platform !== 'win32') throw new Error(`atelier ${args.join(' ')} needs an interactive terminal; run it in a terminal window`);
   if (!args.every(a => /^[\w-]+$/.test(a))) throw new Error('unexpected characters in arguments');
-  spawn('cmd.exe', ['/c', `start "${title}" cmd /k crew ${args.join(' ')}`], {
+  spawn('cmd.exe', ['/c', `start "${title}" cmd /k atelier ${args.join(' ')}`], {
     detached: true, stdio: 'ignore', windowsVerbatimArguments: true,
   }).unref();
   console.log(`opened "${title}" in a new terminal window. Keep it open while you use it from the Claude app.`);
@@ -331,7 +331,7 @@ async function statusline() {
   if (n('queued')) parts.push(`${n('queued')} queued`);
   const five = input?.rate_limits?.five_hour;
   if (five) parts.push(`5h ${Math.round(five.used_percentage)}%`);
-  console.log(`crew · ${parts.join(' · ')}`);
+  console.log(`atelier · ${parts.join(' · ')}`);
 }
 
 // ---------- v2: projects, gates, roles ----------
@@ -355,18 +355,18 @@ function projectCmd() {
   const [sub, alias, ...more] = args;
   switch (sub) {
     case 'init': {
-      if (!alias) throw new Error('usage: crew project init <alias> [--roster team|pair|game] [--trust strict]');
+      if (!alias) throw new Error('usage: atelier project init <alias> [--roster team|pair|game] [--trust strict]');
       const repoPath = resolveRepo(alias);
       const p = project.init(alias, { roster: flags.roster || 'team', trust: flags.trust || 'strict' });
-      const crewDir = path.join(repoPath, 'crew');
-      fs.mkdirSync(path.join(crewDir, 'acceptance'), { recursive: true });
+      const planDir = path.join(repoPath, 'atelier');
+      fs.mkdirSync(path.join(planDir, 'acceptance'), { recursive: true });
       for (const t of ['BRIEF.md', 'SPEC.md', 'PLAN.md']) {
-        const dest = path.join(crewDir, t);
+        const dest = path.join(planDir, t);
         if (!fs.existsSync(dest)) fs.copyFileSync(path.join(PKG, 'templates', t), dest);
       }
       console.log(`project ${alias}: roster ${p.roster.map(r => r.role).join(', ')} · trust ${p.trust}`);
-      console.log(`scaffolded ${crewDir} (BRIEF.md, SPEC.md, acceptance/)`);
-      console.log(`next: crew lead ${alias}   (then talk to "${alias} lead" in the Claude app)`);
+      console.log(`scaffolded ${planDir} (BRIEF.md, SPEC.md, acceptance/)`);
+      console.log(`next: atelier lead ${alias}   (then talk to "${alias} lead" in the Claude app)`);
       return;
     }
     case 'status': return projectStatus(alias || need(1, 'alias'));
@@ -381,15 +381,15 @@ function projectCmd() {
         p.roster = p.roster.filter(r => r.role !== role).concat([{ role, owns, ...(model && { model }) }]);
       } else if (action === 'remove') {
         p.roster = p.roster.filter(r => r.role !== role);
-      } else throw new Error('usage: crew project role add|remove <alias> <role> [--owns "glob,glob"]');
+      } else throw new Error('usage: atelier project role add|remove <alias> <role> [--owns "glob,glob"]');
       project.save(p);
       return console.log(`${a} roster: ${p.roster.map(r => `${r.role}${r.model ? ` [${r.model}]` : ''} (${r.owns.join(', ') || 'read-only'})`).join('; ')}`);
     }
     case 'autonomy': {
       const mode = more[0];
-      if (!['pr', 'merge', 'branch'].includes(mode)) throw new Error('usage: crew project autonomy <alias> pr|merge|branch   (pr = draft PRs, the default for client work; merge = push reviewed work straight to main)');
+      if (!['pr', 'merge', 'branch'].includes(mode)) throw new Error('usage: atelier project autonomy <alias> pr|merge|branch   (pr = draft PRs, the default for client work; merge = push reviewed work straight to main)');
       const p = project.load(alias);
-      if (mode === 'merge' && !project.hasReviewer(p)) throw new Error(`merge mode pushes reviewed work to main, so ${alias} needs a reviewer on its roster first: crew project role add ${alias} reviewer`);
+      if (mode === 'merge' && !project.hasReviewer(p)) throw new Error(`merge mode pushes reviewed work to main, so ${alias} needs a reviewer on its roster first: atelier project role add ${alias} reviewer`);
       p.autonomy = mode;
       project.save(p);
       events.emit(alias, 'autonomy', mode);
@@ -397,14 +397,14 @@ function projectCmd() {
     }
     case 'trust': {
       const level = more[0];
-      if (!project.TRUST.includes(level)) throw new Error(`usage: crew project trust <alias> ${project.TRUST.join('|')}`);
+      if (!project.TRUST.includes(level)) throw new Error(`usage: atelier project trust <alias> ${project.TRUST.join('|')}`);
       const p = project.load(alias);
       p.trust = level;
       project.save(p);
       events.emit(alias, 'trust', level);
       return console.log(`${alias} trust → ${level}`);
     }
-    default: throw new Error('usage: crew project init|status|role|trust ...');
+    default: throw new Error('usage: atelier project init|status|role|trust ...');
   }
 }
 
@@ -427,7 +427,7 @@ function projectStatus(alias) {
 
 function gate() {
   const [alias, phase, action] = args;
-  if (!alias || !phase || !['approve', 'skip', 'reopen'].includes(action)) throw new Error('usage: crew gate <alias> <phase> approve|skip|reopen --quote "<owner\'s words>" [--merge <task>]');
+  if (!alias || !phase || !['approve', 'skip', 'reopen'].includes(action)) throw new Error('usage: atelier gate <alias> <phase> approve|skip|reopen --quote "<owner\'s words>" [--merge <task>]');
   if (typeof flags.quote !== 'string' || !flags.quote.trim()) throw new Error('--quote is required: the owner\'s own words approving this');
   const p = project.load(alias);
   const repoPath = resolveRepo(alias);
@@ -435,7 +435,7 @@ function gate() {
 
   if (action === 'approve') {
     if (flags.merge) mergeTaskBranch(repoPath, base, String(flags.merge), phase);
-    const must = { brief: ['crew/BRIEF.md'], spec: ['crew/SPEC.md'], design: ['crew/DESIGN.md'], contracts: ['crew/contracts/README.md'] }[phase] || [];
+    const must = { brief: ['atelier/BRIEF.md'], spec: ['atelier/SPEC.md'], design: ['atelier/DESIGN.md'], contracts: ['atelier/contracts/README.md'] }[phase] || [];
     const missing = must.filter(f => !gitx.git(repoPath, 'cat-file', '-e', `${base}:${f}`).ok);
     if (missing.length) throw new Error(`can't approve ${phase}: ${missing.join(', ')} isn't committed on ${base} yet${['design', 'contracts'].includes(phase) ? ' (merge the task\'s PR, or pass --merge <task> for a local branch)' : ''}`);
     p.approvals = (p.approvals || 0) + 1;
@@ -451,14 +451,14 @@ function mergeTaskBranch(repoPath, base, id, phase) {
   const current = gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out;
   if (current !== base) throw new Error(`main checkout is on ${current}, not ${base}; switch it before merging`);
   if (gitx.git(repoPath, 'status', '--porcelain', '--untracked-files=no').out) throw new Error(`main checkout has uncommitted changes; commit or stash them before merging ${m.branch}`);
-  gitx.must(repoPath, 'merge', '--no-ff', m.branch, '-m', `crew: merge ${id} (${phase} approved)`);
+  gitx.must(repoPath, 'merge', '--no-ff', m.branch, '-m', `atelier: merge ${id} (${phase} approved)`);
   console.log(`merged ${m.branch} into ${base}`);
 }
 
 function approve(id) {
   const m = cards.load(id).meta;
   if (!['planned', 'requested'].includes(m.status)) throw new Error(`${id} is ${m.status}; only planned or requested tasks need approval`);
-  if (m.role === 'lead') throw new Error(`${id} is a request for the lead: handle it yourself, then close it with: crew close ${id} "<what you did>"`);
+  if (m.role === 'lead') throw new Error(`${id} is a request for the lead: handle it yourself, then close it with: atelier close ${id} "<what you did>"`);
   const patch = { status: 'queued', reason: '' };
   if (typeof flags.check === 'string') patch.check = flags.check;
   if (!m.check && !patch.check) throw new Error(`${id} has no done-check yet; approve it with --check "<cmd>"`);
@@ -472,8 +472,8 @@ function approve(id) {
 function request() {
   const to = flags.to;
   const text = args.join(' ') || flags.text;
-  if (typeof to !== 'string' || !text) throw new Error('usage: crew request --to <role> "<what you need, why, and what done looks like>"');
-  const fromId = typeof flags.from === 'string' ? flags.from : process.env.CREW_TASK;
+  if (typeof to !== 'string' || !text) throw new Error('usage: atelier request --to <role> "<what you need, why, and what done looks like>"');
+  const fromId = typeof flags.from === 'string' ? flags.from : process.env.ATELIER_TASK;
   const from = fromId ? cards.load(fromId).meta : null;
   const alias = from?.project || (typeof flags.project === 'string' ? flags.project : '');
   if (!alias) throw new Error('can\'t tell which project this is for; pass --from <task> or --project <alias>');
@@ -506,7 +506,7 @@ function close() {
 }
 
 function overrule(alias, text) {
-  if (!text) throw new Error('usage: crew overrule <alias> "<what you proposed> → <what the owner wanted>"');
+  if (!text) throw new Error('usage: atelier overrule <alias> "<what you proposed> → <what the owner wanted>"');
   const p = project.load(alias);
   p.overrules.push({ at: new Date().toISOString(), text });
   project.save(p);
@@ -518,20 +518,20 @@ function verify(kind) {
   const root = typeof flags.dir === 'string' ? flags.dir : process.cwd();
   const problems = [];
   if (kind === 'design') {
-    const doc = path.join(root, 'crew', 'DESIGN.md');
-    if (!fs.existsSync(doc)) problems.push('crew/DESIGN.md is missing');
+    const doc = path.join(root, 'atelier', 'DESIGN.md');
+    if (!fs.existsSync(doc)) problems.push('atelier/DESIGN.md is missing');
     else {
       const text = fs.readFileSync(doc, 'utf8');
       for (const s of ['Flows', 'Visual system', 'Screens', 'States', 'Responsive', 'Accessibility', 'Copy']) {
-        if (!new RegExp(`^##\\s+${s}\\b`, 'im').test(text)) problems.push(`crew/DESIGN.md has no "## ${s}" section`);
+        if (!new RegExp(`^##\\s+${s}\\b`, 'im').test(text)) problems.push(`atelier/DESIGN.md has no "## ${s}" section`);
       }
     }
-    const screens = listFiles(path.join(root, 'crew', 'design')).filter(f => f.endsWith('.html'));
-    if (!screens.length) problems.push('crew/design/ has no HTML screens or wireframes');
+    const screens = listFiles(path.join(root, 'atelier', 'design')).filter(f => f.endsWith('.html'));
+    if (!screens.length) problems.push('atelier/design/ has no HTML screens or wireframes');
   } else if (kind === 'contracts') {
-    if (!fs.existsSync(path.join(root, 'crew', 'contracts', 'README.md'))) problems.push('crew/contracts/README.md (the index) is missing');
-    if (listFiles(path.join(root, 'crew', 'contracts')).length < 2) problems.push('crew/contracts/ needs at least one contract file besides README.md');
-  } else throw new Error('usage: crew verify design|contracts');
+    if (!fs.existsSync(path.join(root, 'atelier', 'contracts', 'README.md'))) problems.push('atelier/contracts/README.md (the index) is missing');
+    if (listFiles(path.join(root, 'atelier', 'contracts')).length < 2) problems.push('atelier/contracts/ needs at least one contract file besides README.md');
+  } else throw new Error('usage: atelier verify design|contracts');
   if (problems.length) { console.log(problems.map(p => `✗ ${p}`).join('\n')); process.exit(1); }
   console.log(`✓ ${kind} looks complete`);
 }
@@ -550,12 +550,12 @@ function lead(alias) {
   fs.writeFileSync(promptFile, tpl.replaceAll('{{alias}}', alias));
   const settings = {
     ...guard.hookSettings(),
-    statusLine: { type: 'command', command: 'crew statusline' },
-    permissions: { allow: ['Bash(crew *)', 'PowerShell(crew *)', 'Bash(git add crew*)', 'Bash(git commit *)'] },
+    statusLine: { type: 'command', command: 'atelier statusline' },
+    permissions: { allow: ['Bash(atelier *)', 'PowerShell(atelier *)', 'Bash(git add atelier*)', 'Bash(git commit *)'] },
   };
   const claudeArgs = ['--remote-control', `${alias} lead`, '--permission-mode', 'auto',
     '--append-system-prompt-file', promptFile, '--settings', JSON.stringify(settings), 'Start your shift.'];
-  const child = spawn('claude', claudeArgs, { cwd: repoPath, stdio: 'inherit', env: crewEnv({ role: 'lead', project: alias }, '', repoPath) });
+  const child = spawn('claude', claudeArgs, { cwd: repoPath, stdio: 'inherit', env: atelierEnv({ role: 'lead', project: alias }, '', repoPath) });
   child.on('exit', code => process.exit(code ?? 0));
 }
 

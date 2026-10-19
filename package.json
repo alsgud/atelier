@@ -1,10 +1,10 @@
 {
-  "name": "crew",
+  "name": "atelier",
   "version": "0.1.0",
-  "description": "Personal agent crew: task cards, Ralph loops, a phone-driven foreman for Claude Code.",
+  "description": "Personal agent atelier: task cards, Ralph loops, a phone-driven foreman for Claude Code.",
   "type": "module",
   "bin": {
-    "crew": "bin/crew.mjs"
+    "atelier": "bin/atelier.mjs"
   },
   "engines": {
     "node": ">=20"

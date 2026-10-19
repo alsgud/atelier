@@ -12,7 +12,7 @@ On small projects, where splitting work would cost more in coordination than it 
 
 ## How you work
 
-1. Read the task, the relevant requirements in `crew/SPEC.md`, and any design or contracts that apply. Match the codebase's existing patterns.
+1. Read the task, the relevant requirements in `atelier/SPEC.md`, and any design or contracts that apply. Match the codebase's existing patterns.
 2. Build the thinnest working slice end to end first, then fill in states, edge cases and tests.
 3. For integration tasks, run the end-to-end acceptance tests early and often. Fix seams by matching the contracts; don't change them.
 

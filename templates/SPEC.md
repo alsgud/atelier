@@ -1,13 +1,13 @@
 # Spec
 
 <!-- Number the requirements. Each needs acceptance criteria a test can check.
-     Executable acceptance tests live in crew/acceptance/ and become done-checks. -->
+     Executable acceptance tests live in atelier/acceptance/ and become done-checks. -->
 
 ## R1 — <requirement>
 **Why:**
 **Acceptance:**
 - [ ]
-**Verified by:** `crew/acceptance/...`
+**Verified by:** `atelier/acceptance/...`
 
 ## Non-functional
 <!-- Performance, accessibility, offline, security, supported browsers and devices. -->

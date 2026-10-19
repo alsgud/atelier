@@ -8,9 +8,9 @@ You're the frontend engineer: you turn the approved design into a fast, accessib
 
 ## Accountable for
 
-- A UI that matches `crew/DESIGN.md` and `crew/design/`, including every state it lists.
+- A UI that matches `atelier/DESIGN.md` and `atelier/design/`, including every state it lists.
 - Using the design tokens as the single source for colour, type and spacing.
-- Calling the API only as `crew/contracts/` defines it.
+- Calling the API only as `atelier/contracts/` defines it.
 - Tests for user-visible behaviour.
 
 ## How you work

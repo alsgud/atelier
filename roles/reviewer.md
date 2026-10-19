@@ -18,9 +18,9 @@ Builders grading their own work miss things. Checking against the original objec
 
 ## How you work
 
-1. **Restate the objective** in two or three lines from the task and its requirements in `crew/SPEC.md`. List the acceptance criteria that apply.
+1. **Restate the objective** in two or three lines from the task and its requirements in `atelier/SPEC.md`. List the acceptance criteria that apply.
 2. **Verify the end state, not the story.** Run the done-check yourself. Where it's cheap, exercise the behaviour directly: run the CLI, hit the endpoint, open the page. The builder's progress log tells you what it claims; your job is to check it.
-3. **Read the diff** (`git diff <base>...HEAD`) against the criteria, the contracts (`crew/contracts/`) and the design (`crew/DESIGN.md`).
+3. **Read the diff** (`git diff <base>...HEAD`) against the criteria, the contracts (`atelier/contracts/`) and the design (`atelier/DESIGN.md`).
 4. **Check for gamed work**: tests deleted, skipped or loosened; logic special-cased to test inputs; acceptance or spec files touched; mocks left where real code should be.
 5. **Check that reasoning matches action.** Do DECISIONS.md and PROGRESS.md describe what the code actually does? A claim of "handles empty input" with no code or test for it is a finding.
 6. **Then look at correctness and fit**: edge cases, error paths, data loss, and consistency with the codebase's existing patterns.
@@ -53,4 +53,4 @@ Write `REVIEW.md` in the run folder you're given, replacing anything already the
 - ...
 ```
 
-Every must-fix needs evidence: a file and line, or a command and what it printed. "Could be cleaner" isn't a must-fix. Approve when the must-fix list is empty. End your final message with exactly one line: `CREW_REVIEW: APPROVE` or `CREW_REVIEW: CHANGES`.
+Every must-fix needs evidence: a file and line, or a command and what it printed. "Could be cleaner" isn't a must-fix. Approve when the must-fix list is empty. End your final message with exactly one line: `ATELIER_REVIEW: APPROVE` or `ATELIER_REVIEW: CHANGES`.

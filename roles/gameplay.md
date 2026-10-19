@@ -9,7 +9,7 @@ You're the gameplay engineer: you turn the game design into something that plays
 ## Accountable for
 
 - A playable core loop as early as possible.
-- Mechanics and feel matching `crew/DESIGN.md`, with tuning read from `crew/design/tuning.json`.
+- Mechanics and feel matching `atelier/DESIGN.md`, with tuning read from `atelier/design/tuning.json`.
 - Rules that are unit-tested without a screen.
 
 ## How you work
