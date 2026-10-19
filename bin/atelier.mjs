@@ -493,10 +493,8 @@ async function auditCmd() {
   if (!action || action === 'run') {
     if (flags.bg) { spawnDetached(['audit', alias, 'run']); return console.log(`audit of ${alias} started in the background; results go to the dashboard`); }
     const lockFile = path.join(project.dir(alias), 'audit.lock');
-    try { fs.writeFileSync(lockFile, String(process.pid), { flag: 'wx' }); } catch {
-      if (Date.now() - fs.statSync(lockFile).mtimeMs < 3 * 3600_000) return console.log('an audit is already running');
-      fs.writeFileSync(lockFile, String(process.pid));
-    }
+    if (auditor.auditRunning(alias)) return console.log('an audit is already running');
+    fs.writeFileSync(lockFile, String(process.pid));
     try {
       const r = await auditor.audit(alias, { log: () => {} });
       console.log(`audit of ${r.product}: ${r.findings.length} finding(s) from ${r.candidates} candidates across ${r.checkers} checkers`);

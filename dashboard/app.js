@@ -247,50 +247,75 @@ function scene(state) {
 const money = n => `$${(n || 0).toFixed(2)}`;
 const etaText = e => e ? `likely ${e.low}–${e.high} min` : '';
 
+const DESK_LABEL = { working: 'Working', reviewing: 'Reviewing', auditing: 'Auditing', needs: 'Needs you', stuck: 'Stuck', duty: 'On duty', idle: 'Idle', away: 'Off' };
+const DESK_ORDER = { needs: 0, working: 1, reviewing: 1, auditing: 1, stuck: 2, duty: 3, idle: 4, away: 5 };
+const isBusy = s => s === 'working' || s === 'reviewing' || s === 'auditing';
+
 function desk({ href, state, who, what, meta, cls = '' }) {
   const tag = href ? 'a' : 'div';
-  return `<${tag} class="desk ${cls} ${state === 'needs' ? 'needs' : ''} ${state === 'away' ? 'off' : ''}" ${href ? `href="${href}"` : ''}>
-    ${scene(state)}
+  const tone = isBusy(state) ? 'busy' : state === 'needs' ? 'needs' : state === 'stuck' ? 'stuck' : state === 'duty' ? 'duty' : state === 'away' ? 'off' : 'idle';
+  return `<${tag} class="desk ${cls} ${tone}" ${href ? `href="${href}"` : ''}>
+    <div class="state"><span class="sdot"></span>${DESK_LABEL[state] || state}</div>
+    ${scene(state === 'duty' ? 'idle' : state)}
     <div class="who">${who}</div>
     ${what ? `<div class="what">${what}</div>` : ''}
     ${meta ? `<div class="meta">${meta}</div>` : ''}
   </${tag}>`;
 }
 
+function officeDesks(p) {
+  const a = esc(p.alias);
+  const desks = [];
+  const add = (d) => desks.push(d);
+  // Lead: working if it acted in the last few minutes, otherwise on duty (running, between moves).
+  add({ order: p.lead.running ? (p.leadActive ? 'working' : 'duty') : 'away', html: null, d: {
+    href: `#/p/${a}/overview`, cls: 'lead', state: p.lead.running ? (p.leadActive ? 'working' : 'duty') : 'away',
+    who: 'Lead', what: p.lead.running ? (p.leadActive ? 'Planning and delegating' : 'Watching for your decisions') : 'Off',
+    meta: p.lead.running ? `"${a} lead" in the Claude app` : 'start it from the project page' } });
+  const active = p.tasks.filter(x => ['running', 'needs-you', 'stalled'].includes(x.status));
+  for (const x of active) {
+    const s = x.status === 'needs-you' ? 'needs' : x.status === 'stalled' ? 'stuck' : /in review/.test(x.reason || '') ? 'reviewing' : 'working';
+    const spend = (x.cost || 0) + (x.liveCost || 0);
+    add({ order: s, d: { href: `#/t/${esc(x.id)}`, state: s,
+      who: s === 'reviewing' ? `reviewer <span class="faint">on ${esc(x.role || 'builder')}'s work</span>` : esc(x.role || 'builder'),
+      what: esc(x.title),
+      meta: s === 'needs' ? 'answer it in your inbox' : s === 'stuck' ? 'the lead will replan it' : `iteration ${x.iteration || 0} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}${spend ? ` · ${money(spend)}` : ''}` } });
+  }
+  const reviewingNow = active.some(x => /in review/.test(x.reason || ''));
+  if (!reviewingNow && p.roster.some(r => r.role === 'reviewer')) add({ order: 'idle', d: { state: 'idle', who: 'reviewer', what: 'Waiting for finished work', meta: 'Opus · checks every task' } });
+  add({ order: p.auditing ? 'auditing' : 'idle', d: { href: `#/p/${a}/audits`, state: p.auditing ? 'auditing' : 'idle', who: 'auditor',
+    what: p.auditing ? 'Checking the product against your words' : 'Between audits', meta: p.lastAudit ? `last audit ${esc(ago(p.lastAudit.at))} ago` : 'reports only to you' } });
+  const busyRoles = new Set(active.map(x => x.role || 'builder'));
+  for (const r of p.roster.filter(r => r.role !== 'reviewer' && !busyRoles.has(r.role))) add({ order: 'idle', d: { state: 'idle', who: esc(r.role), what: 'No task right now' } });
+  desks.sort((x, y) => DESK_ORDER[x.order] - DESK_ORDER[y.order]);
+  return desks;
+}
+
 function renderOffice() {
-  const ps = [...state.projects].filter(p => !p.error).sort((a, b) => (b.lead?.running - a.lead?.running) || (b.tasks.filter(t => t.status === 'running').length - a.tasks.filter(t => t.status === 'running').length));
-  const allRunning = ps.flatMap(p => p.tasks.filter(t => t.status === 'running'));
-  const waiting = state.queue.length;
+  const ps = [...state.projects].filter(p => !p.error);
   const t = state.atelierToday || {};
-  const floors = ps.map(p => {
+  const all = ps.map(p => ({ p, desks: officeDesks(p) }));
+  const count = s => all.reduce((n, x) => n + x.desks.filter(d => s(d.d.state)).length, 0);
+  const working = count(isBusy), needs = count(s => s === 'needs'), duty = count(s => s === 'duty');
+  all.sort((x, y) => (y.desks.filter(d => isBusy(d.d.state)).length - x.desks.filter(d => isBusy(d.d.state)).length) || (y.p.lead.running - x.p.lead.running));
+  const floors = all.map(({ p, desks }) => {
     const a = esc(p.alias);
-    const active = p.tasks.filter(x => ['running', 'needs-you', 'stalled'].includes(x.status) || (x.status === 'review' && /in review/.test(x.reason || '')));
-    if (!p.lead.running && !active.length && !p.auditing) {
-      return `<a class="item" href="#/p/${a}/overview" style="margin-bottom:6px;border:1px solid var(--line);border-radius:8px"><span class="pdot"></span><span class="t">${a}<small>Nobody working · lead off · ${money(p.metrics.cost)} spent in total</small></span></a>`;
+    const busy = desks.filter(d => isBusy(d.d.state)).length;
+    if (!p.lead.running && !busy && !desks.some(d => d.d.state === 'needs')) {
+      return `<a class="item quiet-floor" href="#/p/${a}/overview"><span class="pdot"></span><span class="t">${a}<small>Nobody working · lead off · ${money(p.metrics.cost)} spent in total</small></span></a>`;
     }
-    const busyRoles = new Set(active.map(x => x.role || 'builder'));
-    const reviewing = p.tasks.filter(x => x.status === 'running' && /in review/.test(x.reason || ''));
-    const desks = [];
-    desks.push(desk({ href: `#/p/${a}/overview`, cls: 'lead', state: p.lead.running ? (state.queue.some(q => q.project === p.alias) ? 'idle' : 'working') : 'away',
-      who: `Lead`, what: p.lead.running ? `Running ${a}` : 'Off', meta: p.lead.running ? `talk to "${a} lead" in the Claude app` : 'start it from the project page' }));
-    for (const x of active) {
-      const s = x.status === 'needs-you' ? 'needs' : x.status === 'stalled' ? 'stuck' : /in review/.test(x.reason || '') ? 'reviewing' : 'working';
-      const spend = x.cost + (x.liveCost || 0);
-      desks.push(desk({ href: `#/t/${esc(x.id)}`, state: s,
-        who: `${esc(x.role || 'builder')}${s === 'reviewing' ? ' <span class="faint">+ reviewer</span>' : ''}`,
-        what: esc(x.title),
-        meta: s === 'needs' ? '<span style="color:var(--red)">needs you</span>' : s === 'stuck' ? 'stuck: the lead will replan' : `iteration ${x.iteration || 0} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}${spend ? ` · ${money(spend)}` : ''}` }));
-    }
-    if (!reviewing.length && p.roster.some(r => r.role === 'reviewer')) desks.push(desk({ state: 'idle', who: 'reviewer', what: 'Waiting for finished work', meta: 'Opus · reviews every task' }));
-    desks.push(desk({ href: `#/p/${a}/audits`, state: p.auditing ? 'auditing' : 'idle', who: 'auditor', what: p.auditing ? 'Checking the product against your words' : 'Between audits', meta: p.lastAudit ? `last audit ${esc(ago(p.lastAudit.at))} ago` : 'reports only to you' }));
-    for (const r of p.roster.filter(r => r.role !== 'reviewer' && !busyRoles.has(r.role))) desks.push(desk({ state: 'idle', who: esc(r.role), what: 'No task right now', meta: '' }));
     const spendNow = p.metrics.cost + (p.metrics.liveCost || 0);
-    return `<div class="sec" style="display:flex;justify-content:space-between;gap:12px"><a href="#/p/${a}/overview" style="color:var(--fg);font-weight:600">${a}</a><span>${p.tasks.filter(x => x.status === 'running').length} working · ${money(spendNow)} so far</span></div>
-      <div class="floor">${desks.join('')}</div>`;
+    return `<div class="floor-h"><a href="#/p/${a}/overview">${a}</a><span>${busy} working · ${money(spendNow)} so far</span></div>
+      <div class="floor">${desks.map(d => desk(d.d)).join('')}</div>`;
   }).join('');
   $('app').innerHTML = `${topbar('<b>Office</b>')}
     <div class="page">
-      <div class="office-bar"><span><b>${allRunning.length}</b> agent${allRunning.length === 1 ? '' : 's'} working</span><span><b>${waiting}</b> waiting on you</span><span>Atelier today: <b>${money(t.cost + 0)}</b> finished${t.liveTokens ? ` + work in progress` : ''} · ${((t.tokens + t.liveTokens) / 1e6).toFixed(1)}M tokens</span></div>
+      <div class="office-bar">
+        <span class="ob busy"><span class="sdot"></span><b>${working}</b> working</span>
+        <span class="ob ${needs ? 'needs' : ''}"><span class="sdot"></span><b>${needs}</b> need${needs === 1 ? 's' : ''} you</span>
+        ${duty ? `<span class="ob duty"><span class="sdot"></span><b>${duty}</b> on duty</span>` : ''}
+        <span class="ob">Atelier today: <b>${money(t.cost)}</b> finished${t.liveTokens ? ' + in progress' : ''}</span>
+      </div>
       ${floors || '<div class="empty"><b>No projects yet</b>Create one and the team shows up here.</div>'}
     </div>`;
 }
