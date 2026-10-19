@@ -503,9 +503,11 @@ async function auditCmd() {
     return;
   }
   if (action === 'findings') {
-    const list = auditor.loadFindings(alias).filter(f => flags.all || f.status === 'open');
-    if (!list.length) return console.log('no open findings');
-    for (const f of list) console.log(`${f.id} ${f.status.padEnd(9)} [${f.severity}/${f.reversibility}] ${f.claim}\n    expected: ${f.expected}\n    observed: ${f.observed}`);
+    // --lead: what the lead has to fix (the owner confirmed it, or the auditor sent it straight to the lead).
+    const pick = f => flags.all || (flags.lead ? ['confirmed', 'sent-to-lead'].includes(f.status) : f.status === 'open');
+    const list = auditor.loadFindings(alias).filter(pick);
+    if (!list.length) return console.log(flags.lead ? 'nothing from the auditor to fix' : 'no open findings');
+    for (const f of list) console.log(`${f.id} ${f.status.padEnd(12)} [${f.severity}/${f.reversibility}] ${f.headline || f.claim}\n    claim: ${f.claim}\n    expected: ${f.expected}\n    observed: ${f.observed}\n    evidence: ${f.evidence}${f.ownerNote ? `\n    owner's note: ${f.ownerNote}` : ''}`);
     const h = auditor.hitRate(alias);
     return console.log(`hit rate: ${h.confirmed}/${h.judged} confirmed`);
   }
@@ -514,7 +516,11 @@ async function auditCmd() {
     const f = auditor.judge(alias, id, action, typeof flags.note === 'string' ? flags.note : '');
     return console.log(`${f.id} ${f.status}`);
   }
-  throw new Error('usage: atelier audit <alias> [run] [--bg] | findings [--all] | confirm|dismiss <F-n> (owner)');
+  if (action === 'fixed') {
+    const f = auditor.judge(alias, id, 'fixed', typeof flags.note === 'string' ? flags.note : '');
+    return console.log(`${f.id} marked fixed; the next audit checks it`);
+  }
+  throw new Error('usage: atelier audit <alias> [run] [--bg] | findings [--all|--lead] | confirm|dismiss <F-n> (owner) | fixed <F-n> [--note]');
 }
 
 function msgCmd() {
@@ -569,7 +575,7 @@ async function watchCmd() {
   const [alias] = args;
   project.load(alias);
   const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted']);
-  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit']);
+  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead']);
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
   console.log(`watching ${alias}: owner decisions and task changes will appear here`);
@@ -797,6 +803,7 @@ function leadContext(alias) {
     'Start the live watch now if it is not running: use the Monitor tool on `atelier watch ' + alias + '` so owner decisions wake you immediately.',
     decisions.charterTampered(alias, repo) ? 'WARNING: atelier/CHARTER.md changed since the owner approved it. Tell the owner immediately.' : '',
     p.charter ? 'The charter is approved: atelier/CHARTER.md.' : 'The charter is not approved yet: drafting it with the owner comes first.',
+    (n => n ? `The auditor has ${n} item(s) for you to fix: \`atelier audit ${alias} findings --lead\`. Fix or delegate them, then \`atelier audit ${alias} fixed F-n --note "what changed"\`.` : '')(auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status)).length),
     `Criteria: ${crit.length ? crit.map(c => `${c.id} ${c.status}`).join(', ') : 'none yet'} (atelier criteria ${alias} list)`,
     'Read now: atelier/CHARTER.md, atelier/RULINGS.md, atelier/PLAN.md, atelier/LEDGER.md. Then run `atelier digest` and `atelier board ' + alias + '`.',
   ].filter(Boolean);

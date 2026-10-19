@@ -198,13 +198,14 @@ function inboxDetail(x) {
     case 'plan': decide = `<div class="btns"><button class="btn primary" data-do="plan-approve" data-id="${esc(x.id)}">Approve plan</button><a class="btn ghost" href="#/t/${esc(x.id)}">Read the brief</a></div>`; break;
     case 'question': decide = `<textarea id="d-text" placeholder="Your answer"></textarea>
       <div class="btns"><button class="btn primary" data-do="answer" data-id="${esc(x.id)}">Send answer</button><a class="btn ghost" href="#/t/${esc(x.id)}">Open task</a></div>`; break;
-    case 'finding': decide = `<textarea id="d-text" placeholder="Optional note"></textarea>
-      <div class="btns"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${p}" data-id="${esc(x.id)}">Confirm drift</button>
-      <button class="btn" data-do="finding" data-verdict="dismiss" data-project="${p}" data-id="${esc(x.id)}">Dismiss</button></div>`; break;
+    case 'finding': decide = `${findingTech(x)}<div class="label">Should the team change this?</div>
+      <textarea id="d-text" placeholder="Optional: anything to add. It goes to the lead with your answer, and the auditor won't raise it again if you say it's fine."></textarea>
+      <div class="btns"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${p}" data-id="${esc(x.id)}">Yes, fix it</button>
+      <button class="btn" data-do="finding" data-verdict="dismiss" data-project="${p}" data-id="${esc(x.id)}">No, it's fine</button></div>`; break;
     case 'dial': decide = `<div class="btns"><button class="btn primary" data-do="dial" data-project="${p}" data-dial="${esc(x.dial)}" data-value="${esc(x.to)}">Loosen to ${esc(x.to)}</button></div>`; break;
   }
   return `<div class="detail">${back}
-    <div class="sub">${icon((KIND[x.kind] || ['inbox'])[0], 'st')} ${label}${x.kind === 'finding' ? ` · ${esc(x.severity)} · ${x.reversibility === 'hard' ? 'hard to undo' : 'easy to undo'}` : ''} · <a href="#/p/${p}/overview">${p}</a>${x.at ? ` · ${esc(ago(x.at))} ago` : ''}</div>
+    <div class="sub">${icon((KIND[x.kind] || ['inbox'])[0], 'st')} ${label}${x.kind === 'finding' ? ` · ${x.severity === 'high' ? 'important' : 'worth a look'}${x.reversibility === 'hard' ? ' · costly to change later' : ''}` : ''} · <a href="#/p/${p}/overview">${p}</a>${x.at ? ` · ${esc(ago(x.at))} ago` : ''}</div>
     <h1>${esc(x.title)}</h1>
     ${x.detail ? md(x.detail) : ''}
     <div class="box decide">${decide}</div>
@@ -324,7 +325,7 @@ function taskSummary(tasks) {
 }
 
 // ---------- activity ----------
-const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iteration', criteria: 'Criteria', suite: 'Full suite', 'review-started': 'Review started', reviewed: 'Reviewed', done: 'Finished', review: 'Ready for review', 'needs-you': 'Needs you', stalled: 'Stalled', failed: 'Failed', approved: 'Approved', answered: 'Answered', gate: 'Gate', 'gate-request': 'Gate requested', audit: 'Audit', 'audit-started': 'Audit started', 'finding-confirmed': 'Drift confirmed', 'finding-dismissed': 'Finding dismissed', 'criterion-draft': 'Criterion drafted', 'criterion-approve': 'Criterion approved', 'criterion-accept': 'Criterion accepted', 'criterion-reject': 'Criterion rejected', ruling: 'Ruling', message: 'Message', requested: 'Request', 'test-touch': 'Tests changed', 'owner-review': 'Needs your judgement', trust: 'Gating', reporting: 'Reporting', autonomy: 'Shipping', lead: 'Lead', charter: 'Charter', demoted: 'Trust tightened', ownership: 'Out-of-bounds edit reverted', paced: 'Paused for plan limits', queued: 'Queued', project: 'Project' };
+const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iteration', criteria: 'Criteria', suite: 'Full suite', 'review-started': 'Review started', reviewed: 'Reviewed', done: 'Finished', review: 'Ready for review', 'needs-you': 'Needs you', stalled: 'Stalled', failed: 'Failed', approved: 'Approved', answered: 'Answered', gate: 'Gate', 'gate-request': 'Gate requested', audit: 'Audit', 'audit-started': 'Audit started', 'finding-confirmed': 'You asked for a fix', 'finding-dismissed': "You said it's fine", 'finding-to-lead': 'Auditor → lead', 'finding-fixed': 'Lead fixed', 'criterion-draft': 'Criterion drafted', 'criterion-approve': 'Criterion approved', 'criterion-accept': 'Criterion accepted', 'criterion-reject': 'Criterion rejected', ruling: 'Ruling', message: 'Message', requested: 'Request', 'test-touch': 'Tests changed', 'owner-review': 'Needs your judgement', trust: 'Gating', reporting: 'Reporting', autonomy: 'Shipping', lead: 'Lead', charter: 'Charter', demoted: 'Trust tightened', ownership: 'Out-of-bounds edit reverted', paced: 'Paused for plan limits', queued: 'Queued', project: 'Project' };
 function eventLine(e, showProject = true) {
   const bad = /failed|stalled|FAIL|demoted|tampered|reverted/.test(`${e.type} ${e.msg}`);
   const good = /^(done|approved|criterion-accept|finding-confirmed)$/.test(e.type) || / pass|approve/.test(e.msg);
@@ -347,7 +348,7 @@ async function renderProject(alias, tab, sub) {
   const n = s => p.tasks.filter(t => t.status === s).length;
   const leadBtn = p.lead.running ? `<button class="btn ghost" data-do="lead-restart" data-project="${a}" title="Start a fresh lead session from its files">Restart lead</button>` : '';
   const tabs = [['overview', 'Overview'], ['tasks', 'Tasks', p.tasks.filter(t => !['done', 'failed'].includes(t.status)).length], ['criteria', 'Criteria', p.criteria.length],
-    ['audits', 'Audits', p.findings.filter(f => f.status === 'open').length], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings']];
+    ['audits', 'Audits', p.findings.filter(f => f.status === 'open').length || ''], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings']];
   const views = { overview: projOverview, tasks: projTasks, criteria: projCriteria, audits: projAudits, docs: projDocs, activity: projActivity, settings: projSettings };
   $('app').innerHTML = `${topbar(`<a href="#/projects">Projects</a><span>/</span><b>${a}</b>`, leadBtn)}
     <div class="page">
@@ -450,11 +451,25 @@ function projAudits(p) {
     Started ${run.startedMin} min ago · ${esc(run.stage)}${run.checkers ? ` <span class="faint">(${run.checkers} checkers each take one slice of your charter, outcomes and spec; a final pass tries to knock down every finding before you see it)</span>` : ''}</div>` : '';
   const head = banner + `<div class="btns" style="margin:14px 0">${run ? '' : `<button class="btn" data-do="audit" data-project="${esc(p.alias)}">Run audit now</button>`}
     <span class="hint">The auditor is your check on the whole team, the lead included. It never sees the lead's plan: it judges the finished product against your own words and reports only to you, here. (The reviewer is different: it checks each task before it merges and works for the lead.)${p.lastAudit ? ` Last run ${esc(ago(p.lastAudit.at))} ago.` : ''}</span></div>`;
-  if (!list.length) return head + '<div class="empty"><b>No findings</b>Audits run after each gate you approve, and daily while the team works.</div>';
-  return head + `<div class="list">${list.map(f => `<details class="item" style="display:block;cursor:default"><summary style="display:flex;gap:10px;align-items:center;cursor:pointer;list-style:none">
-      ${st(f.status === 'open' ? f.severity : f.status)}<span class="id">${esc(f.id)}</span><span class="t">${esc(f.claim)}<small>${esc(f.severity)} · ${f.reversibility === 'hard' ? 'hard to undo' : 'easy to undo'} · ${esc(f.status)}</small></span></summary>
-      <div style="padding:8px 0 4px 24px">${md(`**Your words:** ${f.expected}\n\n**What the product does:** ${f.observed}\n\n**Evidence:** ${f.evidence}`)}
-      ${f.status === 'open' ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${esc(p.alias)}" data-id="${esc(f.id)}">Confirm drift</button><button class="btn" data-do="finding" data-verdict="dismiss" data-project="${esc(p.alias)}" data-id="${esc(f.id)}">Dismiss</button></div>` : ''}</div></details>`).join('')}</div>`;
+  const when = '<span class="hint" style="display:block;margin-bottom:10px">Audits start on their own once the team is building: after a few tasks are merged, or once a day while work lands.</span>';
+  if (!list.length) return head + when + '<div class="empty"><b>Nothing from the auditor</b>When it finds something only you can decide, it shows up here and in your inbox. Smaller things go straight to the lead.</div>';
+  const a = esc(p.alias);
+  const row = f => `<details class="item" style="display:block;cursor:default"><summary style="display:flex;gap:10px;align-items:center;cursor:pointer;list-style:none">
+      ${st(f.status === 'open' ? f.severity : ['fixed', 'dismissed'].includes(f.status) ? 'done' : 'queued')}<span class="t" style="white-space:normal">${esc(f.headline || f.claim)}<small>${FINDING_STATE[f.status] || esc(f.status)}${f.ownerNote ? ` · your note: “${esc(f.ownerNote)}”` : ''}</small></span></summary>
+      <div style="padding:8px 0 4px 24px">${f.impact ? md(`**If nobody fixes it:** ${f.impact}`) : ''}${findingTech(f)}
+      ${f.status === 'open' ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${a}" data-id="${esc(f.id)}">Yes, fix it</button><button class="btn" data-do="finding" data-verdict="dismiss" data-project="${a}" data-id="${esc(f.id)}">No, it's fine</button></div>` : ''}</div></details>`;
+  const group = (title, hint, xs, open = true) => xs.length ? `<div class="sec">${title}<span class="faint"> · ${hint}</span></div><div class="list">${xs.map(row).join('')}</div>` : '';
+  const by = (...s) => list.filter(f => s.includes(f.status));
+  return head + when
+    + group('Your call', 'should the team change this?', by('open'))
+    + group('Being fixed', 'the lead has these', by('confirmed', 'sent-to-lead'))
+    + group('Settled', 'fixed, or you said it\'s fine', by('fixed', 'dismissed', 'withdrawn'));
+}
+
+const FINDING_STATE = { open: 'waiting for you', confirmed: 'you asked for a fix · with the lead', 'sent-to-lead': 'small: the auditor sent it to the lead', fixed: 'the lead fixed it · the next audit checks', dismissed: 'you said it\'s fine', withdrawn: 'withdrawn: nothing was built yet' };
+// The auditor's working notes, folded away: there if you want them, not in the way.
+function findingTech(f) {
+  return `<details style="margin:8px 0"><summary class="faint" style="cursor:pointer">Technical details</summary>${md(`**What you asked for:** ${f.expected}\n\n**What the auditor found:** ${f.observed}\n\n**Evidence:** ${f.evidence}`)}</details>`;
 }
 
 const DOCS = [['charter', 'Charter'], ['rulings', 'Rulings'], ['brief', 'Brief'], ['spec', 'Spec'], ['plan', "Lead's plan"], ['ledger', "Lead's ledger"], ['messages', 'Team messages']];
@@ -627,7 +642,7 @@ document.addEventListener('click', async e => {
       case 'criteria-all': leaveInbox(await act({ action: 'criteria-approve-all', project: d.project, ids: d.ids }, 'Outcomes approved')); break;
       case 'plan-approve': leaveInbox(await act({ action: 'plan-approve', id: d.id }, 'Approved. Work starts now')); break;
       case 'answer': if (!text) return toast('Write an answer first'); leaveInbox(await act({ action: 'answer', id: d.id, text }, 'Answer sent; the task resumes')); break;
-      case 'finding': leaveInbox(await act({ action: 'finding', project: d.project, id: d.id, verdict: d.verdict, note: text }, d.verdict === 'confirm' ? 'Drift confirmed' : 'Dismissed')); break;
+      case 'finding': leaveInbox(await act({ action: 'finding', project: d.project, id: d.id, verdict: d.verdict, note: text }, d.verdict === 'confirm' ? 'Sent to the lead to fix' : "Noted: it won't come up again")); break;
       case 'dial': await act({ action: 'dial', project: d.project, dial: d.dial, value: d.value }, `${d.dial} → ${d.value}`); break;
       case 'audit': await act({ action: 'audit', project: d.project }, 'Audit started; findings arrive in a few minutes'); break;
       case 'lead-start': await act({ action: 'lead-start', project: d.project }, 'Lead starting in a terminal window on this PC'); break;
