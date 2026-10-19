@@ -55,6 +55,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier limits                       last known plan usage
   atelier cloud <id>                   print the prompt to start this task as a cloud session
   atelier open                         open the dashboard (starts it if needed)
+  atelier new <name> [--roster team|pair|game] [--ship merge|pr] [--no-github]   create a project from scratch
   atelier dashboard [--lan] [--port N] run the dashboard server (--lan: reachable from your phone on Wi-Fi)
   atelier foreman                      start the foreman session with Remote Control
   atelier statusline                   (status line command; records plan limits)
@@ -114,6 +115,11 @@ async function main() {
     case 'foreman': return foreman();
     case 'dashboard': return dashboardCmd();
     case 'open': return openCmd();
+    case 'new': {
+      const { create } = await import('../lib/newproject.mjs');
+      const r = create({ name: args.join(' '), roster: flags.roster || 'team', ship: flags.ship || 'merge', github: !flags['no-github'], description: typeof flags.description === 'string' ? flags.description : '' });
+      return console.log(`${r.alias}:\n  ${r.steps.join('\n  ')}\nnext: atelier open, then start the lead`);
+    }
     case 'statusline': return statusline();
     case undefined: case 'help': case '--help': case '-h': return console.log(HELP);
     default: throw new Error(`unknown command "${cmd}"\n\n${HELP}`);

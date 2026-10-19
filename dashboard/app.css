@@ -50,7 +50,8 @@ a.row:hover, .dropdown .row:hover { background: var(--soft); }
 .row .title.alert { color: var(--accent); }
 .row .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
 .row .detail { white-space: pre-wrap; font-size: 14px; margin-top: 6px; }
-.row .actions { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.row .actions { margin-top: 8px; }
 .split { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-right: 8px; vertical-align: middle; }
 .dot.live { background: var(--ok); }
@@ -98,3 +99,34 @@ pre.doc { white-space: pre-wrap; font: 13px/1.55 ui-monospace, SFMono-Regular, C
   .usage { display: none; }
   .bell { margin-left: auto; }
 }
+
+/* "what happens next" */
+.next { margin: 16px; padding: 14px 16px; border-left: 3px solid var(--fg); background: var(--soft); border-radius: 0 var(--radius) var(--radius) 0; }
+.next .label { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+.next .title { font-weight: 600; margin-top: 2px; }
+.next .meta { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.next .actions { margin-top: 8px; }
+
+/* forms */
+.form label { display: block; margin-bottom: 14px; font-weight: 560; }
+.form label input[type=text] { margin-top: 6px; font-weight: 400; }
+.form fieldset { border: 0; border-top: 1px solid var(--line); padding: 12px 0 4px; margin: 0 0 8px; }
+.form legend { font-weight: 600; padding: 0; }
+.form .choice { display: block; font-weight: 400; margin: 8px 0; }
+.form .choice input { margin-right: 6px; }
+
+/* rendered markdown */
+.md { padding: 4px 16px 12px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.md h3 { font-size: 17px; margin: 14px 0 4px; }
+.md h4, .md h5, .md h6 { font-size: 15px; margin: 12px 0 4px; }
+.md p { margin: 6px 0; }
+.md ul, .md ol { margin: 6px 0; padding-left: 22px; }
+.md code { font: 12.5px ui-monospace, SFMono-Regular, Consolas, monospace; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+.md pre.code { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; background: var(--soft); padding: 10px; overflow-x: auto; border-radius: var(--radius); }
+.md .tr { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+
+/* keep long agent-written text inside the phone screen */
+main { overflow-x: hidden; }
+.md, .detail, .meta, .row .title, pre.doc { overflow-wrap: anywhere; }
+.md .tr { overflow-x: auto; grid-auto-columns: minmax(72px, 1fr); }
+.md pre.code, pre.doc { max-width: 100%; overflow-x: auto; }
