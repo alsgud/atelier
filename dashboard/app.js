@@ -14,12 +14,14 @@ const ago = iso => {
   return m < 1 ? 'now' : m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`;
 };
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
+const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000); return m <= 0 ? 'now' : m < 60 ? `in ${m}m` : `in ${Math.floor(m / 60)}h ${m % 60}m`; };
 
 // ---------- icons ----------
 const ICON = {
   inbox: '<path d="M4 13h4l1.5 2.5h5L16 13h4M4 13l2.4-7.2A1 1 0 0 1 7.35 5h9.3a1 1 0 0 1 .95.8L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>',
   projects: '<path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h4l2 2h7A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/>',
   activity: '<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',
+  office: '<path d="M3 20h18M5 20V10h14v10M9 10V7a3 3 0 0 1 6 0v3"/><circle cx="12" cy="15" r="1.5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   gate: '<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>',
   doc: '<path d="M7 3h7l4 4v14H7zM14 3v4h4M9.5 12h6M9.5 16h6"/>',
@@ -93,6 +95,7 @@ function renderChrome() {
   $('side').innerHTML = `
     <div class="brand"><img src="icon.svg" alt="">Atelier</div>
     <a class="nav ${here.startsWith('#/inbox') ? 'on' : ''}" href="#/inbox">${icon('inbox')}Inbox<span class="count ${n ? 'hot' : ''}">${n || ''}</span></a>
+    <a class="nav ${here.startsWith('#/office') ? 'on' : ''}" href="#/office">${icon('office')}Office<span class="count">${state.projects.reduce((n, p) => n + (p.tasks || []).filter(t => t.status === 'running').length, 0) || ''}</span></a>
     <a class="nav ${here.startsWith('#/activity') ? 'on' : ''}" href="#/activity">${icon('activity')}Activity</a>
     <div class="side-h"><span>Projects</span><a href="#/new" title="New project" aria-label="New project">+</a></div>
     ${state.projects.map(p => {
@@ -100,9 +103,17 @@ function renderChrome() {
       return `<a class="nav ${here.startsWith(`#/p/${p.alias}/`) ? 'on' : ''}" href="#/p/${esc(p.alias)}/overview"><span class="pdot ${p.lead?.running ? 'live' : ''}" title="${p.lead?.running ? 'Lead is on' : 'Lead is off'}"></span>${esc(p.alias)}<span class="count ${needs ? 'hot' : ''}">${needs || ''}</span></a>`;
     }).join('')}
     <a class="nav" href="#/new">${icon('plus')}New project</a>
-    <div class="side-foot">Plan usage${meter('5h', lim.five_hour)}${meter('7d', lim.seven_day)}${!lim.five_hour ? '<div class="faint">shows after the first run</div>' : ''}</div>`;
+    <div class="side-foot" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier.">
+      <div style="color:var(--fg2);font-weight:500">Your Claude plan</div>
+      ${meter('5h', lim.five_hour)}${meter('7d', lim.seven_day)}
+      ${lim.five_hour ? `<div class="faint" style="margin-top:4px">5h resets ${esc(resetIn(lim.five_hour.resets_at))} · updated ${esc(ago(new Date((lim.saved_at || 0) * 1000).toISOString()) || 'now')} ago</div>` : '<div class="faint">shows after the first run</div>'}
+      <div style="color:var(--fg2);font-weight:500;margin-top:10px">Atelier today</div>
+      <div>${money(state.atelierToday?.cost)} finished${state.atelierToday?.liveTokens ? ' + work in progress' : ''}</div>
+      <div class="faint">${(((state.atelierToday?.tokens || 0) + (state.atelierToday?.liveTokens || 0)) / 1e6).toFixed(1)}M tokens · API-equivalent, not a bill</div>
+    </div>`;
   $('tabbar').innerHTML = `
     <a class="${here.startsWith('#/inbox') ? 'on' : ''}" href="#/inbox">${icon('inbox')}Inbox${n ? `<span class="badge">${n}</span>` : ''}</a>
+    <a class="${here.startsWith('#/office') ? 'on' : ''}" href="#/office">${icon('office')}Office</a>
     <a class="${/^#\/(projects|p\/|t\/|new)/.test(here) ? 'on' : ''}" href="#/projects">${icon('projects')}Projects</a>
     <a class="${here.startsWith('#/activity') ? 'on' : ''}" href="#/activity">${icon('activity')}Activity</a>`;
   document.title = n ? `(${n}) Atelier` : 'Atelier';
@@ -119,6 +130,7 @@ async function route() {
     if (kind === 'new') return renderNew();
     if (kind === 'projects') return renderProjects();
     if (kind === 'activity') return renderActivity();
+    if (kind === 'office') return renderOffice();
     return renderInbox(a ? decodeURIComponent(a) : null);
   } catch (e) {
     if (e.message !== 'signed out') $('app').innerHTML = `${topbar('<b>Error</b>')}<div class="empty"><b>That didn't load</b>${esc(e.message)}</div>`;
@@ -198,6 +210,91 @@ function inboxDetail(x) {
   </div>`;
 }
 
+// ---------- office: who's working, at a glance ----------
+// One desk per agent. The bubble says what they're doing: typing (working), red "!" (needs you),
+// magnifier (reviewing), "zz" (stuck), coffee (idle). Empty chair = not running.
+function scene(state) {
+  const typing = state === 'working' || state === 'reviewing' || state === 'auditing';
+  const person = state === 'away' ? '' : `
+    <g class="${typing ? 'typing' : ''}">
+      <rect class="chair" x="52" y="44" width="34" height="34" rx="6"/>
+      <rect class="shirt" x="56" y="46" width="26" height="24" rx="8"/>
+      <circle class="skin" cx="69" cy="36" r="9"/>
+      <path class="hair" d="M60 34a9 9 0 0 1 18 0c-3-4-15-4-18 0z"/>
+      <rect class="skin arm l" x="54" y="58" width="12" height="5" rx="2.5"/>
+      <rect class="skin arm r" x="72" y="58" width="12" height="5" rx="2.5"/>
+    </g>`;
+  const bubbles = {
+    working: `<g class="float"><rect class="bubble" x="88" y="4" width="34" height="18" rx="9"/><g class="dots"><circle class="lilac" cx="98" cy="13" r="2.2"/><circle class="lilac" cx="105" cy="13" r="2.2"/><circle class="lilac" cx="112" cy="13" r="2.2"/></g></g>`,
+    auditing: `<g class="float"><rect class="bubble" x="88" y="4" width="34" height="18" rx="9"/><g class="dots"><circle class="lilac" cx="98" cy="13" r="2.2"/><circle class="lilac" cx="105" cy="13" r="2.2"/><circle class="lilac" cx="112" cy="13" r="2.2"/></g></g>`,
+    needs: `<g class="float"><circle class="red" cx="100" cy="14" r="10"/><rect x="98.6" y="8" width="2.8" height="7.5" rx="1.4" fill="#fff"/><circle cx="100" cy="18.6" r="1.6" fill="#fff"/></g>`,
+    reviewing: `<g class="float"><rect class="bubble" x="88" y="4" width="26" height="20" rx="9"/><circle cx="99" cy="13" r="4.5" fill="none" stroke="var(--lilac)" stroke-width="2"/><path d="M102.5 16.5l4 4" stroke="var(--lilac)" stroke-width="2" stroke-linecap="round"/></g>`,
+    stuck: `<g class="float"><text x="90" y="18" class="muted" font-size="13" font-weight="700" font-family="var(--font)">z z</text></g>`,
+    idle: `<g><rect class="muted" x="96" y="50" width="9" height="10" rx="2"/><path d="M105 52h2a2 2 0 0 1 0 5h-2" fill="none" stroke="var(--faint)" stroke-width="1.5"/></g>`,
+    away: '',
+  };
+  return `<svg class="scene" viewBox="0 0 138 92" aria-hidden="true">
+    ${state === 'away' ? '<rect class="chair" x="52" y="44" width="34" height="34" rx="6"/>' : ''}
+    ${person}
+    <rect class="deskwood" x="14" y="66" width="110" height="6" rx="2"/>
+    <rect class="monitor" x="22" y="42" width="30" height="22" rx="2"/>
+    <rect class="screen ${typing ? 'on' : ''}" x="24.5" y="44.5" width="25" height="17" rx="1"/>
+    <rect class="monitor" x="34" y="64" width="6" height="3"/>
+    ${bubbles[state] || ''}
+  </svg>`;
+}
+
+const money = n => `$${(n || 0).toFixed(2)}`;
+const etaText = e => e ? `likely ${e.low}–${e.high} min` : '';
+
+function desk({ href, state, who, what, meta, cls = '' }) {
+  const tag = href ? 'a' : 'div';
+  return `<${tag} class="desk ${cls} ${state === 'needs' ? 'needs' : ''} ${state === 'away' ? 'off' : ''}" ${href ? `href="${href}"` : ''}>
+    ${scene(state)}
+    <div class="who">${who}</div>
+    ${what ? `<div class="what">${what}</div>` : ''}
+    ${meta ? `<div class="meta">${meta}</div>` : ''}
+  </${tag}>`;
+}
+
+function renderOffice() {
+  const ps = [...state.projects].filter(p => !p.error).sort((a, b) => (b.lead?.running - a.lead?.running) || (b.tasks.filter(t => t.status === 'running').length - a.tasks.filter(t => t.status === 'running').length));
+  const allRunning = ps.flatMap(p => p.tasks.filter(t => t.status === 'running'));
+  const waiting = state.queue.length;
+  const t = state.atelierToday || {};
+  const floors = ps.map(p => {
+    const a = esc(p.alias);
+    const active = p.tasks.filter(x => ['running', 'needs-you', 'stalled'].includes(x.status) || (x.status === 'review' && /in review/.test(x.reason || '')));
+    if (!p.lead.running && !active.length && !p.auditing) {
+      return `<a class="item" href="#/p/${a}/overview" style="margin-bottom:6px;border:1px solid var(--line);border-radius:8px"><span class="pdot"></span><span class="t">${a}<small>Nobody working · lead off · ${money(p.metrics.cost)} spent in total</small></span></a>`;
+    }
+    const busyRoles = new Set(active.map(x => x.role || 'builder'));
+    const reviewing = p.tasks.filter(x => x.status === 'running' && /in review/.test(x.reason || ''));
+    const desks = [];
+    desks.push(desk({ href: `#/p/${a}/overview`, cls: 'lead', state: p.lead.running ? (state.queue.some(q => q.project === p.alias) ? 'idle' : 'working') : 'away',
+      who: `Lead`, what: p.lead.running ? `Running ${a}` : 'Off', meta: p.lead.running ? `talk to "${a} lead" in the Claude app` : 'start it from the project page' }));
+    for (const x of active) {
+      const s = x.status === 'needs-you' ? 'needs' : x.status === 'stalled' ? 'stuck' : /in review/.test(x.reason || '') ? 'reviewing' : 'working';
+      const spend = x.cost + (x.liveCost || 0);
+      desks.push(desk({ href: `#/t/${esc(x.id)}`, state: s,
+        who: `${esc(x.role || 'builder')}${s === 'reviewing' ? ' <span class="faint">+ reviewer</span>' : ''}`,
+        what: esc(x.title),
+        meta: s === 'needs' ? '<span style="color:var(--red)">needs you</span>' : s === 'stuck' ? 'stuck: the lead will replan' : `iteration ${x.iteration || 0} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}${spend ? ` · ${money(spend)}` : ''}` }));
+    }
+    if (!reviewing.length && p.roster.some(r => r.role === 'reviewer')) desks.push(desk({ state: 'idle', who: 'reviewer', what: 'Waiting for finished work', meta: 'Opus · reviews every task' }));
+    desks.push(desk({ href: `#/p/${a}/audits`, state: p.auditing ? 'auditing' : 'idle', who: 'auditor', what: p.auditing ? 'Checking the product against your words' : 'Between audits', meta: p.lastAudit ? `last audit ${esc(ago(p.lastAudit.at))} ago` : 'reports only to you' }));
+    for (const r of p.roster.filter(r => r.role !== 'reviewer' && !busyRoles.has(r.role))) desks.push(desk({ state: 'idle', who: esc(r.role), what: 'No task right now', meta: '' }));
+    const spendNow = p.metrics.cost + (p.metrics.liveCost || 0);
+    return `<div class="sec" style="display:flex;justify-content:space-between;gap:12px"><a href="#/p/${a}/overview" style="color:var(--fg);font-weight:600">${a}</a><span>${p.tasks.filter(x => x.status === 'running').length} working · ${money(spendNow)} so far</span></div>
+      <div class="floor">${desks.join('')}</div>`;
+  }).join('');
+  $('app').innerHTML = `${topbar('<b>Office</b>')}
+    <div class="page">
+      <div class="office-bar"><span><b>${allRunning.length}</b> agent${allRunning.length === 1 ? '' : 's'} working</span><span><b>${waiting}</b> waiting on you</span><span>Atelier today: <b>${money(t.cost + 0)}</b> finished${t.liveTokens ? ` + work in progress` : ''} · ${((t.tokens + t.liveTokens) / 1e6).toFixed(1)}M tokens</span></div>
+      ${floors || '<div class="empty"><b>No projects yet</b>Create one and the team shows up here.</div>'}
+    </div>`;
+}
+
 // ---------- projects list (phone) ----------
 function renderProjects() {
   $('app').innerHTML = `${topbar('<b>Projects</b>', `<a class="btn" href="#/new">${icon('plus', 'st')}New</a>`)}
@@ -249,7 +346,7 @@ async function renderProject(alias, tab, sub) {
           <div class="stat"><div class="v">${n('running')}</div><div class="l">working now</div></div>
           <div class="stat"><div class="v">${own.length}</div><div class="l">waiting on you</div></div>
           <div class="stat"><div class="v">${p.metrics.criteriaTotal ? `${p.metrics.criteriaMet}<span class="faint">/${p.metrics.criteriaTotal}</span>` : '—'}</div><div class="l">criteria met</div></div>
-          <div class="stat"><div class="v">$${p.metrics.cost}</div><div class="l">API-equivalent spend</div></div>
+          <div class="stat"><div class="v">${money(p.metrics.cost + (p.metrics.liveCost || 0))}</div><div class="l">spent so far${p.metrics.liveCost ? ` (≈${money(p.metrics.liveCost)} in progress)` : ''}</div></div>
         </div>
       </div>
       <nav class="tabs">${tabs.map(([k, l, c]) => `<a href="#/p/${a}/${k}" class="${k === tab ? 'on' : ''}">${l}${c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>
@@ -278,7 +375,7 @@ function taskRow(t, { project = false } = {}) {
   return `<a class="item ${s === 'needs-you' ? 'urgent' : ''}" href="#/t/${esc(t.id)}">
     ${st(s, STATUS_WORD[s] || s)}<span class="id">${esc(t.id)}</span>
     <span class="t">${esc(t.title)}<small>${s === 'running' && t.now ? esc(t.now) : `${esc(t.role || 'builder')}${project ? ` · ${esc(t.project)}` : ''}${t.reason && s !== 'done' ? ` · ${esc(t.reason)}` : ''}`}</small></span>
-    <span class="r">${t.iteration ? `${t.iteration}/${t.iterations}` : ''}</span></a>`;
+    <span class="r">${s === 'running' && t.eta ? `${t.iteration || 0}/${t.iterations} · ${t.eta.low}–${t.eta.high}m` : t.iteration ? `${t.iteration}/${t.iterations}` : ''}${(t.cost || t.liveCost) ? `<br>${money((t.cost || 0) + (t.liveCost || 0))}` : ''}</span></a>`;
 }
 
 function projOverview(p) {
