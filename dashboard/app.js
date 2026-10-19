@@ -181,11 +181,21 @@ function inboxDetail(x) {
   const back = `<a class="btn ghost" href="#/inbox" style="margin:-6px 0 6px -10px">${icon('back', 'st')}Inbox</a>`;
   let decide = '';
   switch (x.kind) {
-    case 'gate': decide = `<div class="label">Approve in your own words; it's kept as the record</div>
-      <textarea id="d-text" placeholder="e.g. Yes, this is the game I want"></textarea>
+    case 'gate': {
+      // Step 1 is looking at the work: one click opens it. Step 2 is the decision.
+      const r = x.review || {};
+      const docTab = ['brief', 'spec', 'design', 'contracts'].includes(x.phase) ? x.phase : 'brief';
+      const look = `<div class="label">1 · Look at the work</div>
+        <div class="btns" style="margin-bottom:14px">
+          ${r.open ? `<a class="btn primary" href="${esc(viewUrl(r))}" target="_blank" rel="noopener">${icon('doc', 'st')}Open the ${esc(x.phase)} (clickable screens)</a>` : ''}
+          <a class="btn ${r.open ? '' : 'primary'}" href="#/p/${p}/docs/${docTab}">Read ${esc(r.docName || 'the document')}</a>
+        </div>`;
+      decide = `${look}<div class="label">2 · Your decision, in your own words (kept as the record)</div>
+      <textarea id="d-text" placeholder="e.g. Yes, this is the look I want. Or say what to change."></textarea>
       <div class="btns"><button class="btn primary" data-do="gate-approve" data-project="${p}" data-phase="${esc(x.phase)}">Approve ${esc(x.phase)}</button>
-      <button class="btn" data-do="gate-skip" data-project="${p}" data-phase="${esc(x.phase)}">Skip this phase</button>
-      <a class="btn ghost" href="#/p/${p}/docs/${x.phase === 'spec' ? 'spec' : 'brief'}">Read the document</a></div>`; break;
+      <button class="btn" data-do="gate-skip" data-project="${p}" data-phase="${esc(x.phase)}">Skip this phase</button></div>
+      <div class="hint" style="margin-top:8px">Want changes instead? Tell the lead in the Claude app; it reworks this and asks again.</div>`; break;
+    }
     case 'charter': case 'charter-tampered': decide = `<div class="btns"><a class="btn primary" href="#/p/${p}/docs/charter">Open the charter</a></div>`; break;
     case 'criterion': decide = `<div class="btns"><button class="btn primary" data-do="criterion" data-verb="approve" data-project="${p}" data-id="${esc(x.id)}">Approve</button>
       <button class="btn danger" data-do="criterion" data-verb="retire" data-project="${p}" data-id="${esc(x.id)}">Retire</button></div>`; break;
@@ -467,12 +477,15 @@ function projAudits(p) {
 }
 
 const FINDING_STATE = { open: 'waiting for you', confirmed: 'you asked for a fix · with the lead', 'sent-to-lead': 'small: the auditor sent it to the lead', fixed: 'the lead fixed it · the next audit checks', dismissed: 'you said it\'s fine', withdrawn: 'withdrawn: nothing was built yet' };
+// Mockups live on the dashboard's sibling port (their own origin), on whatever host this page uses.
+const viewUrl = r => `${location.protocol}//${location.hostname}:${r.viewPort}${r.open}`;
+
 // The auditor's working notes, folded away: there if you want them, not in the way.
 function findingTech(f) {
   return `<details style="margin:8px 0"><summary class="faint" style="cursor:pointer">Technical details</summary>${md(`**What you asked for:** ${f.expected}\n\n**What the auditor found:** ${f.observed}\n\n**Evidence:** ${f.evidence}`)}</details>`;
 }
 
-const DOCS = [['charter', 'Charter'], ['rulings', 'Rulings'], ['brief', 'Brief'], ['spec', 'Spec'], ['plan', "Lead's plan"], ['ledger', "Lead's ledger"], ['messages', 'Team messages']];
+const DOCS = [['charter', 'Charter'], ['rulings', 'Rulings'], ['brief', 'Brief'], ['spec', 'Spec'], ['design', 'Design'], ['contracts', 'Contracts'], ['plan', "Lead's plan"], ['ledger', "Lead's ledger"], ['messages', 'Team messages']];
 function projDocs(p, sub = 'charter') {
   const a = esc(p.alias);
   let body;
@@ -485,6 +498,11 @@ function projDocs(p, sub = 'charter') {
     body = `${md(p.docs.rulings || 'No rulings yet.')}<div class="box"><div class="label">Add a ruling</div><textarea id="d-text" placeholder="e.g. No modal dialogs: edit inline"></textarea><button class="btn" data-do="ruling" data-project="${a}">Add ruling</button></div>`;
   } else if (sub === 'messages') {
     body = p.messages.length ? `<div class="hint" style="margin-bottom:8px">Specialists message each other directly. Nothing here binds anyone; decisions go through the lead.</div><ul class="timeline">${p.messages.map(m => `<li><span>${st('queued')}</span><span><span class="muted">${esc(m.fromRole || m.from)} → ${esc(m.to)} · ${esc(m.type)}</span><br>${esc(m.text)}</span><span class="when">${esc(ago(m.at))}</span></li>`).join('')}</ul>` : '<div class="hint">No messages yet.</div>';
+  } else if (sub === 'design' || sub === 'contracts') {
+    const r = p.reviews?.[sub];
+    body = !r || (!r.doc && !r.open) ? `<div class="hint">No ${sub} yet.</div>`
+      : `<div class="btns" style="margin-bottom:12px">${r.open ? `<a class="btn primary" href="${esc(viewUrl(r))}" target="_blank" rel="noopener">Open the clickable screens</a>` : ''}
+          <span class="hint">${r.merged ? '' : 'Latest version from the specialist, not merged yet. '}${r.files} file${r.files === 1 ? '' : 's'}.</span></div>${md(r.doc || '')}`;
   } else {
     body = md(p.docs[sub] || 'Empty.');
   }
