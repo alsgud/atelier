@@ -167,10 +167,10 @@ function add() {
     // Once a project has criteria, every build task must cite the approved criteria it satisfies.
     const known = decisions.loadCriteria(alias).criteria;
     if (known.length && !flags.phase) {
-      const ids = typeof flags.criteria === 'string' ? flags.criteria.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const ids = decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '');
       if (!ids.length) throw new Error(`cite the acceptance criteria this task satisfies: --criteria AC-1,AC-2 (see atelier criteria ${alias} list)`);
       const bad = ids.filter(i => !known.some(c => c.id === i && decisions.isApproved(c)));
-      if (bad.length) throw new Error(`${bad.join(', ')} aren't approved criteria yet; the owner approves criteria in the dashboard`);
+      if (bad.length) throw new Error(`${bad.join(', ')} ${bad.length > 1 ? "aren't" : "isn't"} an approved criterion (approved: ${known.filter(decisions.isApproved).map(c => c.id).join(', ') || 'none'}). Separate ids with commas or spaces.`);
     }
   }
   // At strict trust every task waits for the owner to approve its plan.
@@ -181,7 +181,7 @@ function add() {
     meta: {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
-      criteria: typeof flags.criteria === 'string' ? flags.criteria : '', files: typeof flags.files === 'string' ? flags.files : '',
+      criteria: decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '').join(','), files: typeof flags.files === 'string' ? flags.files : '',
       repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
       model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
@@ -477,7 +477,7 @@ function approve(id) {
   if (m.role === 'lead') throw new Error(`${id} is a request for the lead: handle it yourself, then close it with: atelier close ${id} "<what you did>"`);
   const patch = { status: 'queued', reason: '' };
   if (typeof flags.check === 'string') patch.check = flags.check;
-  if (typeof flags.criteria === 'string') patch.criteria = flags.criteria;
+  if (typeof flags.criteria === 'string') patch.criteria = decisions.criteriaIds(flags.criteria).join(',');
   if (!m.check && !patch.check) throw new Error(`${id} has no done-check yet; approve it with --check "<cmd>"`);
   cards.update(id, patch);
   events.emit(id, 'approved', `request approved by lead: ${m.title}`);
