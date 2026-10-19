@@ -140,7 +140,7 @@ window.addEventListener('hashchange', () => { if (state) { renderChrome(); route
 
 // ---------- inbox (Linear) ----------
 const KIND = {
-  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], github: ['alert', 'GitHub'], budget: ['alert', 'Budget'], finding: ['alert', 'Drift'],
+  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], github: ['alert', 'GitHub'], budget: ['alert', 'Budget'], screen: ['alert', 'Your screen'], 'screen-notice': ['alert', 'Your screen'], finding: ['alert', 'Drift'],
   criterion: ['check', 'Outcome'], criteria: ['check', 'Outcomes'], 'owner-criterion': ['eye', 'Your judgement'], plan: ['play', 'Task plan'], question: ['help', 'Question'], dial: ['dial', 'Trust'],
 };
 
@@ -212,6 +212,8 @@ function inboxDetail(x) {
       <textarea id="d-text" placeholder="Optional: anything to add. It goes to the lead with your answer, and the auditor won't raise it again if you say it's fine."></textarea>
       <div class="btns"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${p}" data-id="${esc(x.id)}">Yes, fix it</button>
       <button class="btn" data-do="finding" data-verdict="dismiss" data-project="${p}" data-id="${esc(x.id)}">No, it's fine</button></div>`; break;
+    case 'screen': decide = `<div class="btns"><button class="btn primary" data-do="screen" data-verdict="allow" data-project="${p}" data-id="${esc(x.id)}">Allow for ${esc(x.minutes)} min</button><button class="btn" data-do="screen" data-verdict="decline" data-project="${p}" data-id="${esc(x.id)}">Not now</button></div><div class="hint">Declining tells the agent to find a way without your screen.</div>`; break;
+    case 'screen-notice': decide = `<div class="btns"><button class="btn" data-do="screen-seen" data-project="${p}" data-id="${esc(x.id)}">Got it</button></div>`; break;
     case 'budget': decide = `<div class="btns"><button class="btn primary" data-do="dial" data-project="${p}" data-dial="budgetDay" data-value="${esc(x.to)}">Raise today's limit to ${esc(x.to)}</button><a class="btn ghost" href="#/p/${p}/settings">Budget settings</a></div><div class="hint">Or do nothing: work resumes tomorrow on its own.</div>`; break;
     case 'dial': decide = `<div class="btns"><button class="btn primary" data-do="dial" data-project="${p}" data-dial="${esc(x.dial)}" data-value="${esc(x.to)}">Loosen to ${esc(x.to)}</button></div>`; break;
   }
@@ -695,6 +697,8 @@ document.addEventListener('click', async e => {
       case 'plan-approve': leaveInbox(await act({ action: 'plan-approve', id: d.id }, 'Approved. Work starts now')); break;
       case 'answer': if (!text) return toast('Write an answer first'); leaveInbox(await act({ action: 'answer', id: d.id, text }, 'Answer sent; the task resumes')); break;
       case 'finding': leaveInbox(await act({ action: 'finding', project: d.project, id: d.id, verdict: d.verdict, note: text }, d.verdict === 'confirm' ? 'Sent to the lead to fix' : "Noted: it won't come up again")); break;
+      case 'screen': leaveInbox(await act({ action: 'screen', project: d.project, id: d.id, verdict: d.verdict }, d.verdict === 'allow' ? 'Allowed' : 'Declined')); break;
+      case 'screen-seen': leaveInbox(await act({ action: 'screen-seen', project: d.project, id: d.id }, 'Noted')); break;
       case 'dial': await act({ action: 'dial', project: d.project, dial: d.dial, value: d.value }, `${d.dial} → ${d.value}`); break;
       case 'audit': await act({ action: 'audit', project: d.project }, 'Audit started; findings arrive in a few minutes'); break;
       case 'lead-start': await act({ action: 'lead-start', project: d.project }, 'Lead starting in a terminal window on this PC'); break;

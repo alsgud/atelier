@@ -94,6 +94,7 @@ async function main() {
     case 'messages': return messagesCmd();
     case 'audit': return auditCmd();
     case 'sync': return syncCmd();
+    case 'screen': return screenCmd();
     case 'criteria': return criteriaCmd();
     case 'ruling': return rulingCmd();
     case 'holdout': return holdoutCmd();
@@ -522,6 +523,28 @@ function approve(id) {
 }
 
 // Pushes what should be on GitHub (see lib/sync.mjs). The tick runs this every couple of minutes.
+// Agents ask before anything appears on the owner's screen; the owner allows or declines in the dashboard.
+async function screenCmd() {
+  const screen = await import('../lib/screen.mjs');
+  const [action, id] = args;
+  const alias = process.env.ATELIER_PROJECT || flags.project;
+  if (!alias) throw new Error('run this from a task, or pass --project <alias>');
+  if (action === 'request') {
+    const task = process.env.ATELIER_TASK || flags.task;
+    if (!task) throw new Error('only a task agent asks for the screen');
+    if (screen.granted(alias, task)) return console.log('You already have the owner\'s OK for now: go ahead, keep it short, and close the window when done.');
+    const r = screen.request(alias, task, typeof flags.why === 'string' ? flags.why : '', flags.minutes);
+    return console.log(r.already ? 'Already asked; the owner will answer in their inbox. Carry on with other work.' : `Asked the owner (${r.id}). Carry on with other work; once they allow it, launching works for ${r.minutes} min.`);
+  }
+  if (action === 'allow' || action === 'decline') {
+    owner.assertOwner(`screen ${action}`);
+    const r = screen.decide(alias, id, action === 'allow', flags.minutes);
+    return console.log(`${r.id} ${r.status}`);
+  }
+  const s = screen.load(alias);
+  console.log(JSON.stringify({ pending: s.requests.filter(r => r.status === 'pending'), grants: s.grants.filter(g => Date.parse(g.until) > Date.now()) }, null, 2));
+}
+
 async function syncCmd() {
   const { syncProject } = await import('../lib/sync.mjs');
   const all = cards.all();

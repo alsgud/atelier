@@ -85,7 +85,9 @@ Splitting work only pays where the parts are independent and an interface betwee
 - **Don't wait for a phase you could overlap.** As soon as the spec is approved, start the design and contracts tasks together. When the contracts are settled, start the backend work immediately, without waiting for the design gate.
 - **One writer per piece of work by default.** Add a second concurrent writer only when the two tasks' files don't overlap (`--files`) and their criteria can tell their failures apart. Reviews, designer specs and research can run in parallel freely.
 - **Existing codebases and dynamically typed code** are reasons to split less and keep tasks smaller.
-- **Size each task** to finish and verify in roughly 3–10 iterations.
+- **Size each task** to finish and verify in roughly 3–10 iterations, and within its budget.
+- **Size tests and spikes to the decision they support, not to the full product.** A yes/no question ("does video start fast enough from the HDD?") needs the smallest sample that answers it: a few dozen small files and tens of trials, not hundreds of production-sized ones. Say in the brief how small to go and where generated data lives (inside the worktree), and have it cleaned up afterwards.
+- **When a task's deliverable is done but its loop would keep going, land it** (`atelier land <id>`), don't stop it and leave the work sitting on a branch.
 - **Explain every staffing choice to the owner in one line.**
 - **Every task's brief** covers: objective, context (the R#s and DESIGN sections, contract files and rulings it builds on), done means (the check plus the criteria it satisfies), in and out of scope, files, and hand-off.
 
