@@ -95,7 +95,7 @@ function renderChrome() {
   $('side').innerHTML = `
     <div class="brand"><img src="icon.svg" alt="">Atelier</div>
     <a class="nav ${here.startsWith('#/inbox') ? 'on' : ''}" href="#/inbox">${icon('inbox')}Inbox<span class="count ${n ? 'hot' : ''}">${n || ''}</span></a>
-    <a class="nav ${here.startsWith('#/office') ? 'on' : ''}" href="#/office">${icon('office')}Office<span class="count">${state.projects.reduce((n, p) => n + (p.tasks || []).filter(t => t.status === 'running').length, 0) || ''}</span></a>
+    <a class="nav ${here.startsWith('#/office') ? 'on' : ''}" href="#/office">${icon('office')}Office<span class="count">${state.projects.reduce((n, p) => n + (p.team?.working || 0), 0) || ''}</span></a>
     <a class="nav ${here.startsWith('#/activity') ? 'on' : ''}" href="#/activity">${icon('activity')}Activity</a>
     <div class="side-h"><span>Projects</span><a href="#/new" title="New project" aria-label="New project">+</a></div>
     ${state.projects.map(p => {
@@ -167,9 +167,10 @@ function renderInbox(sel) {
 
 function nothingDetail() {
   const working = state.projects.flatMap(p => (p.tasks || []).filter(t => t.status === 'running').map(t => ({ ...t, project: p.alias })));
+  const busy = state.projects.reduce((n, p) => n + (p.team?.working || 0), 0);
   return `<div class="detail">
     <h1>Nothing needs you</h1>
-    <div class="sub">${working.length ? `${working.length} task${working.length > 1 ? 's are' : ' is'} being worked on.` : 'No one is working right now.'}</div>
+    <div class="sub">${busy ? `${busy} working right now. <a href="#/office">See who in the Office</a>.` : 'No one is working right now.'}</div>
     ${working.length ? `<div class="list">${working.map(t => taskRow(t, { project: true })).join('')}</div>` : `<div class="btns"><a class="btn primary" href="#/new">${icon('plus', 'st')}New project</a></div>`}
   </div>`;
 }
@@ -263,30 +264,17 @@ function desk({ href, state, who, what, meta, cls = '' }) {
   </${tag}>`;
 }
 
+// Desks come straight from the server's team list, the same one the sidebar and project page count.
 function officeDesks(p) {
-  const a = esc(p.alias);
-  const desks = [];
-  const add = (d) => desks.push(d);
-  // Lead: working if it acted in the last few minutes, otherwise on duty (running, between moves).
-  add({ order: p.lead.running ? (p.leadActive ? 'working' : 'duty') : 'away', html: null, d: {
-    href: `#/p/${a}/overview`, cls: 'lead', state: p.lead.running ? (p.leadActive ? 'working' : 'duty') : 'away',
-    who: 'Lead', what: p.lead.running ? (p.leadActive ? 'Planning and delegating' : 'Watching for your decisions') : 'Off',
-    meta: p.lead.running ? `"${a} lead" in the Claude app` : 'start it from the project page' } });
-  const active = p.tasks.filter(x => ['running', 'needs-you', 'stalled'].includes(x.status));
-  for (const x of active) {
-    const s = x.status === 'needs-you' ? 'needs' : x.status === 'stalled' ? 'stuck' : /in review/.test(x.reason || '') ? 'reviewing' : 'working';
-    const spend = (x.cost || 0) + (x.liveCost || 0);
-    add({ order: s, d: { href: `#/t/${esc(x.id)}`, state: s,
-      who: s === 'reviewing' ? `reviewer <span class="faint">on ${esc(x.role || 'builder')}'s work</span>` : esc(x.role || 'builder'),
-      what: esc(x.title),
-      meta: s === 'needs' ? 'answer it in your inbox' : s === 'stuck' ? 'the lead will replan it' : `iteration ${x.iteration || 0} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}${spend ? ` · ${money(spend)}` : ''}` } });
-  }
-  const reviewingNow = active.some(x => /in review/.test(x.reason || ''));
-  if (!reviewingNow && p.roster.some(r => r.role === 'reviewer')) add({ order: 'idle', d: { state: 'idle', who: 'reviewer', what: 'Waiting for finished work', meta: 'Opus · checks every task' } });
-  add({ order: p.auditing ? 'auditing' : 'idle', d: { href: `#/p/${a}/audits`, state: p.auditing ? 'auditing' : 'idle', who: 'auditor',
-    what: p.auditing ? 'Checking the product against your words' : 'Between audits', meta: p.lastAudit ? `last audit ${esc(ago(p.lastAudit.at))} ago` : 'reports only to you' } });
-  const busyRoles = new Set(active.map(x => x.role || 'builder'));
-  for (const r of p.roster.filter(r => r.role !== 'reviewer' && !busyRoles.has(r.role))) add({ order: 'idle', d: { state: 'idle', who: esc(r.role), what: 'No task right now' } });
+  const desks = (p.team?.agents || []).map(x => {
+    const spend = x.spend || 0;
+    const meta = x.kind === 'task' || (x.kind === 'reviewer' && x.id)
+      ? (x.state === 'needs' ? 'answer it in your inbox' : x.state === 'stuck' ? 'the lead will replan it' : `iteration ${x.iteration} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}${spend ? ` · ${money(spend)}` : ''}`)
+      : esc(x.meta || '');
+    return { order: x.state, d: { href: x.href ? esc(x.href) : '', cls: x.kind === 'lead' ? 'lead' : '', state: x.state,
+      who: x.reviewingFor ? `reviewer <span class="faint">on ${esc(x.reviewingFor)}'s work</span>` : x.kind === 'lead' ? 'Lead' : esc(x.who),
+      what: esc(x.what || ''), meta } };
+  });
   desks.sort((x, y) => DESK_ORDER[x.order] - DESK_ORDER[y.order]);
   return desks;
 }
@@ -368,7 +356,7 @@ async function renderProject(alias, tab, sub) {
         <div><div class="k">Now</div><div class="big">${step.title}</div><div class="txt">${step.detail}</div>${step.action ? `<div class="btns">${step.action}</div>` : ''}
           <div class="steps">${PHASES.map((ph, i) => `<span class="${i < idx ? 'done' : i === idx ? 'cur' : ''}">${ph}</span>`).join('')}</div></div>
         <div class="stats">
-          <div class="stat"><div class="v">${n('running')}</div><div class="l">working now</div></div>
+          <div class="stat"><div class="v">${p.team.working}</div><div class="l">working now</div></div>
           <div class="stat"><div class="v">${own.length}</div><div class="l">waiting on you</div></div>
           <div class="stat"><div class="v">${p.metrics.criteriaTotal ? `${p.metrics.criteriaMet}<span class="faint">/${p.metrics.criteriaTotal}</span>` : '—'}</div><div class="l">criteria met</div></div>
           <div class="stat"><div class="v">${money(p.metrics.cost + (p.metrics.liveCost || 0))}</div><div class="l">spent so far${p.metrics.liveCost ? ` (≈${money(p.metrics.liveCost)} in progress)` : ''}</div></div>
@@ -408,10 +396,24 @@ function projOverview(p) {
   const active = p.tasks.filter(t => ['running', 'needs-you', 'queued', 'planned', 'review'].includes(t.status));
   return `
     ${own.length ? `<div class="sec">Waiting on you</div><div class="list">${own.map(x => `<a class="item urgent" href="#/inbox/${encodeURIComponent(x.key)}">${icon((KIND[x.kind] || ['inbox'])[0], 'st')}<span class="t">${esc(x.title)}<small>${(KIND[x.kind] || ['', x.kind])[1]}</small></span><span class="r">${esc(ago(x.at))}</span></a>`).join('')}</div>` : ''}
-    <div class="sec">In progress</div>
+    <div class="sec">Working now<span class="faint"> · ${p.team.working}</span></div>
+    ${busyList(p)}
+    <div class="sec">Tasks in progress</div>
     ${active.length ? `<div class="list">${active.map(t => taskRow(t)).join('')}</div>` : '<div class="hint">No active tasks.</div>'}
     <div class="sec">Recent</div>
     <ul class="timeline">${p.events.slice(0, 8).map(e => eventLine(e, false)).join('') || '<div class="hint">Nothing yet.</div>'}</ul>`;
+}
+
+// The same busy agents the Office and sidebar count, in one plain line each.
+function busyList(p) {
+  const busy = p.team.agents.filter(x => isBusy(x.state));
+  if (!busy.length) return '<div class="hint">Nobody is working right now.</div>';
+  return `<div class="list">${busy.map(x => {
+    const who = x.kind === 'lead' ? 'Lead' : x.reviewingFor ? `Reviewer on ${esc(x.reviewingFor)}'s work` : esc(x.who[0].toUpperCase() + x.who.slice(1));
+    const sub = x.kind === 'auditor' ? esc(x.meta) : x.id ? `iteration ${x.iteration} of ${x.iterations}${x.eta ? ` · ${etaText(x.eta)}` : ''}` : esc(x.meta || '');
+    const inner = `${st('running')}<span class="t">${who}: ${esc(x.what)}<small>${sub}</small></span>`;
+    return x.href ? `<a class="item" href="${esc(x.href)}">${inner}</a>` : `<div class="item" style="cursor:default">${inner}</div>`;
+  }).join('')}</div>`;
 }
 
 const GROUPS = [['needs-you', 'Needs you'], ['running', 'Working'], ['review', 'In review'], ['queued', 'Queued'], ['planned', 'Waiting for your OK'], ['requested', 'Requests'], ['stalled', 'Stalled'], ['paused', 'Paused'], ['done', 'Done'], ['failed', 'Failed'], ['cancelled', 'Cancelled']];
@@ -443,8 +445,11 @@ function projCriteria(p) {
 
 function projAudits(p) {
   const list = [...p.findings].reverse();
-  const head = `<div class="btns" style="margin:14px 0"><button class="btn" data-do="audit" data-project="${esc(p.alias)}">Run audit now</button>
-    <span class="hint">The auditor never sees the lead's plan. It checks the product against your own words and reports only to you.${p.lastAudit ? ` Last run ${esc(ago(p.lastAudit.at))} ago.` : ''}</span></div>`;
+  const run = p.team.agents.find(x => x.kind === 'auditor')?.audit;
+  const banner = run ? `<div class="box" style="margin-top:14px"><div class="label"><span class="sdot" style="background:var(--accent)"></span> Audit running</div>
+    Started ${run.startedMin} min ago · ${esc(run.stage)}${run.checkers ? ` <span class="faint">(${run.checkers} checkers each take one slice of your charter, outcomes and spec; a final pass tries to knock down every finding before you see it)</span>` : ''}</div>` : '';
+  const head = banner + `<div class="btns" style="margin:14px 0">${run ? '' : `<button class="btn" data-do="audit" data-project="${esc(p.alias)}">Run audit now</button>`}
+    <span class="hint">The auditor is your check on the whole team, the lead included. It never sees the lead's plan: it judges the finished product against your own words and reports only to you, here. (The reviewer is different: it checks each task before it merges and works for the lead.)${p.lastAudit ? ` Last run ${esc(ago(p.lastAudit.at))} ago.` : ''}</span></div>`;
   if (!list.length) return head + '<div class="empty"><b>No findings</b>Audits run after each gate you approve, and daily while the team works.</div>';
   return head + `<div class="list">${list.map(f => `<details class="item" style="display:block;cursor:default"><summary style="display:flex;gap:10px;align-items:center;cursor:pointer;list-style:none">
       ${st(f.status === 'open' ? f.severity : f.status)}<span class="id">${esc(f.id)}</span><span class="t">${esc(f.claim)}<small>${esc(f.severity)} · ${f.reversibility === 'hard' ? 'hard to undo' : 'easy to undo'} · ${esc(f.status)}</small></span></summary>
