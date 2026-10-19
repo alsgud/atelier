@@ -91,6 +91,7 @@ async function main() {
     case 'msg': return msgCmd();
     case 'messages': return messagesCmd();
     case 'audit': return auditCmd();
+    case 'sync': return syncCmd();
     case 'criteria': return criteriaCmd();
     case 'ruling': return rulingCmd();
     case 'holdout': return holdoutCmd();
@@ -485,6 +486,13 @@ function approve(id) {
   tick();
 }
 
+// Pushes what should be on GitHub (see lib/sync.mjs). The tick runs this every couple of minutes.
+async function syncCmd() {
+  const { syncProject } = await import('../lib/sync.mjs');
+  const all = cards.all();
+  for (const alias of args[0] ? [args[0]] : project.list()) for (const line of syncProject(alias, all)) console.log(line);
+}
+
 // ---------- v3 decision layer ----------
 
 async function auditCmd() {
@@ -575,7 +583,7 @@ async function watchCmd() {
   const [alias] = args;
   project.load(alias);
   const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted']);
-  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead']);
+  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed']);
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
   console.log(`watching ${alias}: owner decisions and task changes will appear here`);
@@ -801,6 +809,7 @@ function leadContext(alias) {
     `Phase: ${project.nextPhase(p)} · trust ${p.trust} · reporting ${project.dials(p).reporting} · autonomy ${p.autonomy || 'pr'}`,
     `The owner approves these phases personally: ${project.dials(p).ownerGates.join(', ') || 'none'}; the others you approve via \`atelier gate ... request\`. Write everything the owner reads in a ${project.dials(p).summaryStyle} style.`,
     'Start the live watch now if it is not running: use the Monitor tool on `atelier watch ' + alias + '` so owner decisions wake you immediately.',
+    p.github?.problem ? `WARNING: work is not reaching GitHub: ${p.github.problem}. Fix what you can (for example merge origin into the base branch); tell the owner if it needs their GitHub sign-in.` : '',
     decisions.charterTampered(alias, repo) ? 'WARNING: atelier/CHARTER.md changed since the owner approved it. Tell the owner immediately.' : '',
     p.charter ? 'The charter is approved: atelier/CHARTER.md.' : 'The charter is not approved yet: drafting it with the owner comes first.',
     (n => n ? `The auditor has ${n} item(s) for you to fix: \`atelier audit ${alias} findings --lead\`. Fix or delegate them, then \`atelier audit ${alias} fixed F-n --note "what changed"\`.` : '')(auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status)).length),

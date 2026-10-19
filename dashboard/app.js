@@ -140,7 +140,7 @@ window.addEventListener('hashchange', () => { if (state) { renderChrome(); route
 
 // ---------- inbox (Linear) ----------
 const KIND = {
-  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], finding: ['alert', 'Drift'],
+  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], github: ['alert', 'GitHub'], finding: ['alert', 'Drift'],
   criterion: ['check', 'Outcome'], criteria: ['check', 'Outcomes'], 'owner-criterion': ['eye', 'Your judgement'], plan: ['play', 'Task plan'], question: ['help', 'Question'], dial: ['dial', 'Trust'],
 };
 
@@ -362,7 +362,7 @@ async function renderProject(alias, tab, sub) {
   const views = { overview: projOverview, tasks: projTasks, criteria: projCriteria, audits: projAudits, docs: projDocs, activity: projActivity, settings: projSettings };
   $('app').innerHTML = `${topbar(`<a href="#/projects">Projects</a><span>/</span><b>${a}</b>`, leadBtn)}
     <div class="page">
-      <div class="phead"><h1>${a}</h1><span class="chip"><span class="pdot ${p.lead.running ? 'live' : ''}"></span>${p.lead.running ? `Lead on · talk to "${a} lead" in the Claude app` : 'Lead off'}</span></div>
+      <div class="phead"><h1>${a}</h1>${githubChip(p)}<span class="chip"><span class="pdot ${p.lead.running ? 'live' : ''}"></span>${p.lead.running ? `Lead on · talk to "${a} lead" in the Claude app` : 'Lead off'}</span></div>
       <div class="now">
         <div><div class="k">Now</div><div class="big">${step.title}</div><div class="txt">${step.detail}</div>${step.action ? `<div class="btns">${step.action}</div>` : ''}
           <div class="steps">${PHASES.map((ph, i) => `<span class="${i < idx ? 'done' : i === idx ? 'cur' : ''}">${ph}</span>`).join('')}</div></div>
@@ -376,6 +376,15 @@ async function renderProject(alias, tab, sub) {
       <nav class="tabs">${tabs.map(([k, l, c]) => `<a href="#/p/${a}/${k}" class="${k === tab ? 'on' : ''}">${l}${c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>
       <div id="tab">${(views[tab] || projOverview)(p, sub)}</div>
     </div>`;
+}
+
+// Whether GitHub has everything. Atelier pushes on its own every couple of minutes; this only turns red
+// when that's failing, so the owner never has to check.
+function githubChip(p) {
+  const g = p.github;
+  if (!g || p.autonomy === 'branch') return '';
+  if (g.problem) return `<span class="chip" style="color:var(--red)" title="${esc(g.problem)}">Not on GitHub: ${esc(g.problem.split(':')[0])}</span>`;
+  return `<span class="chip" title="Checked ${esc(ago(g.at))} ago">On GitHub</span>`;
 }
 
 // One plain sentence about what happens next.
