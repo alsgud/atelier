@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { HOME, PKG, paths, ensureHome, config, readJson, writeJson, resolveRepo, repoAlias, runDir } from '../lib/home.mjs';
 import * as cards from '../lib/card.mjs';
 import * as events from '../lib/events.mjs';
@@ -94,6 +94,7 @@ async function main() {
     case 'messages': return messagesCmd();
     case 'audit': return auditCmd();
     case 'sync': return syncCmd();
+    case 'service': return serviceCmd(args[0] || 'status');
     case 'screen': return screenCmd();
     case 'criteria': return criteriaCmd();
     case 'ruling': return rulingCmd();
@@ -282,8 +283,9 @@ function extend(id) {
 function stop(id) {
   const m = cards.load(id).meta;
   if (alive(m.pid)) killTree(m.pid);
-  cards.update(id, { status: 'paused', reason: 'stopped by owner', pid: '' });
-  events.emit(id, 'paused', 'stopped by owner');
+  const by = process.env.ATELIER_ROLE === 'lead' ? 'the lead' : 'owner';
+  cards.update(id, { status: 'paused', reason: `stopped by ${by}`, pid: '' });
+  events.emit(id, 'paused', `stopped by ${by}`);
   console.log(`stopped ${id}; resume with: atelier resume ${id}`);
 }
 
@@ -369,7 +371,7 @@ function needsTerminal(args, title) {
   if (process.stdin.isTTY) return false;
   if (process.platform !== 'win32') throw new Error(`atelier ${args.join(' ')} needs an interactive terminal; run it in a terminal window`);
   if (!args.every(a => /^[\w-]+$/.test(a))) throw new Error('unexpected characters in arguments');
-  spawn('cmd.exe', ['/c', `start "${title}" cmd /k atelier ${args.join(' ')}`], {
+  spawn('cmd.exe', ['/c', `start "${title}" /min cmd /k atelier ${args.join(' ')}`], {
     detached: true, stdio: 'ignore', windowsVerbatimArguments: true,
   }).unref();
   console.log(`opened "${title}" in a new terminal window. Keep it open while you use it from the Claude app.`);
@@ -545,6 +547,41 @@ async function screenCmd() {
   console.log(JSON.stringify({ pending: s.requests.filter(r => r.status === 'pending'), grants: s.grants.filter(g => Date.parse(g.until) > Date.now()) }, null, 2));
 }
 
+// Atelier as a background service: a Windows scheduled task starts the dashboard (which is also the
+// scheduler, GitHub sync, screen watcher and lead supervisor) at logon and every 5 minutes if it isn't
+// running. Nothing then depends on the Claude app or a terminal staying open.
+function serviceCmd(action) {
+  if (process.platform !== 'win32') throw new Error('the background service is Windows-only for now; run atelier dashboard under your init system');
+  const dir = path.join(HOME, 'service');
+  const vbs = path.join(dir, 'run-dashboard.vbs');
+  const name = 'Atelier';
+  const ps = cmd => spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', cmd], { encoding: 'utf8', windowsHide: true });
+  if (action === 'install') {
+    fs.mkdirSync(dir, { recursive: true });
+    const q = s => s.replace(/"/g, '""');
+    fs.writeFileSync(vbs, [
+      "' Starts the Atelier dashboard with no window. Exits at once if it's already running (port in use).",
+      'Set sh = CreateObject("WScript.Shell")',
+      `sh.Run """${q(process.execPath)}"" ""${q(path.join(PKG, 'bin', 'atelier.mjs'))}"" dashboard --port 4747", 0, False`,
+    ].join('\r\n'));
+    const r = ps(`$a = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument '"${vbs}"';
+      $t1 = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME;
+      $t2 = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5);
+      $t1.Repetition = $t2.Repetition;
+      $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 1);
+      Register-ScheduledTask -TaskName '${name}' -Action $a -Trigger $t1,$t2 -Settings $s -Description 'Keeps the Atelier dashboard (scheduler, GitHub sync, screen watcher, lead supervisor) running.' -Force | Out-Null;
+      Start-ScheduledTask -TaskName '${name}'; 'ok'`);
+    if (!/ok/.test(r.stdout)) throw new Error(`couldn't register the task: ${r.stderr || r.stdout}`);
+    return console.log('Atelier now runs in the background: started now, at every logon, and again within 5 minutes if it ever stops.');
+  }
+  if (action === 'uninstall') {
+    ps(`Unregister-ScheduledTask -TaskName '${name}' -Confirm:$false`);
+    return console.log('background service removed (a running dashboard keeps running until you stop it)');
+  }
+  const r = ps(`$t = Get-ScheduledTask -TaskName '${name}' -ErrorAction SilentlyContinue; if ($t) { $i = Get-ScheduledTaskInfo -TaskName '${name}'; "installed, last run $($i.LastRunTime)" } else { 'not installed' }`);
+  console.log(`service: ${r.stdout.trim()}`);
+}
+
 async function syncCmd() {
   const { syncProject } = await import('../lib/sync.mjs');
   const all = cards.all();
@@ -647,8 +684,14 @@ async function watchCmd() {
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
   console.log(`watching ${alias}: owner decisions and task changes will appear here`);
-  for (;;) {
+  const leadPidFile = path.join(project.dir(alias), 'lead.pid');
+  const myLead = fs.existsSync(leadPidFile) ? fs.readFileSync(leadPidFile, 'utf8').trim() : '';
+  for (let n = 0; ; n++) {
     await new Promise(r => setTimeout(r, 2000));
+    if (myLead && n % 15 === 0) {
+      const now = fs.existsSync(leadPidFile) ? fs.readFileSync(leadPidFile, 'utf8').trim() : '';
+      if (now !== myLead || !alive(Number(myLead))) { console.log('the lead session this watch belongs to has ended; stopping'); process.exit(0); }
+    }
     if (!fs.existsSync(paths.events)) continue;
     const size = fs.statSync(paths.events).size;
     if (size <= offset) { offset = Math.min(offset, size); continue; }
@@ -841,6 +884,7 @@ function lead(alias) {
       ],
     },
   };
+  fs.writeFileSync(path.join(project.dir(alias), 'lead.wanted'), new Date().toISOString());
   const stopFlag = path.join(project.dir(alias), 'lead.stop');
   const restartFlag = path.join(project.dir(alias), 'lead.restart');
   fs.rmSync(stopFlag, { force: true });
