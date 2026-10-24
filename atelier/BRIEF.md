@@ -53,3 +53,11 @@ The pain points to fix (from the owner's first project):
 
 ## Assumptions the lead made
 <!-- Low-stakes defaults filled in without asking. The owner can overrule any of them. -->
+- **Process size: personal project.** About 10 checks the owner would test by hand; no separate contracts phase (the frontend keeps a short note on any endpoint changes, the lead approves it); reviewer on every merge; one audit at the end.
+- **One milestone** for the whole redesign, priced at the brief's ~$120, with the audit (~one fixed line) inside it.
+- **Design first shows two directions** on the Inbox (desktop and phone) for the owner to pick; the designer then does every screen in the chosen direction. This is the one design approval.
+- **Phone first-class** means the Inbox, every decision, the project overview and the task page are designed phone-first. New project and settings work on the phone but are laid out for desktop.
+- **One builder at a time on code**, because the screens share `app.js`, `app.css` and the server file. Work is split into slices (shell + Inbox, project and task pages, office, new project and settings) that land one after another on one integration branch.
+- **Trying it**: the integration branch runs on a second port next to the live dashboard; the live one is never touched.
+- **One source of numbers**: the screens read counts and spend from a single summary the server computes, rather than each screen adding things up.
+
