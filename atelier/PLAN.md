@@ -24,11 +24,13 @@ Rough split (to be re-priced from real costs after the design task):
 ## Task graph
 | id | role | task | depends on | status |
 |---|---|---|---|---|
-| — | designer | Directions on Inbox (desktop + phone), then all screens | spec gate | not started |
+| tkvt | designer | D1: inventory + two Inbox directions ($10, 5 it) | spec gate | running |
+| — | designer | D2: all screens + DESIGN.md in the chosen direction | owner picks direction | not started |
 | — | frontend | Slice 1: shell + summary endpoint + Inbox | design gate | not started |
 | — | frontend | Slice 2: project + task pages | slice 1 | not started |
 | — | frontend | Slice 3: office, new project, settings | slice 2 | not started |
 | — | auditor | End-of-milestone audit | slice 3 | not started |
 
 ## Progress notes
+- 2026-10-24 later: brief approved ("Continue"; taken as accepting the brief's assumptions incl. two directions + one-branch hand-off). Spec, contracts approved by lead. AC-1..7 approved by owner; AC-8..16 team checks. No holdout tests (personal scale; reviewer + end audit cover). Designer D1 tkvt started.
 - 2026-10-24: shift start. Brief already drafted. Charter drafted to atelier/CHARTER-draft.md (CHARTER.md is owner-only); sent owner a play-back + two questions. Next: once charter/brief approved, write SPEC + ~10 criteria, self-approve spec, start designer.
