@@ -72,6 +72,11 @@ body { text-rendering: optimizeLegibility; font-kerning: normal; }
 .toast-life { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--text-inverse) 28%, transparent); transform-origin: left; animation: toast-life 6000ms linear forwards; }
 @keyframes toast-life { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 [data-motion="reduce"] .toast-life { animation: none; opacity: 0; }
+/* Reduced motion: whatever a feel stamps, pops or slides in (ticks, toasts, sent lines, fields) only fades. */
+[data-motion="reduce"] :is(.tick, .tick .icon, .toast, .toast.is-leaving, .dock-msg, .dock-msg > *, .qitem-glyph .icon, .input, .fig, .empty-mark .tick) { animation-name: rm-fade !important; }
+[data-motion="reduce"] .toast.is-leaving { animation-name: rm-out !important; }
+@keyframes rm-fade { from { opacity: 0; } }
+@keyframes rm-out { to { opacity: 0; } }
 @media (max-width: 767px) { .toast-action .kbd { display: none; } }
 
 /* ── The dock never moves ────────────────────────────────────────────

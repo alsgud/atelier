@@ -16,6 +16,12 @@ Open `atelier/design/index.html` first. Source of truth is HTML:
 | `design/references/` | The references board's screenshots |
 | `design/review/` | Critique rounds (before/after) and the final render matrix |
 | `design/direction-a/`, `direction-b/`, `shots/`, `directions.md`, `inventory.md` | D1, kept for the record. `inventory.md` is still the R1 checklist |
+| `design/feel/index.html` | **D3: the three feels side by side** (Calm, Flow, Crisp), phone and desktop demo videos playing together, and the recommendation |
+| `design/feel/<calm\|flow\|crisp>/` | Each feel: `inbox.html` (interactive, same D2 layout), `demo-desktop.webm` (1440×900), `demo-phone.webm` (390×844), `contact-desktop.png` / `contact-phone.png` (12 key frames). Flow also has `demo-phone-reduced.webm` |
+| `design/feel/shared/` | `inbox.js` (one engine for all three: content, state, the transition hook) and `feel.css` (the D3 finish shared by all three) |
+| `design/references/motion/` | Motion references: short clips and frame strips from Linear, Things, Superhuman, Raycast, Vercel |
+
+Feel pages take `theme=light|dark`, `motion=reduce`, `open=<id>`, `state=zero|loading|error`, `tab=office`, `fail=1`, `demo` (hides the switcher).
 
 Inbox query parameters (mockup only): `theme=light|dark`, `open=finding|budget|design|question|proof|outcome|plan`,
 `state=zero|loading|error`, `dock=sending|failed|sent|invalid`, `toast=1`, `fail=1` (the next send fails), `shot` (hides the switcher).
@@ -41,6 +47,22 @@ Mobbin needs a paid plan, which would spend money (see Open questions), so refer
 | **Devin** (`devin-session.png`, `devin-home.png`) | Session list, ask, session view | A left list of recent sessions with a title and a relative time, nothing else. A calm, centred empty prompt: the tone of our inbox zero | "Thinking process (21 tools used)" style logs as primary content |
 | **Superhuman** (`superhuman.png`) | Split inbox | Text tabs with counts, no pills ("Important 12 · Calendar 13"), and the promise of zero as the goal | The marketing gradient and glass; any decoration behind content |
 
+### Motion references (D3)
+
+Captured headless from each product's public site (Mobbin is still paid; ruling R-2 allows free public screens) into `design/references/motion/`: a short clip (`.webm`) and a frame strip (`-frames.png`) each. Arc's site is now a farewell page with no product motion, so Arc is taken from what it is known for, not from a capture.
+
+| Product | Clip | What happens | Take | Avoid |
+|---|---|---|---|---|
+| **Things** | `things-check-off.webm`, `things-check-off-frames.png` | Checking an item: the box ticks, the row greys **in place**, and only later does the list tidy. Completed items don't vanish under your finger | **The hold**: show the decision done where you made it (`--dur-hold` 560 ms) before anything moves. Ticks that draw in with a little spring | The long completion delay (Things waits seconds; a queue of decisions can't) |
+| **Things** | `things-list-to-detail.webm`, `-frames.png` | A to-do opens into a card in place; the list around it recedes; closing reverses exactly | **List to detail is one object changing size**, and the reverse path is the same path: our Flow title flight and its Undo | Card shadows and paper metaphors |
+| **Superhuman** | `superhuman-ask-progress.webm`, `-frames.png` | The Ask panel rises; "Searching your calendar…" sits as one quiet line while it works; the answer streams in under it | **Live progress as one plain line that updates in place**, no spinner wall: our Working now tick (figure rolls, bar moves, nothing re-renders) | The gradient sky; glass |
+| **Linear** | `linear-hero-enter.webm`, `-frames.png` | Headline, sub-line and product frame arrive in sequence (blur + fade + a short rise), ~40–80 ms apart. Product (from use, not the clip): the app itself moves almost nothing; keyboard moves are instant | **Stagger in a fixed order** (eyebrow + title, then body; `--stagger` 40 ms, max 160 ms), and **instant response to input**: press feedback within `--dur-instant` | Blur as an entrance: `filter` isn't compositor-only and costs paint on every frame. We use opacity and a few px of travel instead |
+| **Raycast** | `raycast-hero.webm` (site hero) | Site: the hero arrives in one quick move and settles. Product (from use, not the clip): the launcher snaps open and list selection has no animation at all | **Crisp**: what's under your hand answers immediately; motion is short and exact, rows snap | Long eased list animations that make keyboard users wait |
+| **Vercel** | `vercel-scroll.webm` | Content fades up once as it enters; status dots pulse slowly; nothing loops loudly | **Status as a slow, small pulse** (`--dur-pulse`) and colour only where it means something | Decorative grid and glow motion |
+| **Arc** (not captured) | — | Spaces slide sideways in the direction you swipe; the sidebar follows your finger | **Direction-aware page moves**: J/K and tab switches slide the way you went (Flow) | Playful bounces on everything |
+
+What all six agree on: motion confirms an action or shows life, it never decorates; the thing you are reading never moves while you read it; exits are faster than entrances.
+
 ## Flows
 
 1. **Glance (desktop)**: open → sidebar shows Inbox `7` in red (some need you now) → page head says "7 waiting · 2 need you now" → the top item is already open. If the count is grey, nothing is urgent; if it is absent, inbox zero.
@@ -56,6 +78,8 @@ Mobbin needs a paid plan, which would spend money (see Open questions), so refer
    - Live refresh (R7) never replaces the open item, the note being typed or the scroll position; new items join the queue quietly.
 
 ## Directions
+
+D3 adds three **feels** of B for the owner to pick from (`design/feel/index.html`; see Motion): Calm, Flow (recommended), Crisp. Same layout, different motion and finish.
 
 D1 rendered two directions (`design/directions.md`); the owner chose **B** at the design gate (ruling R-1). D2 does not reopen that choice: it is B built properly, with D1's recommendation from A kept where it helps (the work shown large, the dock pinned on the phone).
 
@@ -179,21 +203,100 @@ Measured, not guessed (`runs/68h6/tools/contrast.mjs` reads `tokens.css`; `a11y.
 - **Tap targets (2.5.5)**: every control ≥ 44×44 at 390 (measured, zero failures after round 2).
 - **Names (4.1.2)**: icon-only buttons have labels ("Previous item", "Next item"); the Inbox link reads "Inbox, 7 waiting, 2 need you now"; queue rows read "title. project, kind, age. Needs you now"; frames read "Home, opens full size in a new tab"; images inside labelled links are `alt=""`.
 - **Live regions**: toasts in `aria-live="polite"`; send errors and the load banner are `role="alert"`; the sent dock is `role="status"`.
-- **Reduced motion**: `prefers-reduced-motion` sets every duration to 0–1 ms and `--shift` to 0: no slides, no pulse, no shimmer, spinner becomes a static ring.
+- **Reduced motion** (D3): `prefers-reduced-motion` zeroes every travel, scale and pulse token; a change is one 120 ms cross-fade of the page; stamps and slides become fades; no pulse, no shimmer; spinner becomes a static ring. See Motion › Reduced motion.
+- **Timing (2.2.1)** (D3): the toast's 6 s Undo window pauses while it is hovered or focused; Undo is also on `Z`.
 - **Zoom**: at 200 % a 1440 window is 720 CSS px wide, so the phone layout applies (the breakpoints are in CSS px); not yet checked by render.
 
 ## Motion
 
-| What | Duration | Easing | Reduced |
-|---|---|---|---|
-| Hover, colour | `--dur-fast` 120 ms | linear | instant |
-| Press | `--dur-instant` 80 ms, 1 px down | — | none |
-| Toast in, Details chevron, next item | `--dur-base` 200 ms, rise `--shift` 8 px | `--ease-out` | fade only (1 ms) |
-| Decided row: green wash 700 ms, then collapse out | `--dur-slow` 320 ms, slide `--shift` | `--ease-in-out` | instant |
-| Live dot ring | `--dur-pulse` 2.4 s loop | `--ease-out` | off |
-| Skeleton shimmer, spinner | 1.4 s / 0.7 s loop | linear | static |
+D3 (rulings R-1, R-3: the owner found D2's feel and animation lacking). The system below is in `design/tokens.css`; the three feels in `design/feel/` are built only from it. *Why a system before the feels*: three feels that invent their own numbers can't be compared, and frontend can't build the chosen one without guessing.
 
-*Why*: motion only confirms what you just did (sent, gone, next) or shows life (working). Nothing moves on its own otherwise.
+### Principles
+
+1. **Motion confirms or shows life; it never decorates.** It says "done", "gone", "next", "back", "working". Nothing moves on its own except a working agent's dot and its progress.
+2. **What you read never moves while you read it.** The item in focus, the text you are typing and the scroll position stay put; live updates (R7) change figures in place.
+3. **The dock never moves.** It sits at the foot of the focus column for every item (D3 change: D2 put it directly under short items, so it jumped from item to item), sticky when the item is long. Its words cross-fade; your hand doesn't have to find it again.
+4. **Exits are faster than entrances.** The old is gone (`--dur-fast`) before the new is more than faint; never a double exposure.
+5. **The decision is shown done in place before anything moves** (`--dur-hold`, from Things).
+6. **Response to input within one frame budget**: hover in ≤ `--dur-fast`, press in `--dur-instant`.
+
+### Tokens
+
+| Token | Value | For |
+|---|---|---|
+| `--dur-instant` | 80 ms | press: the control answers your finger |
+| `--dur-fast` | 120 ms | hover, colour, a tick appearing, every exit |
+| `--dur-base` | 200 ms | enter: toast, disclosure, the next item's first block |
+| `--dur-slow` | 320 ms | move: rows closing a gap, an item settling |
+| `--dur-hold` | 560 ms | the decision shown done, in place, before the item goes |
+| `--dur-calm` | 640 ms | the one slow moment: inbox zero arriving |
+| `--dur-pulse` | 2.4 s | a working agent's live dot (Calm 3.2 s, Crisp 1.6 s) |
+| `--dur-shimmer` | 1.8 s | one sheen across a progress bar per update (Crisp) |
+| `--stagger` / `--stagger-max` | 40 / 160 ms | between blocks of an arriving item; never more in total |
+| `--ease-enter` | `cubic-bezier(.16, 1, .3, 1)` | arrive: fast start, long quiet landing |
+| `--ease-exit` | `cubic-bezier(.4, 0, .84, .44)` | leave: gathers speed, gone before you look |
+| `--ease-move` | `cubic-bezier(.65, 0, .35, 1)` | A to B on screen |
+| `--ease-press` | `cubic-bezier(.3, 0, .5, 1)` | press and release |
+| `--spring-snappy` (+ `-dur` 400 ms) | `linear(…)`, stiffness 420, damping 32, ratio 0.79, ~2 % overshoot | presses, rows landing, ticks |
+| `--spring-soft` (+ `-dur` 660 ms) | stiffness 160, damping 20, ratio 0.79 | long flights (Flow's title to Decided today) |
+| `--spring-glide` (+ `-dur` 700 ms) | stiffness 170, damping 26, critically damped | big surfaces arriving, no bounce |
+| `--shift-sm` / `--shift` / `--shift-lg` | 4 / 8 / 24 px | quiet / default / spatial travel |
+| `--press-scale` / `--press-depth` | 0.97 / 1 px | pressed controls |
+
+D2's `--ease-out` and `--ease-in-out` stay for components that already use them. Springs are CSS `linear()` curves generated from the physics (`runs/57cv/tools/spring.py`), so frontend needs no animation library; the duration is part of the spring and always travels with it.
+
+### What moves and what never moves
+
+| Moves | Never moves |
+|---|---|
+| The item in focus, when it changes (leave, arrive) | The item while you read it; the text you type |
+| Queue rows closing a gap or making room (≥ 1024 px only, where the queue is beside the item) | The dock's position; the sidebar, top bar, tab bar |
+| A title flying between queue, focus and Decided today (Flow, ≥ 1024 px) | Counts: they change in place (Crisp rolls the digit within its own box) |
+| The toast (rises from the dock it anchors to) | The scroll position, except to the top when the next item opens |
+| Ticks (stamp, pop or fade), progress bars and figures | Anything when nothing happened |
+
+### Choreography of one decision (all feels)
+
+`press` (`--dur-instant`) → **Sending…** on the button pressed (latency) → **sent, held in place**: the dock turns green with what happens next, the queue row turns green, the tick appears (`--dur-hold`) → **one transition**: the old item leaves (`--dur-fast`), queue rows close the gap, the decision lands in **Decided today** (new at the foot of the queue, above Working now), the next item arrives (eyebrow + title, then body, `--stagger` apart), the dock's words cross-fade → **toast** with Undo (`Z`), focus on the new title. Undo is the same transition in reverse. Leader: the thing you touched; followers: the queue, then the next item; last: the toast.
+
+*Why Decided today moved into the queue*: a decision needs somewhere to go. D2 only showed the ledger at inbox zero; now the last three sit under the waiting items ("Decided today 2"), so the eye (and Flow's title) has a destination, and zero no longer introduces a new list.
+
+### The three feels (`design/feel/`)
+
+Same layout, content and journey; they differ in feel. Each refines D2's finish the same way (`feel/shared/feel.css`): icon stroke 1.75 on the 24 grid (1.17 px at 16, the stem of 14/500 text; D2's 1.6 read thin); typographic quotes, apostrophes and non-breaking hyphens in all copy; the serif title pulled back 0.03 em so its stem lines up with the eyebrow; the queue glyph centred on the title's first line; tabular figures everywhere a number changes; a focus ring plus a soft 16 % halo; preview frames with an inner 7 % hairline and concentric corners; a filled green tick in the sent dock and on zero; a toast with a visible Undo countdown (2 px life bar) and a `Z` key hint; inbox zero with more air, the line a third of the way down, Working now under a hairline.
+
+| | **Calm** | **Flow** (recommended) | **Crisp** |
+|---|---|---|---|
+| In a sentence | Things stay where they are; what changes, fades | Every item is a thing with a place | Every action clicks |
+| Next item | Old fades `--dur-fast`; new rises `--shift-sm` over `--dur-slow`, 80 ms later, body `--stagger` after | Desktop: the decided title flies into Decided today (`--spring-soft`) while the next title rises from its queue row into the focus; the rest slides in `--shift-lg` from the side you're going (`--spring-glide`). < 1024: the item slides like a card, out left, in right | Old out `--dur-fast`; new in `--shift` over `--dur-base`, no stagger; J/K slide 8 px in their direction |
+| Queue rows | Close the gap over `--dur-slow`, `--ease-move` | `--spring-snappy`; removed rows shrink to 0.96 | `--spring-snappy` with overshoot; removed rows slip right 8 px |
+| Press / hover | Colour only; hover eases `--dur-base` | Scale 0.97, springs back; frames lift 2 px on hover | 1 px depth and the shadow closes; hover in `--dur-instant`; ink edge on the current row |
+| Ticks | Fade | Pop (`--spring-snappy`) | Stamp from 0.5 (`--spring-snappy`), also on the queue row |
+| Counts | Change in place | Change in place | Roll (old up and out, new up from below) |
+| Working now tick | Bar eases over 1.2 s; figure fades | Bar springs (`--spring-soft`); figure rises 4 px | Bar steps (`--dur-slow`), one sheen passes, figure rolls |
+| Toast | Fades up 4 px | Rises 24 px out of the dock (`--spring-snappy`) | Pops from 0.97 in `--dur-base` |
+| Invalid note | Red border fades in | One 4 px nudge | Two-cycle 4 px shake |
+| Inbox zero | Line settles over `--dur-calm`, Working now a beat later | The last title lands in the ledger, then the line rises 48 px (`--spring-glide`) | Tick stamps, line in `--dur-slow` |
+| Tab switch | Cross-fade | Slides the way you went | Fast fade-up |
+
+### Recommendation
+
+**Flow.** It makes the Inbox feel like a place: you see where a decision goes and where the next one comes from, which is what "one at a time" is about. Its motion is spent only on the moments that carry meaning (deciding, undoing, moving between items) while the work you read, the dock and the chrome never move, so it stays calm between actions. Calm is the safe fallback if Flow feels busy after a week of daily use; Crisp feels more like a tool than a studio.
+
+### Reduced motion
+
+`prefers-reduced-motion: reduce` (or `?motion=reduce`): nothing travels, scales, pulses or shimmers. No view-transition names are set, so each change is **one page cross-fade of `--dur-base` (120 ms there)**; every stamp, pop, slide and shake becomes a fade (`feel.css`); the hold stays (400 ms) because it is information, not decoration; the toast's countdown bar is hidden. Spinners become a static ring (D2). Recorded: `feel/flow/demo-phone-reduced.webm`.
+
+### Frame budget
+
+- **Only `transform` and `opacity` animate**, on our elements and on the view-transition images. Measured (`runs/57cv/tools/motion-audit.mjs`, all animations sampled every frame during a decision): our elements animate only transform and opacity (plus a 120 ms background-colour transition on button hover).
+- **The one exception, by design:** view-transition *groups* interpolate their box (width, height) to morph. For rows the size doesn't change; Flow's title flight does change size. Measured with a Chromium trace of one decision at 1440: Calm 13 layouts (9 ms in total), Crisp 13 (9 ms), Flow 159 (18 ms in total, ~0.12 ms per frame): well inside a 16.7 ms frame.
+- **60 fps:** with no recorder running, rAF frame times during transitions: Flow 2 of 2,563 frames over 25 ms, Crisp 1 of 1,200; worst 33 ms, the one snapshot frame at the start of a transition. Each decision has two main-thread tasks of 19–28 ms (re-render + snapshot), both before the animation starts. Frontend should update the DOM in place (not re-render the page) to bring those under 10 ms.
+- No `filter`, `backdrop-filter` (except the static play pill), `box-shadow`, `width`, `height`, `top` or `left` animation on our elements; no layout reads inside animation frames; images decode async.
+
+### For frontend
+
+The mockup uses the browser's **View Transitions API** (same-document; Chromium 111+, Safari 18+, Firefox 144+); where it's missing, changes apply instantly (still correct, just not animated). Name the parts as `feel/shared/inbox.js` does: `ih` (eyebrow + title), `ib` (body), `dock`, `head`, `page` (Office), `empty`, `zero-work`, rows `q-<id>`/`l-<id>`/`h-*` with class `row` (≥ 1024 only), titles `t-<id>` with class `title` (Flow, ≥ 1024 only); set `data-vt=<open|next|prev|decide|undo|tab|zero|retry>` and `data-dir=<fwd|back>` on `<html>` for the duration. The chosen feel's `<style>` block is then the whole motion spec.
 
 ## Copy
 
@@ -275,6 +378,32 @@ Before: `review/round-6/before-390-light-toast-over-next.png`, `before-1280-toas
 - **Changed**: the toast anchors to the dock. It is centred on the dock and as wide as it (max 440), `--space-2` above the dock's top edge, and it follows the dock while you scroll or type. If there's no room above, it goes below the dock instead, and never under the top bar or tab bar. With no dock (inbox zero), it sits above the tab bar on the phone. It closes on Escape and when you act on the next item. On the phone its Undo is 44 px tall. *Why above the dock*: the confirmation shows up where your eye and thumb already are, and it never takes the place of the next thing you'll press.
 - **Result** (`runs/68h6/tools/toast-hit.mjs`, real viewport, headless): 390×844, 360×640, 768×1024, 1280×720 and 1440×900 in light and dark, toast up over a long next item (question → proof, budget → design), checked at the top, the middle and the end of the item: every dock button and every tab is the top element at its centre, and the toast overlaps neither the dock nor the tab bar. Escape and acting on the next item both close it. Tapping Accept's centre with the toast up decides that item. 101/101 checks pass, 0 page errors. The reviewer's r3b/r3c re-run: every dock button reads `dock`, every tab `TABBAR`. At 390, Undo is at 594–638 and Reject at 727–771, so they no longer overlap.
 
+### Round 7 (D3, feel round 1: watching the recordings frame by frame)
+
+Method: each feel recorded with Playwright's video capture doing the full journey (`runs/57cv/tools/record.mjs`), then frames extracted at 10 fps around every transition (ffmpeg) and read one by one, plus the **design-critique** skill on the contact sheets. Before: `review/d3-round-1/before-flow-desktop-decide.png` (12 frames, 1.2 s around a decision), `before-flow-phone-rows-fly-over-item.png`. After: `after-flow-desktop-decide-mid.png`, `after-flow-phone-rows-stay.png`.
+
+- **Found (frames)**:
+  1. *The dock jumped.* Deciding a long item (the design) and landing on a short one (the question) moved the dock from the bottom of the screen to the middle, mid-transition: its old image showed at the new place. The hand loses its target.
+  2. *Double exposure.* In Flow the old item's body left over 320 ms while the new one arrived from 40 ms: for ~250 ms the Replay screenshot and the question's quote were both half visible.
+  3. *The next item opened mid-scroll on desktop*: after scrolling down to look at the frames, the next item appeared from its middle.
+  4. *Rows flew across the item on the phone.* Below 1024 px the queue is under the item and the page scrolls to the top on each change, so named queue rows animated from the bottom of the old view to their new place, sweeping across the design image and the tab bar labels (`before-flow-phone-rows-fly-over-item.png`, frames 5, 6 and 11).
+  5. *Frame drops on desktop recordings* (Flow 57 of 994 frames over 25 ms).
+- **Changed**: the focus column is at least one screen tall and the dock sits at its foot for every item ("the dock never moves", now a principle); exits take `--dur-fast` and entrances start ≥ 80–100 ms later in all three feels; the next item, Undo and opening from the queue scroll to the top at every width; queue rows (and Flow's titles) only get view-transition names at ≥ 1024 px; the decided list moved above Working now so it is on screen as the destination.
+- **Measured** (item 5): the drops came from the recorder, not the page. With no video capture, Flow drops 2 of 2,563 transition frames and Crisp 1 of 1,200 (worst 33 ms, the snapshot frame). A Chromium performance trace of one decision found Flow's title flight costs 159 tiny layouts (18 ms in total over the flight), Calm and Crisp 13: recorded as the one frame-budget exception.
+- **Result**: no double exposure in any frame, the dock in the same place across all seven items, no rows crossing the item on the phone (re-recorded all six demos; `feel/*/contact-*.png`).
+
+### Round 8 (D3, feel round 2: accessibility and reduced motion)
+
+Method: the **accessibility-review** skill; `a11y.mjs` on each feel at 390 and 1440, light and dark, default, `open=design` and `state=zero` (36 runs); `motion-audit.mjs` samples every running animation each frame during a decision, with and without reduced motion, checks where focus lands and whether the Undo window waits. Before: `review/d3-round-2/before-crisp-390-toast-after-7s-hover.png`. After: `after-crisp-390-toast-after-7s-hover.png`.
+
+- **Found**:
+  1. *Undo window didn't wait* (WCAG 2.2.1 Timing adjustable): with the pointer resting on the toast, it still closed after 6 s (before shot: no toast). Someone reading the long "Next: …" line could lose Undo.
+  2. *Reduced motion still scaled things*: Flow's tick pop and Crisp's tick stamp (on the dock and the queue row) animated `transform: scale` under `prefers-reduced-motion`, because their keyframes used literal scales, not the zeroed tokens.
+  3. *Names ran together* (4.1.2): "Office3 working", "replay4", "Approved the look of Dodge6hdodge".
+  4. Checked and fine: 0 unnamed controls, 0 targets under 44 px at 390, every Tab stop shows a ring (first 30 stops, both widths, both themes), images have `alt`, focus lands on the new item's title (`#ttl`) after every decision, J/K and Undo in all three feels; no new colour pairs (ticks reuse D2's done/done-soft 5.79:1 and 7.86:1; the countdown bar is decorative).
+- **Changed**: the toast's timer and countdown bar pause while it is hovered or focused, and resume with the time left (minimum 1.5 s); under reduced motion every stamp, pop, slide, nudge and shake becomes a fade (`feel.css`); `aria-label`s "Office, 3 working", "replay, 4 waiting, working", "Approved the look of Dodge. dodge, 6h ago".
+- **Result**: toast still present after 7 s of hover, gone ~6 s after the pointer leaves (all three feels); under reduced motion the only transforms running during a decision are the browser's page cross-fade group (no travel), in all three; Flow's reduced-motion journey recorded (`feel/flow/demo-phone-reduced.webm`, `contact-phone-reduced.png`).
+
 ## Open questions
 
 These are for the lead. They touch what the server sends, or they add scope.
@@ -285,4 +414,8 @@ These are for the lead. They touch what the server sends, or they add scope.
 - **Suggested answers to a question.** These need the agent to offer them in QUESTIONS.md. Without them, the item shows only "Write your own answer".
 - **Budget breakdown.** The per-task split of today's spend ("Trim editor $18.40 …") must come from the R2 summary, not be added up on the client.
 - **Undo** needs a short grace period on the server, or a reverse action for each decision. If neither is possible, the toast shows no Undo (the dock's sent state already has none). That is a behaviour change, so it is the lead's call.
+- **D3: the owner picks the feel** at the gate (`design/feel/index.html`); I recommend Flow. The next screens are drawn in the chosen feel.
+- **D3: Decided today in the queue.** The last three decisions now sit at the foot of the queue on every view (they were only on inbox zero). The server already returns today's decisions for the zero view; it's the same data. A small layout change, flagged so the lead can veto it.
+- **D3: the dock sits at the foot of the focus column** for every item, not right under short items. Layout change in favour of "the dock never moves"; same components.
+- **D3: the Undo window pauses while the toast is hovered or focused.** Needs the server's grace period (above) to allow a little longer than 6 s, or the client holds the request until the toast closes.
 - **Two groups** ("Needs you now" / "When you have a minute") assume the server marks urgency (`priority ≤ 1` or a high-severity finding, as today's red rule does). That is the same rule; it is now shown as a group.

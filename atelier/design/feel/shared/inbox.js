@@ -162,11 +162,11 @@ function chrome() {
     <span class="brand">${mark}Atelier</span>
     <nav class="nav" aria-label="Main">
       <a class="nav-item" ${cur('inbox')} href="#" data-tab="inbox" aria-label="${inboxLabel}">${I('inbox')}Inbox${count}</a>
-      <a class="nav-item" ${cur('office')} href="#" data-tab="office">${I('office')}Office<span class="count is-active">3 working</span></a>
+      <a class="nav-item" ${cur('office')} href="#" data-tab="office" aria-label="Office, 3 working">${I('office')}Office<span class="count is-active">3 working</span></a>
       <a class="nav-item" href="#">${I('activity')}Activity</a>
     </nav>
     <nav class="nav" aria-label="Projects"><span class="nav-label">Projects</span>
-      ${proj.map(([p, on, c]) => `<a class="nav-item" href="#"><span class="dot ${on ? 'dot-active is-live' : ''}" role="img" aria-label="${on ? 'Lead on, working' : 'Lead on, nobody working'}"></span>${p}${!zero && !loading && c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}
+      ${proj.map(([p, on, c]) => `<a class="nav-item" href="#" aria-label="${p}${!zero && !loading && c ? `, ${c} waiting` : ''}, ${on ? 'working' : 'nobody working'}"><span class="dot ${on ? 'dot-active is-live' : ''}" role="img" aria-label="${on ? 'Lead on, working' : 'Lead on, nobody working'}"></span>${p}${!zero && !loading && c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}
       <a class="nav-item" href="#">${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
@@ -198,7 +198,7 @@ function agent(a) {
 }
 const agents = () => WORKING.map(agent).join('');
 function ledgerRows(rows) {
-  return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#" class="ledger-row"${r.id && rowsMove() ? vt(`l-${r.id}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${r.age}</span><span class="meta">${r.project}</span></a>`; }).join('');
+  return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#" class="ledger-row" aria-label="${esc(r.what)}. ${r.project}, ${r.age === 'now' ? 'just now' : `${r.age} ago`}"${r.id && rowsMove() ? vt(`l-${r.id}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${r.age}</span><span class="meta">${r.project}</span></a>`; }).join('');
 }
 function queue() {
   const now = S.items.filter(x => x.needs), later = S.items.filter(x => !x.needs), L = ledger();
@@ -318,8 +318,16 @@ function toast(text, undo) {
   t.innerHTML = `<span class="tick">${I('check')}</span><span class="toast-text">${esc(text)}</span>${undo ? '<button class="toast-action" data-act="toast-undo">Undo<span class="kbd">Z</span></button>' : ''}<span class="toast-life" aria-hidden="true"></span>`;
   const box = document.getElementById('toasts'); box.innerHTML = ''; box.append(t);
   placeToast();
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => closeToast(), 6000);
+  /* The Undo window (6 s) waits while the pointer is on the toast or focus is in it (WCAG 2.2.1),
+     then resumes with the time that was left. The life bar pauses with it. */
+  let left = 6000, started = Date.now();
+  const life = t.querySelector('.toast-life');
+  const run = () => { started = Date.now(); clearTimeout(toastTimer); toastTimer = setTimeout(() => closeToast(), left); if (life) life.style.animationPlayState = 'running'; };
+  const hold = () => { clearTimeout(toastTimer); left = Math.max(1500, left - (Date.now() - started)); if (life) life.style.animationPlayState = 'paused'; };
+  t.addEventListener('pointerenter', hold); t.addEventListener('focusin', hold);
+  t.addEventListener('pointerleave', () => { if (!t.contains(document.activeElement)) run(); });
+  t.addEventListener('focusout', e => { if (!t.contains(e.relatedTarget) && !t.matches(':hover')) run(); });
+  run();
 }
 function closeToast(now) {
   const box = document.getElementById('toasts'), t = box.firstChild;
