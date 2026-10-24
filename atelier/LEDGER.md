@@ -12,6 +12,8 @@
 
 ## Since last update
 - 68h6: lead looked at the shots (big step up, meets R-1 by eye). Reviewer round 2: one must-fix (toast covers next item's dock and phone tab bar). Extended +2 it, +$4 (cap $20, $13.83 spent).
+- 68h6 review round 3: same must-fix, designer had changed nothing (re-made evidence only). Lead answered with an explicit single-fix instruction pointing at REVIEW.md. If round 4 bounces again: stop and give the fix to a fresh, narrow designer task.
+- Owner raised daily budget to $100. Spend at 2026-10-24 evening: $24.20 (tasks $19.16, lead $5.04). 5h plan at 69%; Atelier stops at 80%.
 - To bring the owner with the D2 shots: Mobbin needs a paid plan; designer used public product pages; lead recommends staying free.
 - Owner picked direction B's feel, found it sloppy: overrule #1, ruling R-1, AC-17.
 - D2 68h6 running: references (Mobbin), tokens, components, Inbox in B, two critique rounds. Check: atelier verify design.
