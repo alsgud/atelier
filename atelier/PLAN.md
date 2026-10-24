@@ -7,6 +7,7 @@
 - Budget ~$120 total, $40/day, $15 default per task, one audit at the end — BRIEF / project settings
 - Owner approves brief and design personally; lead approves spec and contracts — project settings
 - Autonomy `branch`: nothing reaches main except by owner merge — BRIEF
+- Trust set to `loose` by the owner, 2026-10-24 — dashboard
 
 ## Assumptions (guessed)
 - Personal-scale process, one milestone, two design directions, phone-first on core screens, one code writer, numbers from one server summary — BRIEF "Assumptions"; owner can overrule at the brief gate
