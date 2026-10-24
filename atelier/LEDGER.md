@@ -4,7 +4,7 @@
 
 ## Waiting on the owner
 - Price: redesign now estimated ~$150 instead of ~$120 (more design rounds for feel and motion) — told 2026-10-25
-- OK to land the speed hotfix 6dug into the live dashboard once the reviewer passes it — asked 2026-10-25 — lead recommends yes
+- Merge the speed hotfix: 6dug APPROVED (reviewer round 3: tab switch max 27 ms, warm API 4 ms, actions 10/10). `atelier land` refuses under `branch` autonomy, so the owner merges `atelier/6dug` and restarts the dashboard process (the service restarts it within 5 min) — sent the commands 2026-10-25
 - Charter: draft in atelier/CHARTER-draft.md; owner to adopt in the dashboard — since 2026-10-24
 
 ## Open issues
