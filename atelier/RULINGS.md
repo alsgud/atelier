@@ -7,3 +7,9 @@ _2026-10-24 · owner, chat 2026-10-24: 'I like the feel of design B more than A,
 
 ## R-2: No paid Mobbin plan for now. Designers may sweep Mobbin's free public screens (its website, with playwright) and products' own public pages and docs for references.
 _2026-10-24 · owner, chat 2026-10-25: 'nah we'll do without mobbin for now though u can sweep across their free designs'_
+
+## R-3: Feel and motion are first-class design work, not polish. Every design hand-off includes working demos of the key interactions (opening an item, deciding, the next item arriving, undo, inbox zero, live agent progress, switching screens) as recordings the owner can watch, offered in a few clearly different, refined variants when the feel is not yet settled. Motion is quick and purposeful, never decorative, and respects reduced motion.
+_2026-10-24 · owner, chat 2026-10-25: 'Feeling and animations are still quite lacking... show me a few more demos and much more refined versions.'_
+
+## R-4: The dashboard must stay fast to use with all real project history: switching screens or tabs shows the new screen at once (under about 100 ms to first paint, under 300 ms to full data), and a slow read never freezes the page.
+_2026-10-24 · owner, chat 2026-10-25: 'I can't even use the dashboard anymore. It's too slow or unresponsive when I try to switch tabs.'_
