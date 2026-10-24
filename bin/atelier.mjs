@@ -321,6 +321,8 @@ function land(id) {
   if (alive(m.pid)) throw new Error(`${id} is still running; stop it first (atelier stop ${id}) or let it finish`);
   const p = m.project ? project.tryLoad(m.project) : null;
   if ((p?.autonomy || 'pr') === 'pr') throw new Error(`${m.project} ships through pull requests; finished tasks open their own`);
+  // Local-branch projects: only the owner brings work into the base branch (it may be live, as with Atelier's own dashboard).
+  if (p?.autonomy === 'branch') throw new Error(`${m.project} keeps finished work on branches for the owner to merge; prepare an integration branch and tell the owner how to try it`);
   const { worktree } = gitx.ensureWorktree(m);
   try { gitx.mergeBases(worktree, m.base || 'main'); } catch { throw new Error(`${m.branch} conflicts with the latest ${m.base || 'main'}; extend the task so its specialist resolves it`); }
   const cmd = p?.suite || m.check;
