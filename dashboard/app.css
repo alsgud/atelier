@@ -314,3 +314,7 @@ a.desk.busy:hover, a.desk.needs:hover { transform: translateY(-2px); }
 .idot.now { background: var(--lilac); animation: idot-pulse 1.6s ease-in-out infinite; }
 @keyframes idot-pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .idot.now { animation: none; } }
+
+/* Proof a task works: screenshots and recordings from its evidence folder. */
+.evid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 8px; }
+.evid img, .evid video { width: 100%; border-radius: 6px; border: 1px solid var(--line); display: block; background: var(--panel); }

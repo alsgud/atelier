@@ -373,7 +373,7 @@ async function renderProject(alias, tab, sub) {
           <div class="stat"><div class="v">${p.team.working}</div><div class="l">working now</div></div>
           <div class="stat"><div class="v">${own.length}</div><div class="l">waiting on you</div></div>
           <div class="stat"><div class="v">${p.metrics.criteriaTotal ? `${p.metrics.criteriaMet}<span class="faint">/${p.metrics.criteriaTotal}</span>` : '—'}</div><div class="l">criteria met</div></div>
-          <div class="stat"><div class="v" style="${p.budget?.today?.over ? 'color:var(--red)' : ''}">${money(p.budget?.today?.spent || 0)}<span class="faint">/${money(p.budget?.day || 0)}</span></div><div class="l">spent today · ${money(p.metrics.cost + (p.metrics.liveCost || 0))} in total</div></div>
+          <div class="stat"><div class="v" style="${p.budget?.today?.over ? 'color:var(--red)' : ''}">${money(p.budget?.today?.spent || 0)}<span class="faint">/${money(p.budget?.day || 0)}</span></div><div class="l">spent today · ${money(p.budget?.total?.spent ?? (p.metrics.cost + (p.metrics.liveCost || 0)))} in total, lead and audits included</div></div>
         </div>
       </div>
       <nav class="tabs">${tabs.map(([k, l, c]) => `<a href="#/p/${a}/${k}" class="${k === tab ? 'on' : ''}">${l}${c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>
@@ -594,6 +594,15 @@ async function renderTask(id) {
           ${t.live.current ? `<div>Iteration ${t.live.current.n} is ${t.live.current.minutes} min in: ${t.live.current.actions} steps so far, ${t.live.current.edited} file${t.live.current.edited === 1 ? '' : 's'} changed.</div>
             <ul class="hint" style="margin:6px 0 0 18px;padding:0">${t.live.current.recent.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
         </div>` : ''}
+        ${t.evidence && (t.evidence.files.length || t.evidence.notes) ? `<div class="sec">Shown working</div>
+          <div class="box">${t.evidence.notes ? md(t.evidence.notes) : ''}
+            <div class="evid">${t.evidence.files.map(f => {
+              const u = f.url && t.evidence.viewPort ? `${location.protocol}//${location.hostname}:${t.evidence.viewPort}${f.url}` : '';
+              if (!u) return `<span class="hint">${esc(f.name)}</span>`;
+              if (f.image) return `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="${esc(f.name)}" loading="lazy"></a>`;
+              if (f.video) return `<video src="${esc(u)}" controls preload="metadata"></video>`;
+              return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(f.name)}</a>`;
+            }).join('')}</div></div>` : ''}
         <div class="sec">Timeline</div>
         <ul class="timeline">${t.timeline.map(e => `<li><span>${evIcon(e)}</span><span><span class="ev-k">${esc(EVENT_WORD[e.type] || e.type.replace(/-/g, ' '))}</span> <span class="muted">${esc(e.msg)}</span></span><span class="when">${esc(ago(e.ts))}</span></li>`).join('') || '<div class="hint">Not started yet.</div>'}</ul>
         ${t.review ? `<div class="sec">Review</div><div class="box">${md(t.review)}</div>` : ''}

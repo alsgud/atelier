@@ -193,7 +193,7 @@ function add() {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
       criteria: decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '').join(','),
-      ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
+      ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.evidence === 'none' ? { evidence: 'none' } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
       repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
       model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
@@ -605,7 +605,16 @@ async function costsCmd(alias) {
   for (const [role, r] of Object.entries(rows).filter(([, r]) => r.iters)) {
     console.log(`${role.padEnd(14)}${f(r.cost / r.iters).padEnd(16)}${(r.finished ? f(r.finishedCost / r.finished) : 'n/a').padEnd(20)}${r.finished ? (r.finishedIters / r.finished).toFixed(1) : 'n/a'}`);
   }
-  if (alias) { const d = budget.today(alias); console.log(`\ntoday: $${d.spent} of $${d.limit} (tasks $${d.tasks}, lead $${d.lead})`); }
+  if (alias) {
+    const d = budget.today(alias), t = budget.total(alias);
+    console.log(`\ntoday: $${d.spent} of $${d.limit} (tasks $${d.tasks}, lead $${d.lead}, audits $${d.audits})`);
+    console.log(`project total: $${t.spent} (tasks and reviews $${t.tasks}, lead $${t.lead}, audits $${t.audits}). This is the one meter: report from it, never from estimates.`);
+  }
+  if (alias) {
+    const root = path.join(project.dir(alias), 'audits');
+    const runs = fs.existsSync(root) ? fs.readdirSync(root).filter(f => /^\d{4}-/.test(f)).length : 0;
+    if (runs) console.log(`one audit costs about $${(budget.total(alias).audits / runs).toFixed(2)} here (${runs} run so far): budget it as a fixed line at each milestone's end`);
+  }
   console.log(limits.describe());
 }
 
@@ -892,7 +901,10 @@ function lead(alias) {
   // and commit. Landing task branches and pushing go through atelier (land, the GitHub sync), not raw git.
   // dontAsk mode denies everything not on this list, so it can't write code even through the shell.
   const shells = ['Bash', 'PowerShell'];
-  const allowShell = ['atelier *', 'git status*', 'git log*', 'git diff*', 'git show*', 'git add atelier*', 'git add .gitignore*', 'git add .gitattributes*', 'git add *.gitignore', 'git add .editorconfig', 'git commit *', 'git pull --ff-only*', 'git fetch*'];
+  const allowShell = ['atelier *', 'git status*', 'git log*', 'git diff*', 'git show*', 'git add atelier*', 'git add .gitignore*', 'git add .gitattributes*', 'git add *.gitignore', 'git add .editorconfig', 'git commit *', 'git pull --ff-only*', 'git fetch*',
+    'git branch*', 'git rev-parse*', 'git ls-files*', 'git blame*', 'git worktree list*',
+    'ls*', 'dir*', 'cat *', 'head *', 'tail *', 'wc *', 'type *', 'rg *', 'grep *', 'where *', 'which *', 'Get-ChildItem*', 'Get-Content*', 'Select-String*', 'Test-Path*', 'Get-Item *',
+    'node --version', 'npm ls*', 'cargo --version', 'flutter --version', 'tasklist*', 'Get-Process*'];
   const settings = {
     hooks: {
       ...guard.hookSettings().hooks,
