@@ -542,6 +542,9 @@ function projActivity(p) {
   return `<ul class="timeline" style="margin-top:12px">${p.events.map(e => eventLine(e)).join('') || '<div class="hint">Nothing yet.</div>'}</ul>`;
 }
 
+// Plan-limit ceilings are global: changing one saves straight away.
+const paceSel = (key, value, options) => `<select data-pace="${key}">${[...new Set([...options, Number(value)])].filter(Boolean).sort((a, b) => a - b).map(v => `<option value="${v}" ${v === Number(value) ? 'selected' : ''}>Pause Atelier at ${v}% used</option>`).join('')}</select>`;
+
 function projSettings(p) {
   const a = esc(p.alias);
   const sel = (dial, value, options) => `<select data-dial="${dial}" data-project="${a}">${options.map(([v, l]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
@@ -556,6 +559,12 @@ function projSettings(p) {
       <dt>Spend per task</dt><dd>${sel('budgetTask', String(p.budget?.task), [...new Set([5, 10, 15, 20, 30, 50, Number(p.budget?.task)])].sort((x, y) => x - y).map(v => [String(v), `${v} (then the lead decides whether to extend)`]))}</dd>
       <dt>Spend per day</dt><dd>${sel('budgetDay', String(p.budget?.day), [...new Set([20, 40, 60, 100, 150, 250, 400, Number(p.budget?.day)])].sort((x, y) => x - y).map(v => [String(v), `${v} for the whole team, lead included`]))}<div class="hint">API-equivalent dollars: on your plan this measures usage, not a bill. When the day's budget is used up, new work waits until tomorrow.</div></dd>
       <dt>Earned trust</dt><dd>${p.suggestion ? `${esc(p.suggestion.dial)} → ${esc(p.suggestion.to)}: ${p.suggestion.ready ? '<b>earned</b>' : 'not yet'} <span class="hint">(${esc(p.suggestion.why)})</span>` : '—'}</dd>
+    </dl>
+    <div class="sec">Your Claude plan<span class="faint"> · applies to all projects</span></div>
+    <dl class="kv">
+      <dt>5-hour window</dt><dd>${paceSel('fiveHour', state.pace?.fiveHour, [50, 60, 70, 80, 90])}</dd>
+      <dt>Week</dt><dd>${paceSel('sevenDay', state.pace?.sevenDay, [50, 60, 70, 75, 80, 90])} <label class="tick"><input type="checkbox" data-pace-spread ${state.pace?.spread ? 'checked' : ''}> spread evenly over the week</label>
+        <div class="hint">You use the same plan yourself. Atelier pauses when your usage reaches these levels, and resumes when the window resets.${state.pace?.holdingUntil ? ` <b>Holding now</b> until ${esc(new Date(state.pace.holdingUntil * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }))}.` : ''}</div></dd>
     </dl>
     <div class="sec">Team</div>
     <div class="list">${p.roster.map(r => `<div class="item" style="cursor:default"><span class="t">${esc(r.role)}<small>${r.owns.length ? esc(r.owns.join(', ')) : 'read-only'}</small></span><span class="r">${esc(r.model || '')}</span></div>`).join('')}</div>
@@ -719,7 +728,11 @@ document.addEventListener('change', e => {
     return act({ action: 'dial', project: g.dataset.project, dial: 'ownerGates', value: list.join(',') }, list.length ? `You approve: ${list.join(', ')}` : 'All phases delegated to the lead');
   }
   const s = e.target.closest('select[data-dial]');
-  if (s) act({ action: 'dial', project: s.dataset.project, dial: s.dataset.dial, value: s.value }, 'Saved');
+  if (s) return act({ action: 'dial', project: s.dataset.project, dial: s.dataset.dial, value: s.value }, 'Saved');
+  const pc = e.target.closest('select[data-pace]');
+  if (pc) return act({ action: 'pace', [pc.dataset.pace]: pc.value }, `Atelier pauses at ${pc.value}%`);
+  const sp = e.target.closest('input[data-pace-spread]');
+  if (sp) return act({ action: 'pace', spread: sp.checked }, sp.checked ? 'Spread over the week' : 'No weekly pacing');
 });
 
 // Refresh every 15 seconds while visible; never while the owner is typing or reading an open finding.

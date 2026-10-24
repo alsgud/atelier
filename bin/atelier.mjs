@@ -11,6 +11,7 @@ import * as gitx from '../lib/git.mjs';
 import { tick } from '../lib/tick.mjs';
 import { run, killTree, alive, atelierEnv, spawnDetached, runCheck } from '../lib/runner.mjs';
 import * as budget from '../lib/budget.mjs';
+import * as toolkit from '../lib/toolkit.mjs';
 import * as project from '../lib/project.mjs';
 import * as guard from '../lib/guard.mjs';
 import * as decisions from '../lib/decisions.mjs';
@@ -94,6 +95,8 @@ async function main() {
     case 'messages': return messagesCmd();
     case 'audit': return auditCmd();
     case 'sync': return syncCmd();
+    case 'tools': return console.log(toolkit.describe());
+    case 'costs': return costsCmd(args[0]);
     case 'service': return serviceCmd(args[0] || 'status');
     case 'screen': return screenCmd();
     case 'criteria': return criteriaCmd();
@@ -180,6 +183,7 @@ function add() {
       if (bad.length) throw new Error(`${bad.join(', ')} ${bad.length > 1 ? "aren't" : "isn't"} an approved criterion (approved: ${known.filter(decisions.isApproved).map(c => c.id).join(', ') || 'none'}). Separate ids with commas or spaces.`);
     }
   }
+  if (typeof flags.tools === 'string' && toolkit.unknown(flags.tools).length) throw new Error(`unknown tools: ${toolkit.unknown(flags.tools).join(', ')} (see atelier tools)`);
   // At strict trust every task waits for the owner to approve its plan.
   const initial = flags.hold ? 'paused' : (p?.trust === 'strict' ? 'planned' : 'queued');
   const id = cards.newId();
@@ -188,7 +192,8 @@ function add() {
     meta: {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
-      criteria: decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '').join(','), files: typeof flags.files === 'string' ? flags.files : '',
+      criteria: decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '').join(','),
+      ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
       repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
       model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
@@ -582,6 +587,28 @@ function serviceCmd(action) {
   console.log(`service: ${r.stdout.trim()}`);
 }
 
+// What work actually costs here, by role, from finished runs: the lead sizes briefs and budgets from this.
+async function costsCmd(alias) {
+  const usage = await import('../lib/usage.mjs');
+  const rows = {};
+  for (const c of cards.all().filter(c => !alias || c.meta.project === alias)) {
+    const role = c.meta.role || 'builder';
+    const r = rows[role] ||= { tasks: 0, iters: 0, cost: 0, finished: 0, finishedCost: 0, finishedIters: 0 };
+    const runs = usage.runs(c.meta.id).filter(x => x.done && x.file.startsWith('iter'));
+    if (!runs.length) continue;
+    const cost = runs.reduce((n, x) => n + x.cost, 0);
+    r.tasks++; r.iters += runs.length; r.cost += cost;
+    if (c.meta.status === 'done') { r.finished++; r.finishedCost += cost; r.finishedIters += runs.length; }
+  }
+  const f = n => `$${n.toFixed(2)}`;
+  console.log('role          per iteration   per finished task   iterations to finish   (from this PC\'s history' + (alias ? `, ${alias}` : '') + ')');
+  for (const [role, r] of Object.entries(rows).filter(([, r]) => r.iters)) {
+    console.log(`${role.padEnd(14)}${f(r.cost / r.iters).padEnd(16)}${(r.finished ? f(r.finishedCost / r.finished) : 'n/a').padEnd(20)}${r.finished ? (r.finishedIters / r.finished).toFixed(1) : 'n/a'}`);
+  }
+  if (alias) { const d = budget.today(alias); console.log(`\ntoday: $${d.spent} of $${d.limit} (tasks $${d.tasks}, lead $${d.lead})`); }
+  console.log(limits.describe());
+}
+
 async function syncCmd() {
   const { syncProject } = await import('../lib/sync.mjs');
   const all = cards.all();
@@ -680,7 +707,7 @@ async function watchCmd() {
   const [alias] = args;
   project.load(alias);
   const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted']);
-  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed', 'needs-lead', 'budget-day']);
+  const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed', 'needs-lead', 'budget-day', 'budget-warn', 'paced']);
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
   console.log(`watching ${alias}: owner decisions and task changes will appear here`);
@@ -914,6 +941,7 @@ function leadContext(alias) {
   const parts = [
     `You are the lead for ${alias}. Your memory may have just been reset. The files are the source of truth; re-read them before acting.`,
     `Phase: ${project.nextPhase(p)} · trust ${p.trust} · reporting ${project.dials(p).reporting} · autonomy ${p.autonomy || 'pr'}`,
+    (d => `Spend today: $${d.spent} of the $${d.limit} daily budget (tasks $${d.tasks}, you $${d.lead}); default task budget $${budget.limits(alias).task}. Plan usage: ${limits.describe()}. Run \`atelier costs ${alias}\` before sizing tasks.`)(budget.today(alias)),
     `The owner approves these phases personally: ${project.dials(p).ownerGates.join(', ') || 'none'}; the others you approve via \`atelier gate ... request\`. Write everything the owner reads in a ${project.dials(p).summaryStyle} style.`,
     'Start the live watch now if it is not running: use the Monitor tool on `atelier watch ' + alias + '` so owner decisions wake you immediately.',
     p.github?.problem ? `WARNING: work is not reaching GitHub: ${p.github.problem}. Fix what you can (for example merge origin into the base branch); tell the owner if it needs their GitHub sign-in.` : '',
@@ -936,7 +964,7 @@ async function leadStopHook(alias) {
   try { input = JSON.parse(raw); } catch { /* still decide */ }
   if (input.session_id) budget.recordLead(alias, input.session_id, input.transcript_path);
   const day = budget.today(alias);
-  if (day.over) return;
+  if (day.over || limits.waitUntil()) return;
   const p = project.load(alias);
   const mine = cards.all().map(c => c.meta).filter(m => m.project === alias);
   const items = [
