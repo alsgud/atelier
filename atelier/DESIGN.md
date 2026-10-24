@@ -259,6 +259,14 @@ Before: the reviewer's shots `runs/68h6/review-evidence/p1-390-dark-design-viewp
 - **Changed**: phone dock `bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-2))`. The sent dock has no Undo; the toast's Undo (6 s) is the only one and also removes the ledger line. Secondary actions have their own sent line, toast and ledger line. Project counts come from the waiting items; the spend line is one figure and mentions a limit only while a budget item waits; the zero column lists what you decided, newest first. J/K work with Caps Lock. Component sheet: the design gate's Approve stays enabled and validates on click (as the screen does), and the neutral toast no longer refers to the removed "Later".
 - **Result** (`runs/68h6/tools/iter4.mjs`, real viewport, no `?full`): design, proof and question at 390 in light and dark, at the top and at the end of the item: 0 dock controls covered, every dock control is the top element at its centre. Decide-all journey: sidebar counts `[]`, one spend figure, "Every project within its budget", ledger 8 (7 just decided + 1 earlier). Toast Undo restores the item and its count, and it stays restored. 0 page errors.
 
+### Round 5 (re-measure after round 4)
+
+Before: `review/round-5/before-inbox-390-light.png`. After: `review/round-5/after-inbox-390-light.png`.
+
+- **Found (accessibility-review, measured with a11y.mjs at 390 in the default view)**: the "Technical details" disclosure in the auditor's finding was 358×36, under the 44 px tap target. Earlier rounds measured each `open=` state but read the default view's log only for unnamed controls.
+- **Changed**: on the phone, `.details summary` gets `min-height: var(--size-control-lg)` (44 px), like `.links a`. Desktop keeps `--size-control` (36 px), which is a pointer target.
+- **Result**: a11y.mjs at 390, default view and design, proof, question, budget and zero, light and dark: 0 targets under 44 px, 0 unnamed controls. The final matrix in `review/final/` is re-rendered from this HTML (66 Inbox + 4 component shots, no sideways scroll, no console errors).
+
 ## Open questions
 
 These are for the lead. They touch what the server sends, or they add scope.
