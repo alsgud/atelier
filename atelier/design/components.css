@@ -194,7 +194,8 @@ textarea.input { min-height: 64px; display: block; }
 .agent-dot { width: var(--size-glyph-box); display: grid; place-items: center; height: var(--leading-base); }
 .agent-what { font-weight: var(--weight-medium); }
 .agent-meta { grid-column: 2; font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
-.agent-progress { grid-column: 2; display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-1-5); font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+/* Track spans the full column so every bar shares one right edge; the figure sits under it. */
+.agent-progress { grid-column: 2; display: grid; gap: var(--space-1); margin-top: var(--space-1-5); font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
 .agent-progress .track { flex: 1; height: 3px; border-radius: var(--radius-full); background: var(--active-track); overflow: hidden; }
 .agent-progress .track i { display: block; height: 100%; width: var(--value); background: var(--active); border-radius: inherit; }
 
@@ -373,6 +374,8 @@ textarea.input { min-height: 64px; display: block; }
   .dock-hint { display: none; }
   .queue { padding: var(--space-5) var(--space-2) var(--space-8); }
   .qitem, .agent, .ledger-row { min-height: var(--size-control-lg); }
+  .links { row-gap: 0; }
+  .links a { min-height: var(--size-control-lg); }
   .facts { grid-template-columns: 1fr; gap: var(--space-1); }
   .facts dd + dt { margin-top: var(--space-2); }
 }
