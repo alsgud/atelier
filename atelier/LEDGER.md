@@ -3,18 +3,20 @@
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
 ## Waiting on the owner
-- Charter: draft in atelier/CHARTER-draft.md (includes "production grade"); owner to correct and adopt in the dashboard — since 2026-10-24
-- AC-7 "feels calm" judgement on the D2 Inbox sits in the dashboard; owner said "good" in chat 2026-10-25 but only the dashboard records it
-- Optional: make "leads keep the specialist's full process in briefs" the Atelier default (roles/lead.md, owner's code) — offered 2026-10-24
+- Price: redesign now estimated ~$150 instead of ~$120 (more design rounds for feel and motion) — told 2026-10-25
+- OK to land the speed hotfix 6dug into the live dashboard once the reviewer passes it — asked 2026-10-25 — lead recommends yes
+- Charter: draft in atelier/CHARTER-draft.md; owner to adopt in the dashboard — since 2026-10-24
+- AC-7 "feels calm" judgement in the dashboard (now moot until a feel is picked)
 
 ## Open issues
-- 68h6 (D2 Inbox, reviewer APPROVE, owner "good") stays in review on branch atelier/68h6: not landed, because autonomy is `branch`. D3 is based on it; the design gate is requested after D3.
-- w9ew (D3) is queued, waiting for one of the two shared run slots (both in use by replay's 8q59 and 53u6). It starts by itself.
+- Live dashboard too slow to use (R-4). 6dug measuring and fixing on its branch; reviewer must show before/after timings.
+- 68h6 stays in review on branch atelier/68h6 (autonomy `branch`); 57cv builds on it.
 
 ## Since last update
-- 2026-10-25: owner OK'd the D2 Inbox ("good"); no paid Mobbin, free sweep allowed (ruling R-2). D3 w9ew added: all other screens, $16, 8 it, base atelier/68h6.
-- Spend at end of 2026-10-24: $28.67 (design and reviews $21.67, lead $7).
+- Owner: feel and animations still lacking; wants more demos and refined versions (overrule #2, ruling R-3). Cancelled w9ew. 57cv started: motion references, motion system, three feel variants with recorded demos.
+- Ruling R-4 and team check AC-18 (speed). 6dug started.
 
 ## Next
-- When w9ew finishes: look at the shots, then request the design gate (the owner's), with 4-6 screenshots.
-- Meanwhile prepare frontend slice 1 (shell, summary endpoint, Inbox): it needs the design gate and D3's "Endpoint needs".
+- 6dug done and reviewed: check the timings, land it if the owner agrees, tell the owner it's faster.
+- 57cv done: watch the demos myself, then send the owner feel/index.html and the phone demos, recommend one.
+- Then D4: every other screen in the chosen feel (brief in PLAN.md, plus R-3 demos).
