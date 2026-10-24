@@ -10,7 +10,7 @@
 - Optional: make "leads keep the specialist's full process in briefs" the Atelier default (roles/lead.md, owner's code) — offered 2026-10-24
 
 ## Open issues
-- None.
+- 68h6 sits in "review" on branch atelier/68h6 on purpose: not landed, because autonomy is `branch` (nothing reaches main except by the owner's merge) and the owner hasn't OK'd the look. D3 will use `--base atelier/68h6`; the design gate is requested once D3 is done.
 
 ## Since last update
 - 68h6: lead looked at the shots (big step up, meets R-1 by eye). Reviewer round 2: one must-fix (toast covers next item's dock and phone tab bar). Extended +2 it, +$4 (cap $20, $13.83 spent).
