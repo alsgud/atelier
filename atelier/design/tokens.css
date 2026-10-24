@@ -1,0 +1,208 @@
+/* Atelier design tokens (direction B, "one at a time").
+   The only place raw values live. Components and screens use these roles, never hex or px of their own
+   (layout widths in components.css are the one documented exception).
+   Rules: colour means something. Lilac = active / working, red = needs you now or wrong, green = done.
+   Everything else is a warm neutral. Actions are ink (neutral), not coloured, so colour stays a signal.
+   Fonts are the system's own; nothing loads from the internet. */
+
+:root {
+  color-scheme: light dark;
+
+  /* ── Type families ─────────────────────────────────────────────── */
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Helvetica Neue", Arial, sans-serif;
+  /* Display serif: the one identity move. Used only for the title of the decision in focus and the
+     inbox-zero line. New York on Apple (ui-serif), Sitka on Windows, Georgia elsewhere. */
+  --font-display: ui-serif, "Sitka Display", "Sitka Heading", "Iowan Old Style", "New York", Georgia, serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, Menlo, monospace;
+
+  /* ── Type scale (size / line height) ───────────────────────────── */
+  --text-xs: 12px;   --leading-xs: 16px;   /* kbd, captions, timestamps */
+  --text-sm: 13px;   --leading-sm: 18px;   /* meta lines, queue item meta, nav */
+  --text-base: 14px; --leading-base: 20px; /* UI default: queue titles, buttons, fields */
+  --text-md: 16px;   --leading-md: 24px;   /* reading text inside the focused item */
+  --text-lg: 20px;   --leading-lg: 28px;   /* section headings on wide pages */
+  --text-xl: 30px;   --leading-xl: 36px;   /* display: focused item title (desktop) */
+  --text-xl-phone: 24px; --leading-xl-phone: 30px; /* display on phone */
+  --text-2xl: 40px;  --leading-2xl: 46px;  /* display: inbox zero */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --tracking-display: -0.015em;
+  --tracking-caps: 0.04em;
+  --measure: 62ch; /* longest line of reading text */
+
+  /* ── Spacing (4 px base) ───────────────────────────────────────── */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Sizes ─────────────────────────────────────────────────────── */
+  --size-control-sm: 28px;  /* compact desktop controls: pager arrows */
+  --size-control: 36px;     /* desktop buttons and fields */
+  --size-control-lg: 44px;  /* phone: every tap target (SPEC R5) */
+  --size-icon: 16px;
+  --size-icon-lg: 20px;
+  --size-glyph-box: 28px;   /* kind glyph tile in the queue */
+  --size-dot: 8px;          /* status dot */
+  --size-sidebar: 240px;
+  --size-queue: 344px;
+  --size-focus-max: 760px;
+  --size-tabbar: 56px;
+  --size-topbar: 52px;
+
+  /* ── Radii ─────────────────────────────────────────────────────── */
+  --radius-xs: 4px;   /* kbd */
+  --radius-sm: 6px;   /* buttons, fields, rows */
+  --radius-md: 10px;  /* preview frames, panels */
+  --radius-lg: 14px;  /* decision dock, sheets, the main app panel */
+  --radius-full: 999px; /* dots and progress tracks only */
+
+  /* ── Borders ───────────────────────────────────────────────────── */
+  --border-width: 1px;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* ── Motion ────────────────────────────────────────────────────── */
+  --dur-instant: 80ms;   /* press */
+  --dur-fast: 120ms;     /* hover, colour changes */
+  --dur-base: 200ms;     /* enter: toast, disclosure, next item */
+  --dur-slow: 320ms;     /* leave: a decided item collapses out of the queue */
+  --dur-pulse: 2400ms;   /* the live dot of a working agent */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.6, 0, 0.3, 1);
+  --shift: 8px;          /* how far things travel when they enter or leave */
+
+  /* ── Breakpoints (for reference; CSS media queries use the numbers) ─
+     phone < 768 · tablet 768–1279 · desktop ≥ 1280 */
+}
+
+/* ── Colour roles: light ─────────────────────────────────────────── */
+:root, [data-theme="light"] {
+  --bg: #f5f4f1;              /* the canvas behind the app panel; sidebar sits on it */
+  --surface: #ffffff;         /* the app panel, dock, frames */
+  --surface-sunken: #f0eee9;  /* queue column, wells, code */
+  --surface-hover: #ebe9e4;   /* row and ghost-button hover */
+  --surface-selected: #e5e2dc;/* the open queue item, current nav item */
+  --surface-inverse: #1c1b19; /* toasts */
+  --toast-done: #5ccf91;      /* status colours on the inverse toast surface */
+  --toast-needs: #ff8170;
+  --text-on-needs: #ffffff;   /* count on the red phone badge */
+  --overlay-media: rgba(16, 16, 15, 0.78); /* labels laid over screenshots: same in both themes */
+  --text-on-media: #ffffff;
+  --border: #e3e0da;          /* hairlines */
+  --border-strong: #cfcbc3;   /* frame hover, dividers that must show */
+  --border-field: #8a857c;    /* text fields and checkboxes: 3:1 against the surface (WCAG 1.4.11) */
+
+  --text: #1c1b19;            /* 16.3:1 on surface */
+  --text-2: #5d5953;          /* 6.7:1 on surface, 5.9:1 on sunken */
+  --text-3: #67625a;          /* meta, placeholders; ≥4.5:1 on every light surface */
+  --text-inverse: #f5f4f1;
+  --text-on-ink: #ffffff;
+
+  --ink: #1c1b19;             /* primary button */
+  --ink-hover: #3a3834;
+  --ink-active: #000000;
+
+  --active: #6447cc;          /* lilac: working, live, focus */
+  --active-soft: #efeafc;     /* lilac wash behind a working row */
+  --active-track: #ddd3f7;    /* empty part of a progress bar */
+  --needs: #b0291a;           /* red: needs you now, wrong, error */
+  --needs-soft: #fcece9;
+  --done: #176a40;            /* green: done */
+  --done-soft: #e5f3eb;
+
+  --focus-ring: #6447cc;
+  --scrim: rgba(28, 27, 25, 0.32);
+
+  --shadow-1: 0 1px 2px rgba(28, 27, 25, 0.05);
+  --shadow-2: 0 1px 2px rgba(28, 27, 25, 0.04), 0 10px 28px -10px rgba(28, 27, 25, 0.16);
+  --shadow-3: 0 2px 6px rgba(28, 27, 25, 0.06), 0 18px 40px -12px rgba(28, 27, 25, 0.28);
+  --skeleton: #ebe9e4;
+  --skeleton-shine: #f5f4f1;
+}
+
+/* ── Colour roles: dark ──────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg: #0f0f0e;
+  --surface: #181816;
+  --surface-sunken: #141412;
+  --surface-hover: #22211f;
+  --surface-selected: #2a2927;
+  --surface-inverse: #f1efeb;
+  --toast-done: #176a40;
+  --toast-needs: #b0291a;
+  --text-on-needs: #1c1b19;
+  --overlay-media: rgba(16, 16, 15, 0.78);
+  --text-on-media: #ffffff;
+  --border: #2a2927;
+  --border-strong: #3b3936;
+  --border-field: #6f6a63;
+
+  --text: #edebe7;            /* 14.9:1 on surface */
+  --text-2: #aaa59d;          /* 7.4:1 on surface */
+  --text-3: #9a958c;
+  --text-inverse: #1c1b19;
+  --text-on-ink: #141412;
+
+  --ink: #edebe7;
+  --ink-hover: #ffffff;
+  --ink-active: #d6d3cd;
+
+  --active: #b19cff;          /* 7.4:1 on surface */
+  --active-soft: #231e36;
+  --active-track: #352d55;
+  --needs: #ff8170;           /* 7.0:1 on surface */
+  --needs-soft: #34201c;
+  --done: #5ccf91;            /* 9.0:1 on surface */
+  --done-soft: #17291f;
+
+  --focus-ring: #b19cff;
+  --scrim: rgba(0, 0, 0, 0.56);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 32px -10px rgba(0, 0, 0, 0.7);
+  --shadow-3: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
+  --skeleton: #22211f;
+  --skeleton-shine: #2a2927;
+}
+
+/* Follow the system when no theme is forced. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f0f0e; --surface: #181816; --surface-sunken: #141412; --surface-hover: #22211f;
+    --surface-selected: #2a2927; --surface-inverse: #f1efeb; --toast-done: #176a40; --toast-needs: #b0291a; --text-on-needs: #1c1b19; --overlay-media: rgba(16, 16, 15, 0.78); --text-on-media: #ffffff; --border: #2a2927; --border-strong: #3b3936; --border-field: #6f6a63;
+    --text: #edebe7; --text-2: #aaa59d; --text-3: #9a958c; --text-inverse: #1c1b19; --text-on-ink: #141412;
+    --ink: #edebe7; --ink-hover: #ffffff; --ink-active: #d6d3cd;
+    --active: #b19cff; --active-soft: #231e36; --active-track: #352d55;
+    --needs: #ff8170; --needs-soft: #34201c; --done: #5ccf91; --done-soft: #17291f;
+    --focus-ring: #b19cff; --scrim: rgba(0, 0, 0, 0.56);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 32px -10px rgba(0, 0, 0, 0.7);
+    --shadow-3: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
+    --skeleton: #22211f; --skeleton-shine: #2a2927;
+  }
+}
+
+/* Reduced motion: nothing travels or pulses; state changes are instant or a short fade. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-pulse: 0ms;
+    --shift: 0px;
+  }
+}
+[data-motion="reduce"] { --dur-instant: 0ms; --dur-fast: 0ms; --dur-base: 1ms; --dur-slow: 1ms; --dur-pulse: 0ms; --shift: 0px; }
