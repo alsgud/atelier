@@ -234,7 +234,8 @@ function head() {
   const summary = S.view === 'loading' ? 'Loading…' : S.view === 'error' ? '' : n ? `${n} waiting${u ? ` · <span class="is-needs">${u} need${u === 1 ? 's' : ''} you now</span>` : ''}` : 'Nothing waiting';
   return `<header class="page-head"><h1>Inbox</h1><span class="summary">${summary}</span>${pager}</header>`;
 }
-function render() {
+function render() { draw(); placeToast(); }
+function draw() {
   chrome();
   const main = document.getElementById('main');
   if (S.view === 'loading') {
@@ -277,13 +278,34 @@ function toast(text, undo) {
   t.className = 'toast toast-success'; t.setAttribute('role', 'status');
   t.innerHTML = `${I('check')}<span class="toast-text">${esc(text)}</span>${undo ? '<button class="toast-action" data-act="toast-undo">Undo</button>' : ''}`;
   const box = document.getElementById('toasts'); box.innerHTML = ''; box.append(t);
-  if (!P.has('toast')) setTimeout(() => t.remove(), 6000);
+  placeToast();
+  if (!P.has('toast')) setTimeout(() => { t.remove(); placeToast(); }, 6000);
 }
+function closeToast() { document.getElementById('toasts').innerHTML = ''; placeToast(); }
+/* Keep the toast off the dock and the tab bar: centre it on the dock, --space-2 above it,
+   or below it when the dock is too high on screen. No dock (inbox zero): the CSS default. */
+function placeToast() {
+  const box = document.getElementById('toasts'), dk = document.querySelector('.focus .dock');
+  if (!box.firstChild || !dk) { box.removeAttribute('data-anchor'); ['--toast-x', '--toast-w', '--toast-top'].forEach(v => box.style.removeProperty(v)); return; }
+  const px = v => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v)) || 0, gap = px('--space-2');
+  const r = dk.getBoundingClientRect();
+  box.style.setProperty('--toast-x', `${r.left + r.width / 2}px`); box.style.setProperty('--toast-w', `${r.width}px`);
+  const bar = s => { const e = document.querySelector(s); if (!e) return null; const cs = getComputedStyle(e); return cs.display === 'none' || !['sticky', 'fixed'].includes(cs.position) ? null : e.getBoundingClientRect(); };
+  const topLimit = Math.max(0, ...['.shell-top', '.page-head'].map(bar).filter(Boolean).map(b => b.bottom));
+  const tabs = bar('.shell-tabs'), bottomLimit = tabs ? tabs.top : innerHeight;
+  const h = box.offsetHeight, above = r.top - gap - h, below = r.bottom + gap;
+  const top = above >= topLimit + gap ? above : below + h <= bottomLimit - gap ? below : topLimit + gap;
+  box.style.setProperty('--toast-top', `${Math.round(top)}px`); box.setAttribute('data-anchor', '');
+}
+addEventListener('scroll', placeToast, { passive: true });
+addEventListener('resize', placeToast);
+document.addEventListener('input', placeToast);
 let last = null, failOnce = P.has('fail');
 function decide(which) {
   const x = S.items.find(y => y.id === S.open);
   const note = document.getElementById('note')?.value.trim() || '';
   S.note = note;
+  closeToast();   // acting on the next item ends the last decision's Undo window
   if ((x.dock.required && which === 'primary' && !note) || (x.dock.rejectNeedsNote && which === 'secondary' && !note)) { S.dock = 'invalid'; render(); document.getElementById('note').focus(); return; }
   S.which = which; S.dock = 'sending'; render();
   setTimeout(() => {
@@ -315,10 +337,11 @@ document.addEventListener('click', e => {
   if (!a) return;
   const act = a.dataset.act;
   if (act === 'primary' || act === 'secondary') decide(act);
-  if (act === 'toast-undo') { if (last) { S.items.splice(last.i, 0, last.x); S.open = last.x.id; S.decided.shift(); last = null; } S.dock = 'ready'; render(); document.getElementById('toasts').innerHTML = ''; }
+  if (act === 'toast-undo') { if (last) { S.items.splice(last.i, 0, last.x); S.open = last.x.id; S.decided.shift(); last = null; } S.dock = 'ready'; render(); closeToast(); }
   if (act === 'retry') { S.view = 'items'; render(); }
 });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('toasts').firstChild) { closeToast(); return; }
   const typing = ['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName);
   if (typing && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); decide('primary'); return; }
   if (typing || S.view !== 'items' || !S.items.length || e.ctrlKey || e.metaKey || e.altKey) return;

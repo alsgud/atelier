@@ -274,7 +274,12 @@ textarea.input { min-height: 64px; display: block; }
 .dock.is-sent { background: var(--done-soft); border-color: transparent; box-shadow: none; }
 
 /* ── Toast ────────────────────────────────────────────────────────── */
-.toasts { position: fixed; z-index: 50; left: 50%; bottom: var(--space-6); transform: translateX(-50%); display: grid; gap: var(--space-2); width: min(440px, calc(100% - var(--space-8))); }
+/* The toast never covers a dock button or a tab. With a decision dock on screen it anchors to the dock:
+   centred on it, as wide as it (max 440), --space-2 above its top edge, or below it when there is no room above
+   (the screen sets --toast-x, --toast-w and --toast-top from the dock's live position). With no dock (inbox zero),
+   it sits --space-6 above the bottom, and on the phone above the tab bar. Escape or acting on the next item closes it. */
+.toasts { position: fixed; z-index: 50; left: var(--toast-x, 50%); top: var(--toast-top, auto); bottom: var(--toast-bottom, var(--space-6)); transform: translateX(-50%); display: grid; gap: var(--space-2); width: min(440px, var(--toast-w, calc(100% - var(--space-8)))); }
+.toasts[data-anchor] { bottom: auto; }
 .toast { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-radius: var(--radius-md); background: var(--surface-inverse); color: var(--text-inverse); box-shadow: var(--shadow-3); font-size: var(--text-base); animation: toast-in var(--dur-base) var(--ease-out); }
 .toast .icon { color: inherit; }
 .toast-success .icon { color: var(--toast-done); }
@@ -373,6 +378,8 @@ textarea.input { min-height: 64px; display: block; }
   .dock .btn-ghost { flex: 0 0 auto; }
   .dock textarea.input { min-height: var(--size-control-lg); }
   .dock-hint { display: none; }
+  .toasts { --toast-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-2)); }
+  .toast-action { height: var(--size-control-lg); }
   .queue { padding: var(--space-5) var(--space-2) var(--space-8); }
   .qitem, .agent, .ledger-row { min-height: var(--size-control-lg); }
   .links { row-gap: 0; }
