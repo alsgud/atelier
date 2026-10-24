@@ -14,7 +14,7 @@
 :root {
   --bg: #fbfbfc; --surface: #ffffff; --sunken: #f3f3f5; --hover: #f0f0f3;
   --line: #e7e7eb; --line-strong: #d6d6dc;
-  --text: #17171c; --text-2: #3d3e46; --muted: #696a74; --faint: #9c9da6;
+  --text: #17171c; --text-2: #3d3e46; --muted: #696a74; --faint: #6e6f79;
   --lilac: #6a5fc1; --lilac-soft: #efedfa;
   --red: #c42d28; --red-soft: #fcefee;
   --green: #2b7c4e;
@@ -28,7 +28,7 @@
 :root[data-theme=dark] {
   --bg: #0e0f11; --surface: #15161a; --sunken: #0a0b0d; --hover: #1b1c21;
   --line: #24252b; --line-strong: #31333a;
-  --text: #ececf0; --text-2: #c6c7ce; --muted: #9a9ca6; --faint: #6c6e78;
+  --text: #ececf0; --text-2: #c6c7ce; --muted: #9a9ca6; --faint: #8a8c96;
   --lilac: #b8aff0; --lilac-soft: #24213a;
   --red: #ff7b72; --red-soft: #3a1c1b;
   --green: #63c991;
@@ -59,8 +59,8 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1.5px var(--faint); margin: 0 4.5px; }
 .dot.live { background: var(--lilac); box-shadow: none; }
 .side-foot { margin-top: auto; padding: 12px 8px 4px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: grid; gap: 8px; align-content: start; }
-.side-foot .row { display: flex; justify-content: space-between; gap: 8px; }
-.side-foot .row b { color: var(--text-2); font-weight: 500; }
+.side-foot .fr { display: flex; justify-content: space-between; gap: 8px; }
+.side-foot .fr b { color: var(--text-2); font-weight: 500; }
 .meter { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .meter i { display: block; height: 100%; background: var(--muted); border-radius: 2px; }
 
@@ -174,10 +174,11 @@ textarea:focus { outline: none; border-color: var(--lilac); box-shadow: 0 0 0 3p
   .open-body { padding: 0 14px 16px; }
   .work, .work.three { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; margin: 0 -14px 14px; padding: 0 14px; }
   .work .shot { flex: 0 0 58%; scroll-snap-align: start; }
+  .work.three .shot { flex-basis: 42%; }
   .btns .btn { flex: 1 1 100%; height: 46px; justify-content: center; }
   .btns .btn.quiet { flex-basis: auto; height: 44px; }
   .btns .hint { display: none; }
-  .quick button { min-height: 32px; }
+  .quick button { min-height: 44px; }
   .calm { padding: 28px 8px 4px; }
   .sec { margin: 28px 8px 4px; }
   .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; bottom: 0; left: 0; right: 0; height: calc(60px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--line); z-index: 3; }
@@ -186,8 +187,10 @@ textarea:focus { outline: none; border-color: var(--lilac); box-shadow: 0 0 0 3p
   .tabbar svg.i { width: 20px; height: 20px; }
   .tabbar .n { position: absolute; top: 8px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 600; line-height: 17px; text-align: center; }
   /* full-page screenshots: keep the tab bar at the bottom of the capture instead of mid-page */
-  .shotmode .tabbar { position: sticky; }
+  .shotmode .tabbar { position: relative; }
   .shotmode .wrap { padding-bottom: 24px; }
+  .shotmode .shell { min-height: 0; }
+  .row .s small { display: block; margin: 2px 0 0; font-size: 12.5px; }
 }
 
 /* mockup-only switcher */
@@ -300,10 +303,10 @@ document.getElementById('side').innerHTML = `
   <a class="nav" href="#"><span class="dot live"></span>replay<span class="n">${empty ? '' : 3}</span></a>
   <a class="nav" href="#"><span class="dot"></span>dodge<span class="n">${empty ? '' : 1}</span></a>
   <div class="side-foot">
-    <div class="row"><span>Your Claude plan</span><b>41% used</b></div>
+    <div class="fr"><span>Your Claude plan</span><b>41% used</b></div>
     <div class="meter"><i style="width:41%"></i></div>
-    <div class="row"><span>Resets in 2h 10m</span><span>Week 58%</span></div>
-    <div class="row"><span>Atelier today</span><b>${empty ? '$31.80' : '$52.60'}</b></div>
+    <div class="fr"><span>Resets in 2h 10m</span><span>Week 58%</span></div>
+    <div class="fr"><span>Atelier today</span><b>${empty ? '$31.80' : '$52.60'}</b></div>
   </div>`;
 
 const summary = items.length
