@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier redesign · pick a direction</title>
+<style>
+:root { --bg: #fbfbfc; --text: #17171c; --muted: #696a74; --line: #e7e7eb; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0e0f11; --text: #ececf0; --muted: #9a9ca6; --line: #24252b; } }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; }
+h1 { font-size: 24px; margin: 0 0 6px; }
+p { color: var(--muted); margin: 0 0 28px; max-width: 64ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+h2 { font-size: 17px; margin: 0 0 4px; }
+h2 a { color: inherit; }
+.grid p { margin-bottom: 12px; }
+.shots { display: grid; grid-template-columns: 3fr 1fr; gap: 10px; align-items: start; }
+.shots img { width: 100%; border: 1px solid var(--line); border-radius: 8px; display: block; }
+a:focus-visible { outline: 2px solid #6a5fc1; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Two looks for the Inbox</h1>
+  <p>Same content, same decisions, different layout. Open each one to click through it; narrow the window to see the phone layout, and use the switcher in the corner for dark mode and the empty state.</p>
+  <div class="grid">
+    <section>
+      <h2><a href="direction-a/inbox.html">A · The list</a></h2>
+      <p>Everything that needs you in one list; an item opens in place with its buttons.</p>
+      <a class="shots" href="direction-a/inbox.html"><img src="shots/a-desktop-light.png" alt="Direction A on desktop"><img src="shots/a-phone-light.png" alt="Direction A on a phone"></a>
+    </section>
+    <section>
+      <h2><a href="direction-b/inbox.html">B · One at a time</a></h2>
+      <p>One decision fills the page with the work shown large; the rest of the queue waits beside it.</p>
+      <a class="shots" href="direction-b/inbox.html"><img src="shots/b-desktop-light.png" alt="Direction B on desktop"><img src="shots/b-phone-light.png" alt="Direction B on a phone"></a>
+    </section>
+  </div>
+</main>
+</body>
+</html>
