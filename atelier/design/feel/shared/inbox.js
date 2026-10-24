@@ -142,12 +142,15 @@ const S = {
   note: '',
 };
 if (S.view === 'zero') { S.items = []; S.decided = ITEMS.map((x, i) => ({ what: x.dock.log, project: x.project, age: ['2m', '4m', '7m', '9m', '12m', '15m', '18m'][i] })); }
-const ledger = () => S.decided.concat(EARLIER.map(([what, project, age]) => ({ what, project, age })));
+const ledger = () => S.decided.concat(EARLIER.map(([what, project, age], i) => ({ what, project, age, key: `early-${i}` })));
 const budgetHit = () => S.items.some(x => x.id === 'budget');
 const needsN = () => S.items.filter(x => x.needs).length;
 /* The title of an item lives in exactly one place: the focus (open), its queue row, or the ledger (decided).
    Flow names it t-<id> wherever it is, so the browser flies it from one place to the next. */
-const tname = id => FEEL.morph && wide() ? `t-${id}` : '';
+/* Only the titles that travel in the running transition are named (FLY): a named title on every queue row
+   springs on its own clock and pulls away from its row's meta line. */
+const FLY = new Set();
+const tname = id => FEEL.morph && wide() && FLY.has(id) ? `t-${id}` : '';
 
 /* ── Chrome ── */
 function chrome() {
@@ -192,13 +195,14 @@ function qitem(x) {
     <span class="qitem-side">${x.needs ? '<span class="dot dot-needs" role="img" aria-label="Needs you now"></span>' : ''}<span class="qitem-age">${x.age}</span></span>
     <span class="qitem-meta">${x.project}<span class="sep"> · </span>${x.short}</span></a>`;
 }
-function agent(a) {
+/* named: the queue's agent rows travel with their header (unnamed rows jump while the header slides) */
+function agent(a, named) {
   const v = a.n / a.of;
-  return `<a href="#" class="agent" data-agent="${a.id}" aria-label="${a.what}. ${a.meta}. ${figure(a)}"><span class="agent-dot"><span class="dot dot-active is-live" role="img" aria-label="Working"></span></span><span class="agent-what">${a.what}</span><span class="agent-meta">${a.meta} · <span class="when">${a.when}</span></span><span class="agent-progress"><span class="track"><i style="--v:${v.toFixed(4)}"></i></span><span class="fig">${figure(a)}</span></span></a>`;
+  return `<a href="#" class="agent" data-agent="${a.id}"${named && rowsMove() ? vt(`w-${a.id}`, 'row') : ''} aria-label="${a.what}. ${a.meta}. ${figure(a)}"><span class="agent-dot"><span class="dot dot-active is-live" role="img" aria-label="Working"></span></span><span class="agent-what">${a.what}</span><span class="agent-meta">${a.meta} · <span class="when">${a.when}</span></span><span class="agent-progress"><span class="track"><i style="--v:${v.toFixed(4)}"></i></span><span class="fig">${figure(a)}</span></span></a>`;
 }
-const agents = () => WORKING.map(agent).join('');
+const agents = named => WORKING.map(a => agent(a, named)).join('');
 function ledgerRows(rows) {
-  return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#" class="ledger-row" aria-label="${esc(r.what)}. ${r.project}, ${r.age === 'now' ? 'just now' : `${r.age} ago`}"${r.id && rowsMove() ? vt(`l-${r.id}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${r.age}</span><span class="meta">${r.project}</span></a>`; }).join('');
+  return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#" class="ledger-row"${r.id ? ` data-lid="${r.id}"` : ''} aria-label="${esc(r.what)}. ${r.project}, ${r.age === 'now' ? 'just now' : `${r.age} ago`}"${(r.id || r.key) && rowsMove() ? vt(`l-${r.id || r.key}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${r.age}</span><span class="meta">${r.project}</span></a>`; }).join('');
 }
 function queue() {
   const now = S.items.filter(x => x.needs), later = S.items.filter(x => !x.needs), L = ledger();
@@ -207,7 +211,7 @@ function queue() {
     ${now.length ? `<div class="queue-group"><div class="queue-head is-needs"${g('h-now')}><span>Needs you now</span><span class="n">${now.length}</span></div>${now.map(qitem).join('')}</div>` : ''}
     ${later.length ? `<div class="queue-group"><div class="queue-head"${g('h-later')}><span>When you have a minute</span><span class="n">${later.length}</span></div>${later.map(qitem).join('')}</div>` : ''}
     <div class="queue-group is-ledger"><div class="queue-head"${g('h-done')}><span>Decided today</span><span class="n">${L.length}</span></div><div class="ledger">${ledgerRows(L.slice(0, 3))}</div>${L.length > 3 ? `<a href="#" class="ledger-more"${g('l-more')}>${L.length - 3} more today</a>` : ''}</div>
-    <div class="queue-group"><div class="queue-head"${g('h-work')}><span>Working now</span><span class="n">${WORKING.length}</span></div>${agents()}</div>
+    <div class="queue-group"><div class="queue-head"${g('h-work')}><span>Working now</span><span class="n">${WORKING.length}</span></div>${agents(true)}</div>
   </aside>`;
 }
 function dock(x) {
@@ -284,12 +288,29 @@ function render() { draw(); placeToast(); }
 /* ── Transitions ── */
 let busy = Promise.resolve();
 /* kind: open | next | prev | decide | undo | tab | zero | retry. The page CSS styles html[data-vt="<kind>"]. */
-function transition(kind, update, dir = 0) {
+const titleEls = () => document.querySelectorAll('#ttl, .qitem-title, .ledger-row .what');
+function nameFlying() {
+  if (RM) return;
+  for (const id of FLY) {
+    const n = tname(id); if (!n) continue;
+    const el = S.open === id && S.tab === 'inbox' ? document.getElementById('ttl')
+      : document.querySelector(`.qitem[data-id="${id}"] .qitem-title, .ledger-row[data-lid="${id}"] .what`);
+    if (el) { el.style.viewTransitionName = n; el.style.viewTransitionClass = 'title'; }
+  }
+}
+/* fly: ids whose title travels: the decided one (focus ↔ ledger) and the one being opened (row → focus). A title going
+   back to its row doesn't fly: it would trail its row across the others. Named in the old DOM in place, in the new one by the templates. */
+function transition(kind, update, dir = 0, fly = () => []) {
   const run = () => {
     if (!document.startViewTransition) { update(); render(); return Promise.resolve(); }
     ROOT.dataset.vt = kind; ROOT.dataset.dir = dir > 0 ? 'fwd' : dir < 0 ? 'back' : '';
+    FLY.clear(); fly().forEach(id => id && FLY.add(id)); nameFlying();
     const t = document.startViewTransition(() => { update(); render(); });
-    return t.finished.catch(() => {}).finally(() => { delete ROOT.dataset.vt; delete ROOT.dataset.dir; FEEL.after?.(kind); });
+    return t.finished.catch(() => {}).finally(() => {
+      delete ROOT.dataset.vt; delete ROOT.dataset.dir;
+      FLY.clear(); titleEls().forEach(e => { e.style.removeProperty('view-transition-name'); e.style.removeProperty('view-transition-class'); });
+      FEEL.after?.(kind);
+    });
   };
   busy = busy.then(run);
   return busy;
@@ -297,12 +318,13 @@ function transition(kind, update, dir = 0) {
 function focusTitle() { document.getElementById('ttl')?.focus({ preventScroll: true }); }
 function go(d) {
   const i = S.items.findIndex(x => x.id === S.open);
-  transition(d > 0 ? 'next' : 'prev', () => { S.open = S.items[(i + d + S.items.length) % S.items.length].id; S.dock = 'ready'; S.note = ''; }, d).then(focusTitle);
+  transition(d > 0 ? 'next' : 'prev', () => { S.open = S.items[(i + d + S.items.length) % S.items.length].id; S.dock = 'ready'; S.note = ''; }, d,
+    () => { const k = S.items.findIndex(x => x.id === S.open); return [S.items[(k + d + S.items.length) % S.items.length].id]; }).then(focusTitle);
 }
 function openItem(id) {
   if (id === S.open) return;
   const i = S.items.findIndex(x => x.id === S.open), j = S.items.findIndex(x => x.id === id);
-  transition('open', () => { S.open = id; S.dock = 'ready'; S.note = ''; scrollTo({ top: 0 }); }, j - i).then(focusTitle);
+  transition('open', () => { S.open = id; S.dock = 'ready'; S.note = ''; scrollTo({ top: 0 }); }, j - i, () => [id]).then(focusTitle);
 }
 function switchTab(tab) {
   if (tab === S.tab) return;
@@ -385,7 +407,7 @@ async function decide(which) {
     S.open = (S.items[i] || S.items[0] || {}).id; S.dock = 'ready'; S.note = ''; S.which = '';
     next = S.items.find(y => y.id === S.open);
     scrollTo({ top: 0 });   // the next item opens at its top, at every width
-  }, 1);
+  }, 1, () => { const i = S.items.indexOf(x), rest = S.items.filter(y => y !== x); return [x.id, (rest[i] || rest[0] || {}).id]; });
   deciding = false;
   toast(next ? `${r.toast} Next: ${next.title}` : `${r.toast} That was the last one.`, true);
   focusTitle();
@@ -394,7 +416,7 @@ function undo() {
   if (!last) return;
   const l = last; last = null;
   closeToast(true);
-  transition('undo', () => { S.items.splice(l.i, 0, l.x); S.open = l.x.id; S.decided.shift(); S.dock = 'ready'; scrollTo({ top: 0 }); }, -1).then(focusTitle);
+  transition('undo', () => { S.items.splice(l.i, 0, l.x); S.open = l.x.id; S.decided.shift(); S.dock = 'ready'; scrollTo({ top: 0 }); }, -1, () => [l.x.id]).then(focusTitle);
 }
 
 document.addEventListener('click', e => {

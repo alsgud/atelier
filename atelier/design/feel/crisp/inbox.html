@@ -59,9 +59,11 @@ html[data-vt="prev"]::view-transition-new(ih), html[data-vt="prev"]::view-transi
 ::view-transition-group(dock) { animation: none; }
 ::view-transition-old(dock) { animation: crisp-out var(--dur-fast) var(--ease-exit) both; }
 ::view-transition-new(dock) { animation: crisp-fade var(--dur-fast) var(--ease-enter) 60ms both; }
-::view-transition-group(*.row) { animation-duration: var(--spring-snappy-dur); animation-timing-function: var(--spring-snappy); }
-::view-transition-old(*.row):only-child { animation: crisp-out-x var(--dur-fast) var(--ease-exit) both; }
-::view-transition-new(*.row):only-child { animation: crisp-in-y var(--dur-base) var(--ease-enter) 120ms both; }
+/* The leaving row is gone (--dur-instant) before any row starts to move onto its place. */
+::view-transition-group(*.row) { animation-duration: var(--spring-snappy-dur); animation-timing-function: var(--spring-snappy); animation-delay: var(--dur-instant); }
+::view-transition-old(*.row):only-child { animation: crisp-out-x var(--dur-instant) var(--ease-exit) both; }
+/* ...and a new row stamps in once its gap is open (the spring is ~88 % there at 0.4 of its duration). */
+::view-transition-new(*.row):only-child { animation: crisp-in-y var(--dur-base) var(--ease-enter) calc(var(--dur-instant) + 0.4 * var(--spring-snappy-dur)) both; }
 /* Counts roll: the old number goes up and out, the new comes up from below. */
 ::view-transition-group(count-side), ::view-transition-group(count-tab), ::view-transition-group(count-badge) { animation: none; overflow: hidden; }
 ::view-transition-old(count-side), ::view-transition-old(count-tab), ::view-transition-old(count-badge) { animation: crisp-roll-out var(--dur-base) var(--ease-move) both; }

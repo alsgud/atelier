@@ -99,7 +99,7 @@
   --spring-snappy: linear(0, 0.033, 0.115, 0.223, 0.341, 0.458, 0.568, 0.666, 0.75, 0.82, 0.877, 0.921, 0.955, 0.98, 0.997, 1.008, 1.015, 1.019, 1.02, 1.019, 1.018, 1.016, 1.013, 1.011, 1.009, 1.007, 1.005, 1.004, 1.003, 1.002, 1);
   --spring-snappy-dur: 400ms;  /* stiffness 420, damping 32: presses, a row landing */
   --spring-soft: linear(0, 0.034, 0.116, 0.225, 0.343, 0.461, 0.57, 0.667, 0.751, 0.82, 0.876, 0.92, 0.953, 0.977, 0.994, 1.005, 1.012, 1.016, 1.017, 1.017, 1.016, 1.014, 1.012, 1.01, 1.008, 1.006, 1.005, 1.003, 1.002, 1.002, 1);
-  --spring-soft-dur: 660ms;    /* stiffness 160, damping 20: something travelling far (the item to the ledger) */
+  --spring-soft-dur: 660ms;    /* stiffness 160, damping 20: medium travel with a little life (a progress bar). Long flights use glide: 1.7 % of 800 px is a visible overshoot */
   --spring-glide: linear(0, 0.038, 0.125, 0.233, 0.345, 0.451, 0.547, 0.631, 0.702, 0.761, 0.81, 0.849, 0.881, 0.907, 0.927, 0.944, 0.956, 0.966, 0.974, 0.98, 0.985, 0.988, 0.991, 0.993, 0.995, 0.996, 0.997, 0.998, 0.998, 0.999, 1);
   --spring-glide-dur: 700ms;   /* stiffness 170, critically damped: big surfaces, no bounce */
 

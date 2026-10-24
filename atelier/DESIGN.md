@@ -238,8 +238,8 @@ D3 (rulings R-1, R-3: the owner found D2's feel and animation lacking). The syst
 | `--ease-move` | `cubic-bezier(.65, 0, .35, 1)` | A to B on screen |
 | `--ease-press` | `cubic-bezier(.3, 0, .5, 1)` | press and release |
 | `--spring-snappy` (+ `-dur` 400 ms) | `linear(…)`, stiffness 420, damping 32, ratio 0.79, ~2 % overshoot | presses, rows landing, ticks |
-| `--spring-soft` (+ `-dur` 660 ms) | stiffness 160, damping 20, ratio 0.79 | long flights (Flow's title to Decided today) |
-| `--spring-glide` (+ `-dur` 700 ms) | stiffness 170, damping 26, critically damped | big surfaces arriving, no bounce |
+| `--spring-soft` (+ `-dur` 660 ms) | stiffness 160, damping 20, ratio 0.79 | medium travel with a little life (Flow's tick bar). Not for long flights: 1.7 % of an 800 px flight is a 14 px overshoot onto the next row |
+| `--spring-glide` (+ `-dur` 700 ms) | stiffness 170, damping 26, critically damped | big surfaces arriving and long flights (Flow's title to Decided today), no bounce |
 | `--shift-sm` / `--shift` / `--shift-lg` | 4 / 8 / 24 px | quiet / default / spatial travel |
 | `--press-scale` / `--press-depth` | 0.97 / 1 px | pressed controls |
 
@@ -251,13 +251,18 @@ D2's `--ease-out` and `--ease-in-out` stay for components that already use them.
 |---|---|
 | The item in focus, when it changes (leave, arrive) | The item while you read it; the text you type |
 | Queue rows closing a gap or making room (≥ 1024 px only, where the queue is beside the item) | The dock's position; the sidebar, top bar, tab bar |
-| A title flying between queue, focus and Decided today (Flow, ≥ 1024 px) | Counts: they change in place (Crisp rolls the digit within its own box) |
+| A title flying from its row to the focus, and from the focus to Decided today and back (Flow, ≥ 1024 px) | Counts: they change in place (Crisp rolls the digit within its own box) |
 | The toast (rises from the dock it anchors to) | The scroll position, except to the top when the next item opens |
 | Ticks (stamp, pop or fade), progress bars and figures | Anything when nothing happened |
 
 ### Choreography of one decision (all feels)
 
 `press` (`--dur-instant`) → **Sending…** on the button pressed (latency) → **sent, held in place**: the dock turns green with what happens next, the queue row turns green, the tick appears (`--dur-hold`) → **one transition**: the old item leaves (`--dur-fast`), queue rows close the gap, the decision lands in **Decided today** (new at the foot of the queue, above Working now), the next item arrives (eyebrow + title, then body, `--stagger` apart), the dock's words cross-fade → **toast** with Undo (`Z`), focus on the new title. Undo is the same transition in reverse. Leader: the thing you touched; followers: the queue, then the next item; last: the toast.
+
+Three rules for the queue (round 9):
+1. **A group moves as one.** Every part of the queue tail (each header, each ledger row including the earlier ones, each Working now row) has its own name at ≥ 1024 px, so nothing jumps while its header slides.
+2. **A leaving row is gone before anything moves onto its place**, and **a new row appears only once its gap is open** (Calm: rows wait `--dur-fast`, the new row comes in after `--dur-fast` + `--dur-slow`; Crisp: rows wait `--dur-instant`, the new row after 0.4 × `--spring-snappy-dur`; Flow: rows spring at once, the new row grows in from 200 ms).
+3. **Only a title that carries meaning flies** (Flow): the decided one (focus ↔ Decided today) and the one being opened (its row → focus). A title going back to its row stays with the row.
 
 *Why Decided today moved into the queue*: a decision needs somewhere to go. D2 only showed the ledger at inbox zero; now the last three sit under the waiting items ("Decided today 2"), so the eye (and Flow's title) has a destination, and zero no longer introduces a new list.
 
@@ -268,9 +273,9 @@ Same layout, content and journey; they differ in feel. Each refines D2's finish 
 | | **Calm** | **Flow** (recommended) | **Crisp** |
 |---|---|---|---|
 | In a sentence | Things stay where they are; what changes, fades | Every item is a thing with a place | Every action clicks |
-| Next item | Old fades `--dur-fast`; new rises `--shift-sm` over `--dur-slow`, 80 ms later, body `--stagger` after | Desktop: the decided title flies into Decided today (`--spring-soft`) while the next title rises from its queue row into the focus; the rest slides in `--shift-lg` from the side you're going (`--spring-glide`). < 1024: the item slides like a card, out left, in right | Old out `--dur-fast`; new in `--shift` over `--dur-base`, no stagger; J/K slide 8 px in their direction |
+| Next item | Old fades `--dur-fast`; new rises `--shift-sm` over `--dur-slow`, 80 ms later, body `--stagger` after | Desktop: the decided title flies into Decided today (`--spring-glide`; the snapshots keep their own size, the big serif leaves in `--dur-fast`, the small title fades in from 160 ms, so it is faint while it crosses other rows) while the next title rises from its queue row into the focus; the rest slides in `--shift-lg` from the side you're going (`--spring-glide`). < 1024: the item slides like a card, out left, in right | Old out `--dur-fast`; new in `--shift` over `--dur-base`, no stagger; J/K slide 8 px in their direction |
 | Queue rows | Close the gap over `--dur-slow`, `--ease-move` | `--spring-snappy`; removed rows shrink to 0.96 | `--spring-snappy` with overshoot; removed rows slip right 8 px |
-| Press / hover | Colour only; hover eases `--dur-base` | Scale 0.97, springs back; frames lift 2 px on hover | 1 px depth and the shadow closes; hover in `--dur-instant`; ink edge on the current row |
+| Press / hover | Colour only; hover eases `--dur-base`; the focus ring's colour fades in over `--dur-base` (the control itself never fades) | Scale 0.97, springs back; frames lift 2 px on hover | 1 px depth and the shadow closes; hover in `--dur-instant`; ink edge on the current row |
 | Ticks | Fade | Pop (`--spring-snappy`) | Stamp from 0.5 (`--spring-snappy`), also on the queue row |
 | Counts | Change in place | Change in place | Roll (old up and out, new up from below) |
 | Working now tick | Bar eases over 1.2 s; figure fades | Bar springs (`--spring-soft`); figure rises 4 px | Bar steps (`--dur-slow`), one sheen passes, figure rolls |
@@ -289,14 +294,14 @@ Same layout, content and journey; they differ in feel. Each refines D2's finish 
 
 ### Frame budget
 
-- **Only `transform` and `opacity` animate**, on our elements and on the view-transition images. Measured (`runs/57cv/tools/motion-audit.mjs`, all animations sampled every frame during a decision): our elements animate only transform and opacity (plus a 120 ms background-colour transition on button hover).
+- **Only `transform` and `opacity` animate**, on our elements and on the view-transition images. Measured (`runs/57cv/tools/motion-audit.mjs`, all animations sampled every frame during a decision): our elements animate only transform and opacity (plus a 120 ms background-colour transition on button hover, and in Calm the focus ring's outline and halo colour fading in over `--dur-base` on the one focused element: a repaint of one ring, no layout).
 - **The one exception, by design:** view-transition *groups* interpolate their box (width, height) to morph. For rows the size doesn't change; Flow's title flight does change size. Measured with a Chromium trace of one decision at 1440: Calm 13 layouts (9 ms in total), Crisp 13 (9 ms), Flow 159 (18 ms in total, ~0.12 ms per frame): well inside a 16.7 ms frame.
 - **60 fps:** with no recorder running, rAF frame times during transitions: Flow 2 of 2,563 frames over 25 ms, Crisp 1 of 1,200; worst 33 ms, the one snapshot frame at the start of a transition. Each decision has two main-thread tasks of 19–28 ms (re-render + snapshot), both before the animation starts. Frontend should update the DOM in place (not re-render the page) to bring those under 10 ms.
 - No `filter`, `backdrop-filter` (except the static play pill), `box-shadow`, `width`, `height`, `top` or `left` animation on our elements; no layout reads inside animation frames; images decode async.
 
 ### For frontend
 
-The mockup uses the browser's **View Transitions API** (same-document; Chromium 111+, Safari 18+, Firefox 144+); where it's missing, changes apply instantly (still correct, just not animated). Name the parts as `feel/shared/inbox.js` does: `ih` (eyebrow + title), `ib` (body), `dock`, `head`, `page` (Office), `empty`, `zero-work`, rows `q-<id>`/`l-<id>`/`h-*` with class `row` (≥ 1024 only), titles `t-<id>` with class `title` (Flow, ≥ 1024 only); set `data-vt=<open|next|prev|decide|undo|tab|zero|retry>` and `data-dir=<fwd|back>` on `<html>` for the duration. The chosen feel's `<style>` block is then the whole motion spec.
+The mockup uses the browser's **View Transitions API** (same-document; Chromium 111+, Safari 18+, Firefox 144+); where it's missing, changes apply instantly (still correct, just not animated). Name the parts as `feel/shared/inbox.js` does: `ih` (eyebrow + title), `ib` (body), `dock`, `head`, `page` (Office), `empty`, `zero-work`, rows `q-<id>` (queue), `l-<id>` (ledger; earlier days' rows by a stable key), `w-<id>` (Working now), `h-*` (headers) and `l-more`, all with class `row` (≥ 1024 only), titles `t-<id>` with class `title` (Flow, ≥ 1024 only, and only on the titles that travel in this transition: name them in the old DOM just before it starts, remove them when it ends); set `data-vt=<open|next|prev|decide|undo|tab|zero|retry>` and `data-dir=<fwd|back>` on `<html>` for the duration. The chosen feel's `<style>` block is then the whole motion spec.
 
 ## Copy
 
@@ -403,6 +408,20 @@ Method: the **accessibility-review** skill; `a11y.mjs` on each feel at 390 and 1
   4. Checked and fine: 0 unnamed controls, 0 targets under 44 px at 390, every Tab stop shows a ring (first 30 stops, both widths, both themes), images have `alt`, focus lands on the new item's title (`#ttl`) after every decision, J/K and Undo in all three feels; no new colour pairs (ticks reuse D2's done/done-soft 5.79:1 and 7.86:1; the countdown bar is decorative).
 - **Changed**: the toast's timer and countdown bar pause while it is hovered or focused, and resume with the time left (minimum 1.5 s); under reduced motion every stamp, pop, slide, nudge and shake becomes a fade (`feel.css`); `aria-label`s "Office, 3 working", "replay, 4 waiting, working", "Approved the look of Dodge. dodge, 6h ago".
 - **Result**: toast still present after 7 s of hover, gone ~6 s after the pointer leaves (all three feels); under reduced motion the only transforms running during a decision are the browser's page cross-fade group (no travel), in all three; Flow's reduced-motion journey recorded (`feel/flow/demo-phone-reduced.webm`, `contact-phone-reduced.png`).
+
+### Round 9 (D3, feel round 3: the reviewer's frames, then every frame of a decision and an undo)
+
+Method: the reviewer's frame grabs from the committed demos and focus-opacity samples, then a new stepped-frame tool (`runs/57cv/tools/vt-frames.mjs`): it pauses every animation of a view transition and sets them to 0, 60, 120, 180, 240, 320, 420, 560 and 720 ms, shooting the page at each, for a decision and its Undo in all three feels at 1440. That makes the frames exact instead of what a 25 fps recorder happened to catch. Then the **design-critique** read of each strip and the **accessibility-review** check on focus. Before: `review/d3-round-3/before-*.png` (the reviewer's grabs). After: `review/d3-round-3/after-<feel>-{decide,undo}-queue.png` (queue column, the nine steps left to right) and `after-calm-focus.png`.
+
+- **Found (review)**:
+  1. *Headers slid over rows, in every feel, on every decide and undo at ≥ 1024 px.* The queue headers had names and moved; the rows under them (the earlier "Approved the look of Dodge", every Working now agent) didn't, so they jumped and the headers slid across them for 0.3–0.4 s: "Decided today" over "Approved the look of Dodge", "Working now" over "Building the trim editor". Round 7 said "no double exposure in any frame"; it was checked on the item, not the queue tail.
+  2. *Calm's focus blinked the control.* `:focus-visible` ran a fade on the whole element, so every control you Tab to went to opacity 0 and back (0.00 → 0.66 → 0.89 → 1.00 over ~100 ms), against AC-13.
+- **Found (our stepped frames, after fixing 1)**:
+  3. *Flow: every queue title had its own name*, so titles sprang on their own clock (`--spring-soft`, 660 ms) while their rows used `--spring-snappy` (400 ms): titles pulled away from their meta lines ("Should hidden clips…" a row above "replay · question").
+  4. *Flow: the landing title read larger and overshot onto the row below.* The browser stretches a snapshot to its morphing box, and a 1.7 % spring overshoot on an 800 px flight is 14 px.
+  5. *Calm and Crisp: a new ledger row appeared under the header still sliding onto it* (Calm at 240 ms, Crisp at 180 ms), and on Undo the header slid down onto the ledger row that was still fading out.
+- **Changed**: every element of the queue tail is named (`l-<id>` with a stable key for earlier rows, `w-<id>` for agents), so groups move as one; Calm's focus animates only the ring's colour (`outline-color`, halo), never the element; Flow names only the titles that travel (the decided one and the one being opened) and only for that transition, its title snapshots keep their own size, the flight uses `--spring-glide` (no overshoot), and the big serif leaves in `--dur-fast` while the small title fades in from 160 ms; in Calm and Crisp a leaving row is gone before rows move (`--dur-fast` / `--dur-instant`) and a new row appears once its gap is open. Rules written into Motion › Choreography. All seven demos and contact sheets re-recorded, and re-encoded to VP9 (62 MB → see EVIDENCE.md).
+- **Result**: in the stepped frames of all three feels, no text sits on text in the queue at any step of a decision or an undo; the one remaining crossing is Flow's small title passing the last queue row and the "Decided today" header at 180–320 ms at under a third of its opacity, on its way in. Calm's focused control reads opacity 1.00 at every sample after a Tab (was 0.00 at the first); every Tab stop still shows a ring (a11y.mjs). The reviewer's journey script: 159/162, the same 3 known false positives (`html` always carries `view-transition-name: root`), 0 page errors.
 
 ## Open questions
 

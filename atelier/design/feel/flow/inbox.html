@@ -12,8 +12,8 @@
    An item's title lives in one place at a time: its queue row, the focus, or "Decided today".
    Open an item and its title rises from the row into the focus; decide it and the title flies down
    into Decided today while the next one rises from its row. Undo flies it back. J/K slide the item
-   sideways in the direction you moved. Springs (--spring-soft for the long flights, --spring-glide
-   for big surfaces, --spring-snappy for rows and presses). Below 1024 px the queue is under the item,
+   sideways in the direction you moved. Springs (--spring-glide for the long flights and
+   big surfaces, --spring-soft for the tick bar, --spring-snappy for rows and presses). Below 1024 px the queue is under the item,
    so nothing flies: the item slides like a card, out to the left, the next in from the right. */
 
 /* Press: the control gives under your finger and springs back. */
@@ -41,9 +41,14 @@
 
 /* ── Choreography ── */
 /* Titles fly (the one place sizes morph: the group animates its box, the images only move and fade). */
-::view-transition-group(*.title) { animation-duration: var(--spring-soft-dur); animation-timing-function: var(--spring-soft); z-index: 5; }
-::view-transition-old(*.title) { animation: flow-out var(--dur-slow) var(--ease-out) both; }
-::view-transition-new(*.title) { animation: flow-fade var(--dur-slow) var(--ease-enter) 80ms both; }
+/* Critically damped: a 1.7 % overshoot on an 800 px flight landed the title 10 px into the row below. */
+::view-transition-group(*.title) { animation-duration: var(--spring-glide-dur); animation-timing-function: var(--spring-glide); z-index: 5; }
+/* The snapshots keep their own size, pinned top-left: stretched to the morphing box, the landing title
+   read larger and sat over the row below it until the last frame. The old title leaves in --dur-fast and the new one fades in from 160 ms, so the flight is
+   faint while it crosses other rows and solid only as it lands. */
+::view-transition-old(*.title), ::view-transition-new(*.title) { inline-size: auto; block-size: auto; object-fit: none; object-position: left top; }
+::view-transition-old(*.title) { animation: flow-out var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(*.title) { animation: flow-fade var(--dur-slow) var(--ease-enter) 160ms both; }
 
 /* The rest of the item: out the way it's going, in from where it comes. */
 ::view-transition-group(ih), ::view-transition-group(ib), ::view-transition-group(page), ::view-transition-group(empty), ::view-transition-group(zero-work) { animation: none; }
