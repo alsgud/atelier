@@ -64,7 +64,8 @@ async function get(path) {
   return j;
 }
 
-// The server answered from an old build and is rebuilding it: ask again shortly, not on the next 15 s tick.
+// The server answered from an old build and is rebuilding it: ask again now, and the server answers when
+// the rebuild is ready (not on the next 15 s tick).
 function refreshSoon() {
   if (refreshSoon.timer || refreshSoon.tries >= 5) return; // a few tries per 15 s refresh, in case a rebuild keeps failing
   refreshSoon.tries = (refreshSoon.tries || 0) + 1;
@@ -72,8 +73,8 @@ function refreshSoon() {
     refreshSoon.timer = null;
     if (document.hidden || !state) return;
     if (busy()) return refreshSoon(); // don't redraw under the owner; check again later
-    refresh().catch(() => {});
-  }, 1500);
+    refresh(true).catch(() => {});
+  }, 300);
 }
 
 async function act(body, done = 'Done') {
@@ -91,13 +92,15 @@ function toast(text) {
   clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), 2600);
 }
 
-async function refresh() {
-  state = await get('/api/overview');
+async function refresh(wait) {
+  const s = await get(`/api/overview${wait ? '?wait' : ''}`);
+  if (wait && busy()) return refreshSoon(); // the owner started typing while we waited
+  state = s;
   // A new version of the dashboard was installed: reload so the owner always sees the latest.
   if (loadedVersion && state.version && state.version !== loadedVersion) return location.reload();
   loadedVersion = loadedVersion || state.version;
   renderChrome();
-  await route({ refreshing: true });
+  await route({ refreshing: true, wait });
 }
 
 // ---------- chrome: sidebar + phone tab bar ----------
@@ -136,10 +139,10 @@ function renderChrome() {
 const topbar = (crumbs, right = '') => `<div class="top"><div class="crumbs">${crumbs}</div><div class="spacer"></div>${right}</div>`;
 
 // ---------- routing ----------
-async function route({ refreshing = false } = {}) {
+async function route({ refreshing = false, wait = false } = {}) {
   const [, kind, a, b, c] = (location.hash || '#/inbox').split('/');
   try {
-    if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c, refreshing);
+    if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c, refreshing, wait);
     if (kind === 't' && a) return await renderTask(decodeURIComponent(a));
     if (kind === 'new') return renderNew();
     if (kind === 'projects') return renderProjects();
@@ -368,11 +371,11 @@ function renderActivity() {
 // ---------- project (Vercel) ----------
 // The last data seen for each project, so switching tabs paints at once; fresh data fills in when it arrives.
 const projectSeen = new Map();
-async function renderProject(alias, tab, sub, refreshing) {
+async function renderProject(alias, tab, sub, refreshing, wait) {
   const hash = location.hash;
   const seen = refreshing ? null : projectSeen.get(alias);
   if (seen) drawProject(seen.p, tab, sub);
-  const p = await get(`/api/project/${encodeURIComponent(alias)}`);
+  const p = await get(`/api/project/${encodeURIComponent(alias)}${wait ? '?wait' : ''}`);
   if (location.hash !== hash) return; // the owner has already moved on
   const text = JSON.stringify(p);
   projectSeen.set(alias, { p, text });
