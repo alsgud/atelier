@@ -6,7 +6,6 @@
 - Price: redesign now estimated ~$150 instead of ~$120 (more design rounds for feel and motion) — told 2026-10-25
 - OK to land the speed hotfix 6dug into the live dashboard once the reviewer passes it — asked 2026-10-25 — lead recommends yes
 - Charter: draft in atelier/CHARTER-draft.md; owner to adopt in the dashboard — since 2026-10-24
-- AC-7 "feels calm" judgement in the dashboard (now moot until a feel is picked)
 
 ## Open issues
 - 6dug round 2: tab switch paint 838 ms median / 4.5 s max -> 2 ms / under 40 ms; warm API 4 ms. Must-fix: after being unwatched it shows old data for 15 s. Lead answered with the fix (stale flag + quick re-fetch). $5.90 of $10.
@@ -15,6 +14,7 @@
 - 68h6 stays in review on branch atelier/68h6 (autonomy `branch`); 57cv builds on it.
 
 ## Since last update
+- Owner accepted AC-7 ("feels calm") on the D2 Inbox, 2026-10-25.
 - Owner: feel and animations still lacking; wants more demos and refined versions (overrule #2, ruling R-3). Cancelled w9ew. 57cv started: motion references, motion system, three feel variants with recorded demos.
 - Ruling R-4 and team check AC-18 (speed). 6dug started.
 
