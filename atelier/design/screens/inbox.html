@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inbox · Atelier</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>
+  /* Mockup-only controls (not part of the product): the state switcher in the corner. */
+  .mock { position: fixed; right: 12px; top: 12px; z-index: 99; display: flex; gap: 4px; flex-wrap: wrap; max-width: 420px; justify-content: flex-end; }
+  .mock a { font: 500 11px/1 var(--font-sans); padding: 6px 8px; border-radius: 4px; background: var(--surface-inverse); color: var(--text-inverse); opacity: .85; }
+  .is-shot .mock { display: none; }
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+  <aside class="sidebar shell-side" id="side" aria-label="Atelier"></aside>
+  <header class="topbar shell-top" id="top"></header>
+  <main class="shell-main" id="main"></main>
+  <nav class="tabbar shell-tabs" id="tabs" aria-label="Main"></nav>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="mock" id="mock"></div>
+
+<script src="../icons.js"></script>
+<script>
+/* Inbox, direction B. Mockup behaviour only; frontend builds the real thing from components.css.
+   Query: theme=light|dark · open=<item id> · state=zero|loading|error · dock=sending|failed|sent · toast=1 · shot */
+const P = new URLSearchParams(location.search);
+const theme = P.get('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.dataset.theme = theme;
+if (P.has('shot')) document.body.classList.add('is-shot');
+if (P.has('full')) document.body.classList.add('is-full');
+const I = (n, c) => icon(n, c);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mark = '<span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
+const IMG = 'img/';
+
+/* ── Real content from the real projects (replay, dodge, atelier-ui) ── */
+const ITEMS = [
+  { id: 'finding', needs: true, glyph: 'finding', kind: 'From the auditor', project: 'replay', age: '25m', ageLong: '25 min ago',
+    title: 'Some of your clips may need a paid Windows add-on to play',
+    short: 'from the auditor',
+    body: () => `
+      <p class="lede">Clips Medal saves in HEVC only play if Windows has Microsoft's $0.99 HEVC add-on. You asked for free components only, and this is cheap to fix now.</p>
+      <dl class="facts">
+        <dt>If nobody fixes it</dt><dd>On a PC without the add-on, those clips say “can't play” in the feed.</dd>
+        <dt>To change later</dt><dd>Costly: the player would be rebuilt after the feed is done.</dd>
+      </dl>
+      <details class="details"><summary>${I('chevron-down')}Technical details</summary><div class="details-body">
+        <span>Criterion <code>AC-34</code>: H.264, HEVC and AV1 in MP4 or MKV play with no paid codec extension.</span>
+        <span>The playback spike passed with <code>hwdec=no</code>, but the app spec lets HEVC fall back to the Windows decoder.</span></div></details>`,
+    dock: { note: 'Add a note for the lead (optional)', primary: 'Yes, fix it', busy: 'Sending…', secondary: "No, it's fine", done: 'Sent. The lead plans the fix.', toast: 'Asked the team to fix it.' } },
+
+  { id: 'budget', needs: true, glyph: 'budget', kind: 'Budget', project: 'replay', age: '1h', ageLong: '1 h ago',
+    title: "Replay has used today's $40, so new work is paused",
+    short: 'budget',
+    body: () => `
+      <p class="lede">The two tasks already running finish their current step. Nothing new starts until you raise the limit, or until midnight.</p>
+      <div class="meter" style="max-width:420px"><div class="meter-head"><span>Spent today</span><b>$40.00 of $40</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div></div>
+      <dl class="facts">
+        <dt>Trim editor</dt><dd class="num">$18.40</dd>
+        <dt>Thumbnail indexing</dt><dd class="num">$9.10</dd>
+        <dt>Reviews</dt><dd class="num">$6.30</dd>
+        <dt>The lead</dt><dd class="num">$6.20</dd>
+      </dl>`,
+    dock: { primary: 'Raise today to $60', busy: 'Raising…', ghost: 'Budget settings', hint: 'Or do nothing: work resumes at midnight', done: 'Raised to $60. Work starts again.', toast: "Raised replay's limit to $60 for today." } },
+
+  { id: 'design', glyph: 'design', kind: 'Design to approve', project: 'replay', age: '2h', ageLong: '2 h ago',
+    title: 'Approve the look of Replay',
+    short: 'design',
+    body: () => `
+      <p class="lede">The designer drew 13 screens in the gamer style you asked for: dark, orange only for actions, the clips large. These three carry the most.</p>
+      <div class="frames is-hero">
+        ${frame('replay-home.png', 'Home')}
+        ${frame('replay-trim.png', 'Cut clips')}
+        ${frame('replay-feed.png', 'Feed · phone', '', 'is-phone')}
+        <a href="#" class="frame frame-more" aria-label="See all 13 screens, opens in a new tab"><span class="frame-img"><b>+10</b>more screens</span><span class="frame-cap"><b>Everything else</b><span>Open ${I('external')}</span></span></a>
+      </div>
+      <div class="links"><a href="#">${I('external')}Open all 13 screens</a><a href="#">${I('log')}Read the design notes</a></div>`,
+    dock: { note: 'Your decision, in your own words', required: 'Say what you approve in a few words. It goes to the designer.', primary: 'Approve design', busy: 'Approving…', secondary: 'Skip this phase', done: 'Approved. The designer starts on the rest.', toast: 'Approved the look of Replay.' } },
+
+  { id: 'question', glyph: 'question', kind: 'Question', project: 'replay', age: '2h', ageLong: '2 h ago',
+    title: 'Should hidden clips stay out of Throwbacks too?',
+    short: 'question',
+    body: () => `
+      <blockquote class="quote" style="margin:0">Throwbacks shows clips from this week in past years. Hidden clips already stay out of the feed and out of sight when you show the app to others. Should Throwbacks follow the same rule?<footer>Frontend, building the Throwbacks row on Home</footer></blockquote>
+      <fieldset class="choices" style="max-width:var(--measure)"><legend class="section-label" style="margin-bottom:var(--space-2)">Suggested answers</legend>
+        <label class="choice"><input type="radio" name="ans"> Yes, keep them out</label>
+        <label class="choice"><input type="radio" name="ans"> No, include them</label>
+      </fieldset>`,
+    dock: { note: 'Or write your own answer', primary: 'Send answer', busy: 'Sending…', ghost: 'Open the task', done: 'Answered. The frontend carries on.', toast: 'Answered the frontend.' } },
+
+  { id: 'proof', glyph: 'proof', kind: 'Your judgement', project: 'dodge', age: '3h', ageLong: '3 h ago',
+    title: 'Play a round and say whether dodging feels fair',
+    short: 'your judgement',
+    body: () => `
+      <p class="lede">Shown working: the tester played 40 rounds at a steady 60 fps. A hit only counts when a bullet touches the dot you steer, not the glow around it.</p>
+      <div class="frames is-hero">
+        ${frame('dodge-play.png', 'A round, mid-spiral', '', '', '0:42')}
+        ${frame('dodge-results.png', 'Results after the round')}
+        ${frame('dodge-play-phone.png', 'On a phone', '', 'is-phone')}
+      </div>
+      <div class="links"><a href="#">${I('external')}Play it yourself</a><a href="#">${I('log')}Run log · 40 rounds</a></div>`,
+    dock: { note: "If you reject it, say what's wrong", rejectNeedsNote: true, primary: 'Accept', busy: 'Accepting…', secondary: 'Reject', done: 'Accepted. Marked as met.', toast: 'Accepted: dodging feels fair.' } },
+
+  { id: 'outcome', glyph: 'outcome', kind: 'Outcome to approve', project: 'atelier-ui', age: '5h', ageLong: '5 h ago',
+    title: 'Approve an outcome: it works well on your phone, not just your desk',
+    short: 'outcome',
+    body: () => `
+      <blockquote class="quote" style="margin:0">It works well on my phone, not just on my desk.<footer>Your words, from the brief</footer></blockquote>
+      <p class="lede">The lead checks it like this: 360 px wide, no sideways scrolling, and every button big enough to tap.</p>`,
+    dock: { primary: 'Approve', busy: 'Approving…', secondary: 'Retire it', done: 'Approved. The lead adds it to the checks.', toast: 'Approved the outcome.' } },
+
+  { id: 'plan', glyph: 'plan', kind: 'Task plan', project: 'dodge', age: '1d', ageLong: 'yesterday',
+    title: 'Start the last Dodge task: a full play-through and a build to share',
+    short: 'task plan',
+    body: () => `
+      <p class="lede">The integration builder plays the game end to end, fixes what breaks and makes a build your friends can open. Up to 6 rounds of work, about $15.</p>
+      <details class="details"><summary>${I('chevron-down')}What it will change</summary><div class="details-body">
+        <span>Owns <code>src/main.ts</code>, <code>README.md</code> and the build config. Done when <code>npm run build</code> passes and a recorded play-through reaches the results screen.</span></div></details>`,
+    dock: { primary: 'Approve plan', busy: 'Approving…', ghost: 'Read the brief', done: 'Approved. The builder starts within a minute.', toast: 'Approved the plan.' } },
+];
+const WORKING = [
+  ['Building the trim editor', 'replay · frontend · finishing its step', 'step 4 of 6', '62%'],
+  ['Indexing clip thumbnails', 'replay · backend · 1 min ago', '1,240 of 1,800 clips', '69%'],
+  ['Drawing the Inbox in direction B', 'atelier-ui · designer · just now', 'critique round 2 of 2', '80%'],
+];
+const DECIDED = [['Approved the look of Dodge', 'dodge', '40m'], ['Asked the team to fix the paid add-on problem', 'replay', '1h'], ['Answered: keep hidden clips out of Throwbacks', 'replay', '2h']];
+
+function frame(file, cap, style = '', cls = '', play = '') {
+  return `<a href="#" class="frame ${cls}" style="${style}" aria-label="${esc(cap)}, opens full size in a new tab">
+    <span class="frame-img"><img src="${IMG}${file}" alt="" loading="lazy">${play ? `<span class="play">${I('play')}Recording ${play}</span>` : ''}</span>
+    <span class="frame-cap"><b>${esc(cap)}</b><span>Open ${I('external')}</span></span></a>`;
+}
+
+/* ── State ── */
+const S = {
+  view: P.get('state') || 'items',          // items | zero | loading | error
+  items: ITEMS.slice(),
+  open: P.get('open') || ITEMS[0].id,
+  dock: P.get('dock') || 'ready',           // ready | sending | failed | sent | invalid
+};
+if (S.view === 'zero') S.items = [];
+const needsN = () => S.items.filter(x => x.needs).length;
+
+/* ── Chrome: sidebar (desktop), top bar (tablet/phone), tab bar (phone) ── */
+function chrome() {
+  const n = S.items.length, u = needsN(), zero = S.view === 'zero';
+  const count = n ? `<span class="count ${u ? 'is-needs' : ''}" aria-label="${n} waiting${u ? `, ${u} need you now` : ''}">${n}</span>` : '';
+  const proj = [['replay', true, 4], ['atelier-ui', true, 1], ['dodge', false, 2]];
+  document.getElementById('side').innerHTML = `
+    <span class="brand">${mark}Atelier</span>
+    <nav class="nav" aria-label="Main">
+      <a class="nav-item" aria-current="page" href="#">${I('inbox')}Inbox${count}</a>
+      <a class="nav-item" href="#">${I('office')}Office<span class="count is-active">3 working</span></a>
+      <a class="nav-item" href="#">${I('activity')}Activity</a>
+    </nav>
+    <nav class="nav" aria-label="Projects"><span class="nav-label">Projects</span>
+      ${proj.map(([p, on, c]) => `<a class="nav-item" href="#"><span class="dot ${on ? 'dot-active' : ''}" aria-label="${on ? 'Lead on, working' : 'Lead on, nobody working'}"></span>${p}${!zero && c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}
+      <a class="nav-item" href="#">${I('plus')}New project</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="meter"><div class="meter-head"><span>Claude plan</span><b>41%</b></div><div class="meter-track" role="img" aria-label="41% of the 5-hour window used"><i style="--value:41%"></i></div><span class="meter-foot">5-hour window · resets in 2 h 10 min</span></div>
+      <div class="meter"><div class="meter-head"><span>Spent today</span><b>${zero ? '$31.80' : '$52.60'}</b></div><span class="meter-foot">${zero ? 'Every project within its budget' : 'replay is at its $40 limit'}</span></div>
+      <a class="nav-item" href="#" style="margin:0 calc(-1 * var(--space-2))">${I('settings')}Settings</a>
+    </div>`;
+  document.getElementById('top').innerHTML = `
+    <span class="brand">${mark}Atelier</span>
+    <nav class="tabs" aria-label="Main"><a class="tab" aria-current="page" href="#">Inbox ${count}</a><a class="tab" href="#">Office</a><a class="tab" href="#">Projects</a><a class="tab" href="#">Activity</a></nav>
+    <span class="topbar-status"><span>Plan <b>41%</b></span><span>Today <b>${zero ? '$31.80' : '$52.60'}</b></span></span>`;
+  document.getElementById('tabs').innerHTML = `
+    <a aria-current="page" href="#">${I('inbox')}Inbox${n ? `<span class="badge-n ${u ? '' : 'is-quiet'}" aria-label="${n} waiting">${n}</span>` : ''}</a>
+    <a href="#">${I('office')}Office</a><a href="#">${I('projects')}Projects</a><a href="#">${I('activity')}Activity</a>`;
+  document.title = n ? `(${n}) Inbox · Atelier` : 'Inbox · Atelier';
+}
+
+/* ── Main ── */
+function qitem(x) {
+  const cur = x.id === S.open;
+  return `<a href="?open=${x.id}" class="qitem" data-id="${x.id}" ${cur ? 'aria-current="true"' : ''}>
+    <span class="qitem-glyph">${I(x.glyph)}</span><span class="qitem-title">${esc(x.title)}</span>
+    <span class="qitem-side">${x.needs ? '<span class="dot dot-needs" role="img" aria-label="Needs you now"></span>' : ''}<span class="qitem-age">${x.age}</span></span>
+    <span class="qitem-meta">${x.project}<span class="sep"> · </span>${x.short}</span></a>`;
+}
+function agents() {
+  return WORKING.map(([w, m, p, v]) => `<a href="#" class="agent"><span class="agent-dot"><span class="dot dot-active is-live" role="img" aria-label="Working"></span></span><span class="agent-what">${w}</span><span class="agent-meta">${m}</span><span class="agent-progress"><span class="track"><i style="--value:${v}"></i></span>${p}</span></a>`).join('');
+}
+function queue() {
+  const now = S.items.filter(x => x.needs), later = S.items.filter(x => !x.needs);
+  return `<aside class="queue" aria-label="Waiting on you">
+    ${now.length ? `<div class="queue-group"><div class="queue-head is-needs"><span>Needs you now</span><span class="n">${now.length}</span></div>${now.map(qitem).join('')}</div>` : ''}
+    ${later.length ? `<div class="queue-group"><div class="queue-head"><span>When you have a minute</span><span class="n">${later.length}</span></div>${later.map(qitem).join('')}</div>` : ''}
+    <div class="queue-group"><div class="queue-head"><span>Working now</span><span class="n">${WORKING.length}</span></div>${agents()}</div>
+  </aside>`;
+}
+function dock(x) {
+  const d = x.dock, st = S.dock;
+  if (st === 'sent') return `<div class="dock is-sent" role="status"><div class="dock-row"><span class="dock-msg is-done">${I('check')}${d.done}</span><span class="spacer"></span><button class="btn btn-ghost" data-act="undo">Undo</button></div></div>`;
+  const sending = st === 'sending', failed = st === 'failed', invalid = st === 'invalid';
+  const val = S.note || (sending || failed ? (x.id === 'design' ? 'Go with it. Keep the orange for actions only.' : 'Fix it now, before the feed is built.') : '');
+  const field = d.note ? `<textarea class="input" id="note" rows="1" aria-label="${esc(d.note)}" placeholder="${esc(d.note)}" ${sending ? 'disabled' : ''} ${invalid ? 'aria-invalid="true" aria-describedby="noteErr"' : ''}>${esc(val)}</textarea>` : '';
+  const err = invalid ? `<span class="field-error" id="noteErr">${I('alert')}${esc(d.required || "Say what's wrong so the team can fix it.")}</span>` : '';
+  const primary = `<button class="btn btn-primary" data-act="primary" ${sending ? 'aria-busy="true"' : ''}>${sending ? d.busy : failed ? 'Try again' : d.primary}</button>`;
+  const second = d.secondary ? `<button class="btn btn-secondary" data-act="secondary" ${sending ? 'disabled' : ''}>${d.secondary}</button>` : '';
+  const ghost = d.ghost ? `<a class="btn btn-ghost" href="#">${d.ghost}</a>` : '';
+  const msg = failed ? `<span class="dock-msg is-error" role="alert">${I('alert')}Couldn't reach Atelier. Nothing was sent.</span>`
+    : d.hint ? `<span class="dock-hint">${d.hint}</span>` : d.note ? `<span class="dock-hint"><span class="kbd">Ctrl</span><span class="kbd">↵</span> to send</span>` : '';
+  return `<div class="dock" aria-label="Your decision" role="group">${field ? `<div class="field">${field}${err}</div>` : ''}<div class="dock-row">${primary}${second}${ghost}${msg}</div></div>`;
+}
+function head() {
+  const n = S.items.length, u = needsN();
+  const i = S.items.findIndex(x => x.id === S.open);
+  const pager = n && S.view === 'items' ? `<div class="pager"><span class="of">${i + 1} of ${n}</span>
+    <button class="btn btn-ghost btn-icon btn-sm" data-go="-1" aria-label="Previous item">${I('chevron-left')}</button>
+    <button class="btn btn-ghost btn-icon btn-sm" data-go="1" aria-label="Next item">${I('chevron-right')}</button>
+    <span class="hint"><span class="kbd">J</span><span class="kbd">K</span></span></div>` : '';
+  const summary = S.view === 'loading' ? 'Loading…' : S.view === 'error' ? '' : n ? `${n} waiting${u ? ` · <span class="is-needs">${u} need${u === 1 ? 's' : ''} you now</span>` : ''}` : 'Nothing waiting';
+  return `<header class="page-head"><h1>Inbox</h1><span class="summary">${summary}</span>${pager}</header>`;
+}
+function render() {
+  chrome();
+  const main = document.getElementById('main');
+  if (S.view === 'loading') {
+    const sk = (w, h = 12) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
+    main.innerHTML = head() + `<div class="inbox" aria-busy="true"><section class="focus"><div class="focus-head">${sk('40%')}${sk('70%', 28)}${sk('55%', 28)}</div><div class="focus-body">${sk('90%', 14)}${sk('75%', 14)}<div class="frames is-hero"><div class="frame is-loading"><span class="frame-img"></span></div><div class="frame is-loading"><span class="frame-img"></span></div><div class="frame is-loading"><span class="frame-img"></span></div></div></div></section>
+      <aside class="queue" aria-label="Waiting on you"><div class="queue-group">${Array.from({ length: 5 }, () => `<div class="qitem is-skeleton"><span class="skeleton" style="width:28px;height:28px"></span><span class="skeleton" style="height:12px;width:85%;margin-top:4px"></span><span></span><span class="qitem-meta"><span class="skeleton" style="height:10px;width:45%;margin-top:6px"></span></span></div>`).join('')}</div></aside></div>`;
+    return;
+  }
+  if (S.view === 'error') {
+    main.innerHTML = head() + `<div class="inbox"><section class="focus"><div class="banner" role="alert">${I('alert')}<span>The Inbox didn't load. Trying again in 15 s.</span><span class="spacer"></span><button class="btn btn-secondary" data-act="retry">Try now</button></div>
+      <p class="lede">Your agents keep working while the dashboard is away; nothing is lost.</p></section><aside class="queue" aria-label="Waiting on you"><p class="faint" style="padding:0 var(--space-3);font-size:var(--text-sm)">The list comes back when the Inbox loads.</p></aside></div>`;
+    return;
+  }
+  if (!S.items.length) {
+    main.innerHTML = head() + `<div class="inbox"><section class="focus"><div class="zero">
+      <div class="empty"><span class="empty-mark">${I('check')}All caught up</span><h2 class="empty-title" tabindex="-1" id="ttl">Nothing needs you.</h2><p>Three agents are working on their own. Anything that needs you will show up here.</p></div>
+      <div class="queue-group"><div class="queue-head" style="padding:0"><span>Working now</span><span class="n">${WORKING.length}</span></div><div class="zero-working">${agents()}</div></div></div></section>
+      <aside class="queue" aria-label="Today"><div class="queue-group"><div class="queue-head"><span>You decided today</span><span class="n">${DECIDED.length}</span></div><div class="ledger">${DECIDED.map(([w, p, a]) => `<a href="#" class="ledger-row">${I('check')}<span class="what">${w}</span><span class="qitem-age">${a}</span><span class="meta">${p}</span></a>`).join('')}</div></div>
+      <div class="queue-group" style="padding:0 var(--space-3)"><div class="meter"><div class="meter-head"><span>Spent today</span><b>$31.80</b></div><div class="meter-track" role="img" aria-label="$31.80 of $120 across projects"><i style="--value:26%"></i></div><span class="meter-foot">of $120 across 3 projects</span></div></div></aside></div>`;
+    return;
+  }
+  const x = S.items.find(y => y.id === S.open) || S.items[0];
+  S.open = x.id;
+  main.innerHTML = head() + `<div class="inbox">
+    <section class="focus" aria-labelledby="ttl">
+      <div class="focus-head">
+        <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span><span class="sep">·</span>` : ''}<span class="kind">${I(x.glyph)}${x.kind}</span><span class="sep">·</span><a class="link" href="#">${x.project}</a><span class="sep">·</span><span>${x.ageLong}</span></div>
+        <h2 class="title-display" id="ttl" tabindex="-1">${esc(x.title)}</h2>
+      </div>
+      <div class="focus-body">${x.body()}</div>
+      ${dock(x)}
+    </section>
+    ${queue()}
+  </div>`;
+}
+
+/* ── Behaviour ── */
+function go(d) { const i = S.items.findIndex(x => x.id === S.open); S.open = S.items[(i + d + S.items.length) % S.items.length].id; S.dock = 'ready'; S.note = ''; render(); document.getElementById('ttl')?.focus({ preventScroll: false }); }
+function toast(text, undo) {
+  const t = document.createElement('div');
+  t.className = 'toast toast-success'; t.setAttribute('role', 'status');
+  t.innerHTML = `${I('check')}<span class="toast-text">${esc(text)}</span>${undo ? '<button class="toast-action" data-act="toast-undo">Undo</button>' : ''}`;
+  const box = document.getElementById('toasts'); box.innerHTML = ''; box.append(t);
+  if (!P.has('toast')) setTimeout(() => t.remove(), 6000);
+}
+let last = null, failOnce = P.has('fail');
+function decide(which) {
+  const x = S.items.find(y => y.id === S.open);
+  const note = document.getElementById('note')?.value.trim() || '';
+  S.note = note;
+  if ((x.dock.required && which === 'primary' && !note) || (x.dock.rejectNeedsNote && which === 'secondary' && !note)) { S.dock = 'invalid'; render(); document.getElementById('note').focus(); return; }
+  S.dock = 'sending'; render();
+  setTimeout(() => {
+    if (failOnce) { failOnce = false; S.dock = 'failed'; render(); return; }
+    S.dock = 'sent'; render();
+    const row = document.querySelector(`.qitem[data-id="${x.id}"]`);
+    row?.classList.add('is-done');
+    setTimeout(() => {
+      row?.classList.add('is-leaving');
+      setTimeout(() => {
+        const i = S.items.indexOf(x);
+        last = { x, i };
+        S.items.splice(i, 1);
+        S.open = (S.items[i] || S.items[0] || {}).id; S.dock = 'ready'; S.note = '';
+        render();
+        const next = S.items.find(y => y.id === S.open);
+        toast(next ? `${x.dock.toast} Next: ${next.title}` : `${x.dock.toast} That was the last one.`, true);
+        document.getElementById('ttl')?.focus();
+      }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dur-slow')) || 1);
+    }, 700);
+  }, 700);
+}
+document.addEventListener('click', e => {
+  const q = e.target.closest('.qitem[data-id]'), g = e.target.closest('[data-go]'), a = e.target.closest('[data-act]');
+  if (q) { e.preventDefault(); S.open = q.dataset.id; S.dock = 'ready'; S.note = ''; render(); document.getElementById('ttl')?.focus(); if (matchMedia('(max-width: 1023px)').matches) scrollTo({ top: 0 }); return; }
+  if (g) { go(Number(g.dataset.go)); return; }
+  if (!a) return;
+  const act = a.dataset.act;
+  if (act === 'primary' || act === 'secondary') decide(act);
+  if (act === 'undo' || act === 'toast-undo') { if (last) { S.items.splice(last.i, 0, last.x); S.open = last.x.id; last = null; } S.dock = 'ready'; render(); document.getElementById('toasts').innerHTML = ''; }
+  if (act === 'retry') { S.view = 'items'; render(); }
+});
+document.addEventListener('keydown', e => {
+  const typing = ['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName);
+  if (typing && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); decide('primary'); return; }
+  if (typing || S.view !== 'items' || !S.items.length || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'j') go(1); if (e.key === 'k') go(-1);
+});
+
+render();
+if (P.has('toast')) toast("Approved the look of Replay. Next: Should hidden clips stay out of Throwbacks too?", true);
+
+// Mockup state switcher
+const link = (k, v, l) => { const q = new URLSearchParams(P); q.delete('shot'); v === null ? q.delete(k) : q.set(k, v); return `<a href="?${q}">${l}</a>`; };
+document.getElementById('mock').innerHTML = link('theme', theme === 'dark' ? 'light' : 'dark', theme === 'dark' ? 'Light' : 'Dark')
+  + link('state', null, 'Items') + link('state', 'zero', 'Inbox zero') + link('state', 'loading', 'Loading') + link('state', 'error', "Didn't load")
+  + link('fail', '1', 'Make the next send fail');
+</script>
+</body>
+</html>

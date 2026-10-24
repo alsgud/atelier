@@ -177,7 +177,7 @@ textarea.input { min-height: 64px; display: block; }
 .qitem-title { font-size: var(--text-base); line-height: var(--leading-base); font-weight: var(--weight-medium); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .qitem-meta { grid-column: 2; margin-top: 2px; font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
 .qitem-meta .sep { color: var(--text-3); padding: 0 2px; }
-.qitem-side { grid-row: 1 / span 2; grid-column: 3; display: grid; justify-items: end; gap: var(--space-1); padding-top: 6px; }
+.qitem-side { grid-row: 1; grid-column: 3; display: flex; align-items: center; gap: var(--space-2); height: var(--leading-base); }
 .qitem-age { font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* Decided: the row confirms for a moment, then collapses out (motion: --dur-slow). */
 .qitem.is-done { background: var(--done-soft); }
@@ -245,6 +245,14 @@ textarea.input { min-height: 64px; display: block; }
 .frame-cap span { color: var(--text-3); display: inline-flex; align-items: center; gap: var(--space-1); }
 .frame:is(:hover, .is-hover) .frame-cap span { color: var(--text-2); }
 .frame.is-phone { --ratio: 390 / 844; }
+/* Hero layout: the first picture large (the work shown as itself), the rest in a strip below.
+   Phone screenshots in the strip keep the strip's ratio and sit whole on the sunken surface. */
+.frames.is-hero { --cols: 3; }
+.frames.is-hero > :first-child { grid-column: 1 / -1; }
+.frames.is-hero > .frame.is-phone { --ratio: 16 / 10; }
+.frames.is-hero > .frame.is-phone img { object-fit: contain; object-position: center; padding: var(--space-2) 0; }
+.frame-more .frame-img { display: grid; place-items: center; align-content: center; gap: var(--space-1); color: var(--text-2); font-size: var(--text-sm); font-weight: var(--weight-medium); box-shadow: none; }
+.frame-more .frame-img b { font-size: var(--text-lg); line-height: var(--leading-lg); color: var(--text); font-weight: var(--weight-semibold); }
 .frame.is-loading .frame-img { background: none; }
 .frame.is-loading .frame-img::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--skeleton) 0%, var(--skeleton-shine) 50%, var(--skeleton) 100%) 0 0 / 200% 100%; animation: shine 1400ms linear infinite; }
 @media (prefers-reduced-motion: reduce) { .frame.is-loading .frame-img::before { animation: none; } }
@@ -295,3 +303,67 @@ textarea.input { min-height: 64px; display: block; }
 .ledger-row .what { color: var(--text); }
 .ledger-row .meta { grid-column: 2; font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
 .ledger-row .qitem-age { padding-top: 2px; }
+
+/* ── App shell and Inbox layout ───────────────────────────────────── */
+/* Desktop ≥ 1280: sidebar | app panel (focus | queue). Tablet 768–1279: top bar, panel full width,
+   queue beside the focus from 1024, below it under 1024. Phone < 768: top bar, one column, tab bar. */
+.shell { min-height: 100vh; display: grid; grid-template-columns: var(--size-sidebar) minmax(0, 1fr); }
+.shell-side { position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.shell-top, .shell-tabs { display: none; }
+.shell-main { margin: var(--space-2) var(--space-2) var(--space-2) 0; min-height: calc(100vh - 2 * var(--space-2)); background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); display: flex; flex-direction: column; }
+.page-head { position: sticky; top: 0; z-index: 5; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; align-items: center; gap: var(--space-3); min-height: var(--size-topbar); padding: 0 var(--space-6); border-bottom: var(--border-width) solid var(--border); }
+.page-head h1 { font-size: var(--text-base); line-height: var(--leading-base); font-weight: var(--weight-semibold); }
+.page-head .summary { color: var(--text-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.page-head .summary .is-needs { color: var(--needs); font-weight: var(--weight-medium); }
+.page-head .pager { margin-left: auto; }
+.inbox { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) var(--size-queue); min-height: 0; }
+.focus { display: flex; flex-direction: column; gap: var(--space-6); width: 100%; max-width: calc(var(--size-focus-max) + 2 * var(--space-12)); margin: 0 auto; padding: var(--space-10) var(--space-12) var(--space-6); }
+.focus-head { display: grid; gap: var(--space-3); }
+.focus-head .title-display:focus { outline: none; }
+.focus-body { display: grid; gap: var(--space-5); }
+.focus .dock { position: sticky; bottom: var(--space-5); z-index: 2; }
+.queue { border-left: var(--border-width) solid var(--border); padding: var(--space-5) var(--space-2) var(--space-8); display: grid; align-content: start; gap: var(--space-6);
+  position: sticky; top: var(--size-topbar); align-self: start; max-height: calc(100vh - var(--size-topbar) - 2 * var(--space-2)); overflow-y: auto; overscroll-behavior: contain; }
+.queue-section-title { padding: 0 var(--space-3); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--weight-semibold); }
+.zero { display: grid; gap: var(--space-10); }
+.zero-working { display: grid; gap: var(--space-2); margin: 0 calc(-1 * var(--space-3)); }
+
+@media (max-width: 1279px) {
+  .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .shell-side { display: none; }
+  .shell-top { display: flex; position: sticky; top: 0; z-index: 10; }
+  .shell-main { margin: 0; border: 0; border-radius: 0; box-shadow: none; min-height: 0; }
+  .page-head { position: static; border-radius: 0; }
+  .queue { top: var(--size-topbar); max-height: calc(100vh - var(--size-topbar)); }
+  .inbox { grid-template-columns: minmax(0, 1fr) 300px; }
+  .focus { padding: var(--space-8) var(--space-8) var(--space-6); }
+}
+@media (max-width: 1023px) {
+  .inbox { grid-template-columns: minmax(0, 1fr); }
+  .queue { position: static; max-height: none; overflow: visible; border-left: 0; border-top: var(--border-width) solid var(--border); padding: var(--space-6) var(--space-5) var(--space-10); }
+}
+@media (max-width: 767px) {
+  .shell { grid-template-rows: auto 1fr auto; }
+  .shell-top { padding: 0 var(--space-4); gap: var(--space-3); }
+  .shell-top .tabs { display: none; }
+  .shell-tabs { display: grid; position: sticky; bottom: 0; z-index: 10; }
+  .page-head { padding: 0 var(--space-2) 0 var(--space-4); }
+  .page-head .pager .hint { display: none; }
+  .focus { padding: var(--space-6) var(--space-4) var(--space-4); gap: var(--space-5); }
+  .title-display { font-size: var(--text-xl-phone); line-height: var(--leading-xl-phone); }
+  .empty-title { font-size: var(--text-xl); line-height: var(--leading-xl); }
+  .frames { --cols: 2; gap: var(--space-3); }
+  .frames.is-hero { --cols: 2; }
+  .frames.is-hero > .frame-more { display: none; }
+  .focus .dock { bottom: var(--space-2); padding: var(--space-2); }
+  .dock .btn { height: var(--size-control-lg); flex: 1; }
+  .dock .btn-ghost { flex: 0 0 auto; }
+  .dock textarea.input { min-height: var(--size-control-lg); }
+  .dock-hint { display: none; }
+  .queue { padding: var(--space-5) var(--space-2) var(--space-8); }
+  .qitem, .agent, .ledger-row { min-height: var(--size-control-lg); }
+  .facts { grid-template-columns: 1fr; gap: var(--space-1); }
+  .facts dd + dt { margin-top: var(--space-2); }
+}
+/* Full-page screenshots (?shot): bars that stick would land mid-image, so they sit in flow. */
+.is-full .shell-top, .is-full .shell-tabs, .is-full .focus .dock, .is-full .page-head, .is-full .queue { position: relative; top: auto; bottom: auto; }
