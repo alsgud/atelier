@@ -75,15 +75,39 @@
   --focus-width: 2px;
   --focus-offset: 2px;
 
-  /* ── Motion ────────────────────────────────────────────────────── */
-  --dur-instant: 80ms;   /* press */
-  --dur-fast: 120ms;     /* hover, colour changes */
-  --dur-base: 200ms;     /* enter: toast, disclosure, next item */
-  --dur-slow: 320ms;     /* leave: a decided item collapses out of the queue */
+  /* ── Motion (D3; see DESIGN.md › Motion) ─────────────────────────
+     Only transform and opacity animate. Durations are named for what they do; easings for their purpose.
+     The three feel variants (design/feel/) pick from these; none invents its own numbers. */
+  --dur-instant: 80ms;   /* press: the control answers your finger */
+  --dur-fast: 120ms;     /* hover, colour changes, a tick appearing */
+  --dur-base: 200ms;     /* enter: toast, disclosure, the next item's first block */
+  --dur-slow: 320ms;     /* leave or move: a decided item goes, rows close the gap */
+  --dur-hold: 560ms;     /* the decision is shown done, in place, before anything moves */
+  --dur-calm: 640ms;     /* the one slow moment: inbox zero settling in */
   --dur-pulse: 2400ms;   /* the live dot of a working agent */
-  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-in-out: cubic-bezier(0.6, 0, 0.3, 1);
+  --dur-shimmer: 1800ms; /* a working agent's progress sheen (one pass, then rest) */
+  --stagger: 40ms;       /* between the blocks of an arriving item: eyebrow, title, body */
+  --stagger-max: 160ms;  /* never more than this from first block to last */
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);        /* D2 name, kept: = --ease-enter's softer twin */
+  --ease-in-out: cubic-bezier(0.6, 0, 0.3, 1);       /* D2 name, kept: = --ease-move */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);       /* arrive: fast start, long quiet landing */
+  --ease-exit: cubic-bezier(0.4, 0, 0.84, 0.44);     /* leave: gathers speed, gone before you look for it */
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);       /* from A to B on screen: rows closing a gap */
+  --ease-press: cubic-bezier(0.3, 0, 0.5, 1);        /* press down and release */
+  /* Springs as CSS linear() curves (damping ratio 0.79, ~2 % overshoot; 1.0 for glide). The duration is part of the spring. */
+  --spring-snappy: linear(0, 0.033, 0.115, 0.223, 0.341, 0.458, 0.568, 0.666, 0.75, 0.82, 0.877, 0.921, 0.955, 0.98, 0.997, 1.008, 1.015, 1.019, 1.02, 1.019, 1.018, 1.016, 1.013, 1.011, 1.009, 1.007, 1.005, 1.004, 1.003, 1.002, 1);
+  --spring-snappy-dur: 400ms;  /* stiffness 420, damping 32: presses, a row landing */
+  --spring-soft: linear(0, 0.034, 0.116, 0.225, 0.343, 0.461, 0.57, 0.667, 0.751, 0.82, 0.876, 0.92, 0.953, 0.977, 0.994, 1.005, 1.012, 1.016, 1.017, 1.017, 1.016, 1.014, 1.012, 1.01, 1.008, 1.006, 1.005, 1.003, 1.002, 1.002, 1);
+  --spring-soft-dur: 660ms;    /* stiffness 160, damping 20: something travelling far (the item to the ledger) */
+  --spring-glide: linear(0, 0.038, 0.125, 0.233, 0.345, 0.451, 0.547, 0.631, 0.702, 0.761, 0.81, 0.849, 0.881, 0.907, 0.927, 0.944, 0.956, 0.966, 0.974, 0.98, 0.985, 0.988, 0.991, 0.993, 0.995, 0.996, 0.997, 0.998, 0.998, 0.999, 1);
+  --spring-glide-dur: 700ms;   /* stiffness 170, critically damped: big surfaces, no bounce */
+
   --shift: 8px;          /* how far things travel when they enter or leave */
+  --shift-sm: 4px;       /* the quiet travel: Calm's enter, a tick settling */
+  --shift-lg: 24px;      /* the spatial travel: Flow's next item sliding in */
+  --press-scale: 0.97;   /* buttons and rows pressed */
+  --press-depth: 1px;    /* buttons pressed (Crisp adds a shadow change, not more travel) */
 
   /* ── Breakpoints (for reference; CSS media queries use the numbers) ─
      phone < 768 · tablet 768–1279 · desktop ≥ 1280 */
@@ -196,15 +220,29 @@
   }
 }
 
-/* Reduced motion: nothing travels or pulses; state changes are instant or a short fade. */
+/* Reduced motion: nothing travels, scales, pulses or shimmers. What changes, changes with a short cross-fade
+   (--dur-fast) so the eye still sees that something happened; the hold before a decided item goes stays,
+   shortened, because it is information (it worked), not decoration. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur-instant: 0ms;
     --dur-fast: 0ms;
-    --dur-base: 1ms;
-    --dur-slow: 1ms;
+    --dur-base: 120ms;
+    --dur-slow: 120ms;
+    --dur-hold: 400ms;
+    --dur-calm: 120ms;
     --dur-pulse: 0ms;
-    --shift: 0px;
+    --dur-shimmer: 0ms;
+    --stagger: 0ms;
+    --stagger-max: 0ms;
+    --spring-snappy-dur: 120ms; --spring-soft-dur: 120ms; --spring-glide-dur: 120ms;
+    --shift: 0px; --shift-sm: 0px; --shift-lg: 0px;
+    --press-scale: 1; --press-depth: 0px;
   }
 }
-[data-motion="reduce"] { --dur-instant: 0ms; --dur-fast: 0ms; --dur-base: 1ms; --dur-slow: 1ms; --dur-pulse: 0ms; --shift: 0px; }
+[data-motion="reduce"] {
+  --dur-instant: 0ms; --dur-fast: 0ms; --dur-base: 120ms; --dur-slow: 120ms; --dur-hold: 400ms; --dur-calm: 120ms;
+  --dur-pulse: 0ms; --dur-shimmer: 0ms; --stagger: 0ms; --stagger-max: 0ms;
+  --spring-snappy-dur: 120ms; --spring-soft-dur: 120ms; --spring-glide-dur: 120ms;
+  --shift: 0px; --shift-sm: 0px; --shift-lg: 0px; --press-scale: 1; --press-depth: 0px;
+}

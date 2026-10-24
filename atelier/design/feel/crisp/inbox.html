@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inbox · Atelier · Crisp</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../components.css">
+<link rel="stylesheet" href="../shared/feel.css">
+<style>
+/* ── CRISP: every action clicks. ───────────────────────────────────────────────────────────
+   Short and exact: hover answers in --dur-instant, a press has depth (the button sinks 1 px and its
+   shadow closes), ticks stamp in with a snappy spring, rows snap into place with a 2 % overshoot,
+   and numbers roll when they change (counts, progress figures). Live progress has a sheen that passes
+   once per update, so you see work happen without anything looping on its own. */
+
+/* Press: depth. The shadow closes as the button sinks; release snaps back. */
+.btn, .nav-item, .qitem, .agent, .ledger-row, .tab, .links a, .choice, .frame-img { transition-duration: var(--dur-instant); }
+.btn-primary:is(:active, .is-active):not(:disabled):not([aria-busy="true"]) { transform: translateY(var(--press-depth)); box-shadow: inset 0 1px 2px color-mix(in srgb, #000 30%, transparent); }
+.btn-secondary:is(:active, .is-active):not(:disabled):not([aria-busy="true"]) { transform: translateY(var(--press-depth)); box-shadow: inset 0 1px 2px color-mix(in srgb, var(--text) 12%, transparent); }
+.btn-secondary { box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent), 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent); }
+.qitem:active, .nav-item:active, .agent:active, .ledger-row:active { background: var(--surface-selected); }
+.frame:hover .frame-img { border-color: var(--text-3); box-shadow: var(--shadow-1); }
+.frame:active .frame-img { transform: translateY(var(--press-depth)); }
+/* Focus: crisp, no halo; the ring is the ring. */
+:focus-visible { box-shadow: none; }
+.input:focus-visible, .input:focus { box-shadow: 0 0 0 1px var(--focus-ring); }
+/* The current queue row carries a 2 px ink edge, so where you are reads at a glance. */
+.qitem[aria-current="true"] { box-shadow: inset 2px 0 0 var(--text); }
+
+/* Ticks stamp in. */
+.qitem.is-done .qitem-glyph .icon { animation: crisp-stamp var(--spring-snappy-dur) var(--spring-snappy) both; }
+.dock.is-sent .tick { animation: crisp-stamp var(--spring-snappy-dur) var(--spring-snappy) both; }
+.dock.is-sent .dock-msg > :not(.tick) { animation: crisp-in-y var(--dur-base) var(--ease-enter) both; }
+.empty-mark .tick { animation: crisp-stamp var(--spring-snappy-dur) var(--spring-snappy) 220ms both; }
+
+/* Working now: the bar steps to its value; a sheen passes once; the figure rolls up. */
+.agent-progress .track { position: relative; }
+.agent-progress .track i { transition: transform var(--dur-slow) var(--ease-enter); }
+.agent-progress .track::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 70%, transparent), transparent); transform: translateX(-100%); opacity: 0; }
+.agent.is-tick .track::after { animation: crisp-sheen var(--dur-shimmer) var(--ease-move); }
+.agent.is-tick .fig { animation: crisp-in-y var(--dur-base) var(--ease-enter); }
+.agent .dot-active.is-live::after { animation-duration: 1600ms; }
+[data-motion="reduce"] .agent .dot-active.is-live::after { animation: none; }
+
+/* Toast: snaps up; leaves fast. */
+.toast { animation: crisp-pop var(--dur-base) var(--ease-enter) both; }
+.toast.is-leaving { animation: crisp-out var(--dur-fast) var(--ease-exit) both; }
+.toast .tick .icon { animation: crisp-stamp var(--spring-snappy-dur) var(--spring-snappy) 60ms both; }
+/* Validation: a short, small shake. Two cycles, 4 px. */
+.input[aria-invalid="true"] { animation: crisp-shake 240ms var(--ease-move); }
+
+/* ── Choreography: fast out, fast in, no stagger; rows and counts snap. ── */
+::view-transition-group(ih), ::view-transition-group(ib), ::view-transition-group(page), ::view-transition-group(empty), ::view-transition-group(zero-work) { animation: none; }
+::view-transition-old(ih), ::view-transition-old(ib), ::view-transition-old(page) { animation: crisp-out var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(ih), ::view-transition-new(ib), ::view-transition-new(page) { animation: crisp-in-y var(--dur-base) var(--ease-enter) 90ms both; }
+html[data-vt="next"]::view-transition-new(ih), html[data-vt="next"]::view-transition-new(ib) { animation-name: crisp-in-x; }
+html[data-vt="prev"]::view-transition-new(ih), html[data-vt="prev"]::view-transition-new(ib) { animation-name: crisp-in-x-back; }
+::view-transition-group(dock) { animation: none; }
+::view-transition-old(dock) { animation: crisp-out var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(dock) { animation: crisp-fade var(--dur-fast) var(--ease-enter) 60ms both; }
+::view-transition-group(*.row) { animation-duration: var(--spring-snappy-dur); animation-timing-function: var(--spring-snappy); }
+::view-transition-old(*.row):only-child { animation: crisp-out-x var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(*.row):only-child { animation: crisp-in-y var(--dur-base) var(--ease-enter) 120ms both; }
+/* Counts roll: the old number goes up and out, the new comes up from below. */
+::view-transition-group(count-side), ::view-transition-group(count-tab), ::view-transition-group(count-badge) { animation: none; overflow: hidden; }
+::view-transition-old(count-side), ::view-transition-old(count-tab), ::view-transition-old(count-badge) { animation: crisp-roll-out var(--dur-base) var(--ease-move) both; }
+::view-transition-new(count-side), ::view-transition-new(count-tab), ::view-transition-new(count-badge) { animation: crisp-roll-in var(--dur-base) var(--ease-move) both; }
+::view-transition-new(empty) { animation: crisp-in-y var(--dur-slow) var(--ease-enter) 100ms both; }
+::view-transition-new(zero-work) { animation: crisp-in-y var(--dur-slow) var(--ease-enter) 180ms both; }
+
+@keyframes crisp-fade { from { opacity: 0; } }
+@keyframes crisp-out { to { opacity: 0; } }
+@keyframes crisp-in-y { from { opacity: 0; transform: translateY(var(--shift)); } }
+@keyframes crisp-in-x { from { opacity: 0; transform: translateX(var(--shift)); } }
+@keyframes crisp-in-x-back { from { opacity: 0; transform: translateX(calc(-1 * var(--shift))); } }
+@keyframes crisp-out-x { to { opacity: 0; transform: translateX(var(--shift)); } }
+@keyframes crisp-pop { from { opacity: 0; transform: translateY(var(--shift-sm)) scale(0.97); } }
+@keyframes crisp-stamp { from { opacity: 0; transform: scale(0.5); } }
+@keyframes crisp-sheen { 0% { opacity: 1; transform: translateX(-100%); } 100% { opacity: 1; transform: translateX(100%); } }
+@keyframes crisp-shake { 25% { transform: translateX(calc(-1 * var(--shift-sm))); } 50% { transform: translateX(var(--shift-sm)); } 75% { transform: translateX(calc(-0.5 * var(--shift-sm))); } }
+@keyframes crisp-roll-out { to { opacity: 0; transform: translateY(-60%); } }
+@keyframes crisp-roll-in { from { opacity: 0; transform: translateY(60%); } }
+</style>
+</head>
+<body>
+<a class="btn btn-primary skip" href="#ttl">Skip to the decision</a>
+<div class="shell" id="shell">
+  <aside class="sidebar shell-side" id="side" aria-label="Atelier"></aside>
+  <header class="topbar shell-top" id="top"></header>
+  <main class="shell-main" id="main"></main>
+  <nav class="tabbar shell-tabs" id="tabs" aria-label="Main"></nav>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="mock" id="mock"></div>
+<script>window.FEEL = { name: 'crisp', morph: false, countNames: true };</script>
+<script src="../../icons.js"></script>
+<script src="../shared/inbox.js"></script>
+</body>
+</html>

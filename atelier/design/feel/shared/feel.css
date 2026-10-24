@@ -1,0 +1,127 @@
+/* D3 finish shared by all three feels (Calm, Flow, Crisp). Built only from tokens.css.
+   Layout is D2's; this file refines the details D2 left rough, and sets up the view-transition stage.
+   Each feel's own inbox.html adds its motion and its press, hover and focus character on top. */
+
+/* ── Icon weight ─────────────────────────────────────────────────────
+   1.75 on the 24 grid = 1.17 px at 16 px, the stem weight of 14/500 text beside it (D2's 1.6 read thin). */
+symbol { stroke-width: 1.75; }
+.tabbar symbol, .tabbar .icon { stroke-width: 1.6; }
+
+/* ── Micro-typography ────────────────────────────────────────────── */
+body { text-rendering: optimizeLegibility; font-kerning: normal; }
+.title-display, .empty-title { font-feature-settings: "kern", "liga", "clig"; font-optical-sizing: auto; }
+/* Optical margin: a serif at 30 px carries ~1 px of side bearing; pull it back so the title's stem lines up with the eyebrow. */
+.title-display { margin-left: -0.03em; }
+.empty-title { margin-left: -0.035em; }
+.lede, .quote, .facts dd { text-wrap: pretty; hanging-punctuation: first; }
+.qitem-title { text-wrap: pretty; }
+.eyebrow, .page-head .summary, .qitem-age, .pager .of, .agent-progress, .meter-head b { font-variant-numeric: tabular-nums; }
+.eyebrow { letter-spacing: 0.005em; }
+.queue-head { letter-spacing: 0.01em; }
+.page-head h1 { letter-spacing: -0.005em; }
+
+/* Queue glyph: centre the 28 px tile on the title's first line (20 px), not on the row top. */
+.qitem-glyph { margin-top: -4px; }
+.qitem-glyph .icon { width: 15px; height: 15px; }
+/* The kind glyph in the eyebrow sits on the text's x-height, not its line box. */
+.eyebrow .kind .icon { position: relative; top: -0.5px; }
+/* Buttons: icon and text share an optical centre; the label's caps sit 0.5 px low in Segoe at 14 px. */
+.btn .lbl { position: relative; top: -0.5px; }
+
+/* ── Buttons: a little more made ─────────────────────────────────── */
+.btn-primary { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-on-ink) 14%, transparent), 0 1px 2px color-mix(in srgb, var(--ink) 24%, transparent); }
+.btn-secondary { box-shadow: 0 1px 1px color-mix(in srgb, var(--text) 5%, transparent); }
+.btn { transition: background-color var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), transform var(--dur-instant) var(--ease-press), box-shadow var(--dur-fast); }
+
+/* ── Focus: the ring plus a soft halo, so it reads on photos and on ink buttons alike ── */
+:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); box-shadow: 0 0 0 calc(var(--focus-offset) + var(--focus-width) + 3px) color-mix(in srgb, var(--focus-ring) 16%, transparent); }
+.input:focus-visible, .input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent); }
+.frame:focus-visible { box-shadow: none; }
+
+/* ── Preview frames: the work, framed like a print ─────────────────
+   The image sits inside a 1 px inner hairline (screenshots with white or black edges no longer bleed into
+   the surface), the inner radius is the outer minus the border (concentric corners), and the caption's
+   "Open" only strengthens on hover. */
+.frame-img { border-radius: var(--radius-md); }
+.frame-img img { border-radius: calc(var(--radius-md) - var(--border-width)); }
+.frame-img::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 7%, transparent); pointer-events: none; }
+.frame-cap { padding: 0 var(--space-0-5); }
+.frame-cap span { opacity: .8; transition: opacity var(--dur-fast), color var(--dur-fast); }
+.frame:hover .frame-cap span { opacity: 1; }
+.frame-img .play { backdrop-filter: blur(6px); }
+
+/* ── Working now: the bar fills with transform, never width (frame budget) ── */
+.agent-progress .track i { width: 100%; transform: scaleX(var(--v, 0)); transform-origin: left center; border-radius: 0; transition: transform var(--dur-slow) var(--ease-move); }
+.agent-progress .fig { transition: color var(--dur-fast); }
+.agent .when { white-space: nowrap; }
+
+/* ── Decided today, at the foot of the queue: where a decision goes ── */
+.queue-group.is-ledger .ledger-row { padding-block: var(--space-1-5); }
+.queue-group.is-ledger .ledger-row .what { font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.queue-group.is-ledger .ledger-row .meta { display: none; }
+.queue-group.is-ledger .ledger-row .icon { margin-top: 1px; }
+.ledger-more { display: block; padding: var(--space-1) var(--space-3) 0 calc(var(--space-3) + var(--size-glyph-box) + var(--space-3)); font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-3); }
+.ledger-more:hover { color: var(--text-2); }
+.ledger-row .tick, .ledger-row > .icon { flex: none; }
+
+/* ── Toast: the Undo window, made visible ────────────────────────── */
+.toast { position: relative; overflow: hidden; }
+.toast .tick { display: grid; place-items: center; color: var(--toast-done); }
+.toast-action { display: inline-flex; align-items: center; gap: var(--space-1-5); text-decoration: none; }
+.toast-action .kbd { background: transparent; border-color: color-mix(in srgb, var(--text-inverse) 30%, transparent); color: inherit; opacity: .7; }
+.toast-life { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--text-inverse) 28%, transparent); transform-origin: left; animation: toast-life 6000ms linear forwards; }
+@keyframes toast-life { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+[data-motion="reduce"] .toast-life { animation: none; opacity: 0; }
+@media (max-width: 767px) { .toast-action .kbd { display: none; } }
+
+/* ── The dock never moves ────────────────────────────────────────────
+   D2 put the dock right under short items, so it jumped up and down from one item to the next and the
+   hand had to find it again. Now the focus column is at least one screen tall and the dock sits at its
+   foot: the same place for every item, sticky when the item is long. */
+.focus { min-height: calc(100dvh - var(--size-topbar) - 2 * var(--space-2) - 2 * var(--border-width)); }
+.focus > .dock { margin-top: auto; }
+@media (max-width: 1279px) { .focus { min-height: calc(100dvh - 2 * var(--size-topbar)); } }
+@media (max-width: 767px) { .focus { min-height: calc(100dvh - 2 * var(--size-topbar) - var(--size-tabbar) - env(safe-area-inset-bottom)); } }
+
+/* ── Dock: the sent line ─────────────────────────────────────────── */
+.dock-msg .tick { display: grid; place-items: center; width: 20px; height: 20px; border-radius: var(--radius-full); background: var(--done); color: var(--done-soft); }
+.dock-msg .tick .icon { width: 14px; height: 14px; stroke-width: 2.4; }
+.dock.is-sent .dock-row { min-height: var(--size-control); }
+@media (max-width: 767px) { .dock.is-sent .dock-row { min-height: var(--size-control-lg); } }
+
+/* ── Inbox zero: the moment of calm ────────────────────────────────
+   More air, the line sits a third of the way down the panel, the mark is a filled green tick. */
+.zero { min-height: calc(100vh - var(--size-topbar) - 2 * var(--space-2) - var(--space-10) - var(--space-6)); align-content: start; padding-top: clamp(var(--space-8), 14vh, 160px); gap: var(--space-12); }
+.empty { gap: var(--space-4); }
+.empty-mark { gap: var(--space-2-5); }
+.empty-mark .tick { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-full); background: var(--done-soft); color: var(--done); }
+.empty-mark .tick .icon { width: 14px; height: 14px; stroke-width: 2.4; }
+.empty p { max-width: 44ch; }
+.zero-group { padding-top: var(--space-6); border-top: var(--border-width) solid var(--border); }
+@media (max-width: 767px) { .zero { padding-top: var(--space-6); min-height: 0; gap: var(--space-10); } }
+
+/* ── Office (only here to show the tab switch) ───────────────────── */
+.office { display: grid; gap: var(--space-8); }
+.office-list { display: grid; gap: var(--space-2); max-width: 560px; margin: 0 calc(-1 * var(--space-3)); }
+.office-note { font-size: var(--text-sm); line-height: var(--leading-sm); max-width: 52ch; }
+
+/* ── View-transition stage ─────────────────────────────────────────
+   The page itself never animates as a whole (chrome swaps instantly; counts are words, not motion).
+   Named parts animate, and each feel decides how. With reduced motion nothing is named, and the page
+   cross-fades once in --dur-base (120 ms there). */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-group(*) { animation-duration: var(--dur-slow); animation-timing-function: var(--ease-move); }
+[data-motion="reduce"]::view-transition-old(root) { animation: vt-out var(--dur-base) linear both; }
+[data-motion="reduce"]::view-transition-new(root) { animation: vt-in var(--dur-base) linear both; }
+/* The dock never moves: same place, its content cross-fades. */
+::view-transition-group(dock) { animation-duration: var(--dur-base); animation-timing-function: var(--ease-out); z-index: 3; }
+::view-transition-group(head) { animation: none; }
+::view-transition-old(head) { animation: none; display: none; }
+::view-transition-new(head) { animation: none; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; } }
+
+/* Mockup switcher (not product). */
+.mock { position: fixed; right: 12px; top: 12px; z-index: 99; display: flex; gap: 4px; flex-wrap: wrap; max-width: 460px; justify-content: flex-end; }
+.mock a { font: 500 11px/1 var(--font-sans); padding: 6px 8px; border-radius: 4px; background: var(--surface-inverse); color: var(--text-inverse); opacity: .85; }
+.is-shot .mock { display: none; }
