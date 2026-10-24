@@ -59,7 +59,21 @@ const STATUS_WORD = { 'needs-you': 'Needs you', running: 'Working', queued: 'Que
 async function get(path) {
   const r = await fetch(path, { credentials: 'same-origin' });
   if (r.status === 401) { renderLogin(); throw new Error('signed out'); }
-  return r.json();
+  const j = await r.json();
+  if (j?.stale) refreshSoon();
+  return j;
+}
+
+// The server answered from an old build and is rebuilding it: ask again shortly, not on the next 15 s tick.
+function refreshSoon() {
+  if (refreshSoon.timer || refreshSoon.tries >= 5) return; // a few tries per 15 s refresh, in case a rebuild keeps failing
+  refreshSoon.tries = (refreshSoon.tries || 0) + 1;
+  refreshSoon.timer = setTimeout(() => {
+    refreshSoon.timer = null;
+    if (document.hidden || !state) return;
+    if (busy()) return refreshSoon(); // don't redraw under the owner; check again later
+    refresh().catch(() => {});
+  }, 1500);
 }
 
 async function act(body, done = 'Done') {
@@ -767,9 +781,10 @@ function busy() {
 
 // Refresh every 15 seconds while visible; never while the owner is busy.
 setInterval(() => {
+  refreshSoon.tries = 0;
   if (document.hidden || !state || busy()) return;
   refresh().catch(() => {});
 }, 15000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && state) refresh().catch(() => {}); });
+document.addEventListener('visibilitychange', () => { refreshSoon.tries = 0; if (!document.hidden && state) refresh().catch(() => {}); });
 
 refresh().catch(() => {});
