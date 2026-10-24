@@ -3,6 +3,7 @@
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
 ## Waiting on the owner
+- Pick a feel: Calm, Flow or Crisp (57cv APPROVED by reviewer round 2, branch atelier/57cv, $18.75; lead checked the contact sheets) — asked 2026-10-25 — lead and designer recommend Flow. Then D4 (other pages) bases on atelier/57cv.
 - Price: redesign now estimated ~$150 instead of ~$120 (more design rounds for feel and motion) — told 2026-10-25
 - Merge the speed hotfix: 6dug APPROVED (reviewer round 3: tab switch max 27 ms, warm API 4 ms, actions 10/10). `atelier land` refuses under `branch` autonomy, so the owner merges `atelier/6dug` and restarts the dashboard process (the service restarts it within 5 min) — sent the commands 2026-10-25
 - Charter: draft in atelier/CHARTER-draft.md; owner to adopt in the dashboard — since 2026-10-24
