@@ -3,6 +3,8 @@
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
 ## Waiting on the owner
+- D2 Inbox (68h6, reviewer APPROVE round 4, on branch atelier/68h6): owner OK on the look before D3 spends ~$15 — asked 2026-10-24 — lead recommends yes
+- Mobbin paid plan — asked 2026-10-24 — lead recommends no (public pages are enough)
 - Charter: draft in atelier/CHARTER-draft.md (now includes "production grade"); owner to correct and adopt in the dashboard — since 2026-10-24
 - Design price: design line ~$35 instead of ~$25, total held at ~$120 — told owner 2026-10-24
 - Optional: make "leads keep the specialist's full process in briefs" the Atelier default (roles/lead.md, owner's code) — offered 2026-10-24
