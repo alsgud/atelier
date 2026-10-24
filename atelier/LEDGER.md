@@ -11,6 +11,8 @@
 - None.
 
 ## Since last update
+- 68h6: lead looked at the shots (big step up, meets R-1 by eye). Reviewer round 2: one must-fix (toast covers next item's dock and phone tab bar). Extended +2 it, +$4 (cap $20, $13.83 spent).
+- To bring the owner with the D2 shots: Mobbin needs a paid plan; designer used public product pages; lead recommends staying free.
 - Owner picked direction B's feel, found it sloppy: overrule #1, ruling R-1, AC-17.
 - D2 68h6 running: references (Mobbin), tokens, components, Inbox in B, two critique rounds. Check: atelier verify design.
 - D1 tkvt stopped (lead's mis-quoted check); its work is on atelier/tkvt and D2 merges it.
