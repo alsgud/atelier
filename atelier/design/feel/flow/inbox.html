@@ -42,7 +42,8 @@
 /* ── Choreography ── */
 /* Titles fly (the one place sizes morph: the group animates its box, the images only move and fade). */
 /* Critically damped: a 1.7 % overshoot on an 800 px flight landed the title 10 px into the row below. */
-::view-transition-group(*.title) { animation-duration: var(--spring-glide-dur); animation-timing-function: var(--spring-glide); z-index: 5; }
+/* It waits --dur-fast: the old body is gone before a title crosses where it was (round 10: at 60 ms the flying title sat on the body). */
+::view-transition-group(*.title) { animation-duration: var(--spring-glide-dur); animation-timing-function: var(--spring-glide); animation-delay: var(--dur-fast); z-index: 5; }
 /* The snapshots keep their own size, pinned top-left: stretched to the morphing box, the landing title
    read larger and sat over the row below it until the last frame. The old title leaves in --dur-fast and the new one fades in from 160 ms, so the flight is
    faint while it crosses other rows and solid only as it lands. */
@@ -58,6 +59,8 @@
 ::view-transition-new(ib) { animation: flow-arrive var(--spring-glide-dur) var(--spring-glide) calc(100ms + 2 * var(--stagger)) both; }
 html[data-dir="back"]::view-transition-old(ih), html[data-dir="back"]::view-transition-old(ib), html[data-dir="back"]::view-transition-old(page) { animation-name: flow-leave-back; }
 html[data-dir="back"]::view-transition-new(ih), html[data-dir="back"]::view-transition-new(ib), html[data-dir="back"]::view-transition-new(page) { animation-name: flow-arrive-back; }
+/* Undo: the title leads home; the body unfolds under it once it has nearly landed, so the flight never crosses the frames (round 10). */
+html[data-vt="undo"]::view-transition-new(ib) { animation-delay: 380ms; }
 /* Deciding: the item is lifted away (down, toward Decided today), not swiped. */
 html[data-vt="decide"]::view-transition-old(ih), html[data-vt="decide"]::view-transition-old(ib), html[data-vt="zero"]::view-transition-old(ih), html[data-vt="zero"]::view-transition-old(ib) { animation-name: flow-drop; animation-duration: var(--dur-fast); }
 
@@ -66,8 +69,9 @@ html[data-vt="decide"]::view-transition-old(ih), html[data-vt="decide"]::view-tr
 ::view-transition-new(dock) { animation: flow-fade var(--dur-base) var(--ease-enter) 80ms both; }
 
 /* Queue rows: they are objects; the gap closes with a spring, new rows grow in. */
-::view-transition-group(*.row) { animation-duration: var(--spring-snappy-dur); animation-timing-function: var(--spring-snappy); animation-delay: 80ms; }
-::view-transition-old(*.row):only-child { animation: flow-shrink var(--dur-base) var(--ease-exit) both; }
+/* The leaving row shrinks away in --dur-fast; only then do the rows below spring up into its place (round 10). */
+::view-transition-group(*.row) { animation-duration: var(--spring-snappy-dur); animation-timing-function: var(--spring-snappy); animation-delay: var(--dur-fast); }
+::view-transition-old(*.row):only-child { animation: flow-shrink var(--dur-fast) var(--ease-exit) both; }
 ::view-transition-new(*.row):only-child { animation: flow-grow var(--spring-snappy-dur) var(--spring-snappy) 200ms both; }
 
 /* Inbox zero: the last title lands in the ledger, then the calm line rises a long way, slowly. */

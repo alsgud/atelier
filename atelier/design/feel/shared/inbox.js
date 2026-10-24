@@ -298,7 +298,7 @@ function nameFlying() {
     if (el) { el.style.viewTransitionName = n; el.style.viewTransitionClass = 'title'; }
   }
 }
-/* fly: ids whose title travels: the decided one (focus ↔ ledger) and the one being opened (row → focus). A title going
+/* fly: ids whose title travels: the decided one (focus ↔ ledger) and the one you open from its row (row → focus). A title going
    back to its row doesn't fly: it would trail its row across the others. Named in the old DOM in place, in the new one by the templates. */
 function transition(kind, update, dir = 0, fly = () => []) {
   const run = () => {
@@ -407,7 +407,7 @@ async function decide(which) {
     S.open = (S.items[i] || S.items[0] || {}).id; S.dock = 'ready'; S.note = ''; S.which = '';
     next = S.items.find(y => y.id === S.open);
     scrollTo({ top: 0 });   // the next item opens at its top, at every width
-  }, 1, () => { const i = S.items.indexOf(x), rest = S.items.filter(y => y !== x); return [x.id, (rest[i] || rest[0] || {}).id]; });
+  }, 1, () => [x.id]);   // only the decided title flies; the next item arrives in place (its title leaving its row crossed the decided row)
   deciding = false;
   toast(next ? `${r.toast} Next: ${next.title}` : `${r.toast} That was the last one.`, true);
   focusTitle();
