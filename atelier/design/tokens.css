@@ -1,6 +1,8 @@
 /* Atelier design tokens (direction B, "one at a time").
    The only place raw values live. Components and screens use these roles, never hex or px of their own
-   (layout widths in components.css are the one documented exception).
+   Documented exceptions in components.css: layout widths, and a few fixed sizes too small for the scales
+   (10-12 px badge, tab-bar and kbd labels; 28-32 px compact nav rows, play pill and toast action; the dock's 160 px
+   note cap). They live only in components.css; screens never add their own.
    Rules: colour means something. Lilac = active / working, red = needs you now or wrong, green = done.
    Everything else is a warm neutral. Actions are ink (neutral), not coloured, so colour stays a signal.
    Fonts are the system's own; nothing loads from the internet. */

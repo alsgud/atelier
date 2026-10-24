@@ -52,21 +52,22 @@ const ITEMS = [
       <details class="details"><summary>${I('chevron-down')}Technical details</summary><div class="details-body">
         <span>Criterion <code>AC-34</code>: H.264, HEVC and AV1 in MP4 or MKV play with no paid codec extension.</span>
         <span>The playback spike passed with <code>hwdec=no</code>, but the app spec lets HEVC fall back to the Windows decoder.</span></div></details>`,
-    dock: { note: 'Add a note for the lead (optional)', primary: 'Yes, fix it', busy: 'Sending…', secondary: "No, it's fine", done: 'Sent. The lead plans the fix.', toast: 'Asked the team to fix it.' } },
+    dock: { note: 'Add a note for the lead (optional)', primary: 'Yes, fix it', busy: 'Sending…', secondary: "No, it's fine", done: 'Sent. The lead plans the fix.', toast: 'Asked the team to fix it.', log: 'Asked the team to fix the paid add-on problem',
+      alt: { done: "Sent. The lead leaves it as it is.", toast: 'Told the lead it can stay.', log: 'Kept the HEVC fallback as it is' } } },
 
   { id: 'budget', needs: true, glyph: 'budget', kind: 'Budget', project: 'replay', age: '1h', ageLong: '1 h ago',
     title: "Replay has used today's $40, so new work is paused",
     short: 'budget',
     body: () => `
       <p class="lede">The two tasks already running finish their current step. Nothing new starts until you raise the limit, or until midnight.</p>
-      <div class="meter" style="max-width:420px"><div class="meter-head"><span>Spent today</span><b>$40.00 of $40</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div></div>
+      <div class="meter" style="max-width:var(--measure)"><div class="meter-head"><span>Spent today</span><b>$40.00 of $40</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div></div>
       <dl class="facts is-money">
         <dt>Trim editor</dt><dd class="num">$18.40</dd>
         <dt>Thumbnail indexing</dt><dd class="num">$9.10</dd>
         <dt>Reviews</dt><dd class="num">$6.30</dd>
         <dt>The lead</dt><dd class="num">$6.20</dd>
       </dl>`,
-    dock: { primary: 'Raise today to $60', busy: 'Raising…', ghost: 'Budget settings', hint: 'Or do nothing: work resumes at midnight', done: 'Raised to $60. Work starts again.', toast: "Raised replay's limit to $60 for today." } },
+    dock: { primary: 'Raise today to $60', busy: 'Raising…', ghost: 'Budget settings', hint: 'Or do nothing: work resumes at midnight', done: 'Raised to $60. Work starts again.', toast: "Raised replay's limit to $60 for today.", log: "Raised replay's limit to $60 for today" } },
 
   { id: 'design', glyph: 'design', kind: 'Design to approve', project: 'replay', age: '2h', ageLong: '2 h ago',
     title: 'Approve the look of Replay',
@@ -80,7 +81,8 @@ const ITEMS = [
         <a href="#" class="frame frame-more" aria-label="See all 13 screens, opens in a new tab"><span class="frame-img"><b>+10</b>more screens</span><span class="frame-cap"><b>Everything else</b><span>Open ${I('external')}</span></span></a>
       </div>
       <div class="links"><a href="#">${I('external')}Open all 13 screens</a><a href="#">${I('log')}Read the design notes</a></div>`,
-    dock: { note: 'Your decision, in your own words', required: 'Say what you approve in a few words. It goes to the designer.', primary: 'Approve design', busy: 'Approving…', secondary: 'Skip this phase', done: 'Approved. The designer starts on the rest.', toast: 'Approved the look of Replay.' } },
+    dock: { note: 'Your decision, in your own words', required: 'Say what you approve in a few words. It goes to the designer.', primary: 'Approve design', busy: 'Approving…', secondary: 'Skip this phase', done: 'Approved. The designer starts on the rest.', toast: 'Approved the look of Replay.', log: 'Approved the look of Replay',
+      alt: { done: 'Skipped. The team builds from the brief.', toast: 'Skipped the design phase for Replay.', log: 'Skipped the design phase for Replay' } } },
 
   { id: 'question', glyph: 'question', kind: 'Question', project: 'replay', age: '2h', ageLong: '2 h ago',
     title: 'Should hidden clips stay out of Throwbacks too?',
@@ -91,7 +93,7 @@ const ITEMS = [
         <label class="choice"><input type="radio" name="ans"> Yes, keep them out</label>
         <label class="choice"><input type="radio" name="ans"> No, include them</label>
       </fieldset>`,
-    dock: { note: 'Or write your own answer', primary: 'Send answer', busy: 'Sending…', ghost: 'Open the task', done: 'Answered. The frontend carries on.', toast: 'Answered the frontend.' } },
+    dock: { note: 'Or write your own answer', primary: 'Send answer', busy: 'Sending…', ghost: 'Open the task', done: 'Answered. The frontend carries on.', toast: 'Answered the frontend.', log: 'Answered: hidden clips and Throwbacks' } },
 
   { id: 'proof', glyph: 'proof', kind: 'Your judgement', project: 'dodge', age: '3h', ageLong: '3 h ago',
     title: 'Play a round and say whether dodging feels fair',
@@ -104,7 +106,8 @@ const ITEMS = [
         ${frame('dodge-play-phone.png', 'On a phone', '', 'is-phone')}
       </div>
       <div class="links"><a href="#">${I('external')}Play it yourself</a><a href="#">${I('log')}Run log · 40 rounds</a></div>`,
-    dock: { note: "If you reject it, say what's wrong", rejectNeedsNote: true, primary: 'Accept', busy: 'Accepting…', secondary: 'Reject', done: 'Accepted. Marked as met.', toast: 'Accepted: dodging feels fair.' } },
+    dock: { note: "If you reject it, say what's wrong", rejectNeedsNote: true, primary: 'Accept', busy: 'Accepting…', secondary: 'Reject', done: 'Accepted. Marked as met.', toast: 'Accepted: dodging feels fair.', log: 'Accepted: dodging feels fair',
+      alt: { done: 'Rejected. The team fixes it and asks again.', toast: "Rejected: dodging doesn't feel fair yet.", log: "Rejected: dodging doesn't feel fair yet" } } },
 
   { id: 'outcome', glyph: 'outcome', kind: 'Outcome to approve', project: 'atelier-ui', age: '5h', ageLong: '5 h ago',
     title: 'Approve an outcome: it works well on your phone, not just your desk',
@@ -112,7 +115,8 @@ const ITEMS = [
     body: () => `
       <blockquote class="quote" style="margin:0">It works well on my phone, not just on my desk.<footer>Your words, from the brief</footer></blockquote>
       <p class="lede">The lead checks it like this: 360 px wide, no sideways scrolling, and every button big enough to tap.</p>`,
-    dock: { primary: 'Approve', busy: 'Approving…', secondary: 'Retire it', done: 'Approved. The lead adds it to the checks.', toast: 'Approved the outcome.' } },
+    dock: { primary: 'Approve', busy: 'Approving…', secondary: 'Retire it', done: 'Approved. The lead adds it to the checks.', toast: 'Approved the outcome.', log: 'Approved an outcome: works well on your phone',
+      alt: { done: 'Retired. The lead drops it from the checks.', toast: 'Retired the outcome.', log: 'Retired an outcome: works well on your phone' } } },
 
   { id: 'plan', glyph: 'plan', kind: 'Task plan', project: 'dodge', age: '1d', ageLong: 'yesterday',
     title: 'Start the last Dodge task: a full play-through and a build to share',
@@ -121,14 +125,17 @@ const ITEMS = [
       <p class="lede">The integration builder plays the game end to end, fixes what breaks and makes a build your friends can open. Up to 6 rounds of work, about $15.</p>
       <details class="details"><summary>${I('chevron-down')}What it will change</summary><div class="details-body">
         <span>Owns <code>src/main.ts</code>, <code>README.md</code> and the build config. Done when <code>npm run build</code> passes and a recorded play-through reaches the results screen.</span></div></details>`,
-    dock: { primary: 'Approve plan', busy: 'Approving…', ghost: 'Read the brief', done: 'Approved. The builder starts within a minute.', toast: 'Approved the plan.' } },
+    dock: { primary: 'Approve plan', busy: 'Approving…', ghost: 'Read the brief', done: 'Approved. The builder starts within a minute.', toast: 'Approved the plan.', log: 'Approved the last Dodge task' } },
 ];
 const WORKING = [
   ['Building the trim editor', 'replay · frontend · finishing its step', 'step 4 of 6', '62%'],
   ['Indexing clip thumbnails', 'replay · backend · 1 min ago', '1,240 of 1,800 clips', '69%'],
   ['Drawing the Inbox in direction B', 'atelier-ui · designer · just now', 'critique round 2 of 2', '80%'],
 ];
-const DECIDED = [['Approved the look of Dodge', 'dodge', '40m'], ['Asked the team to fix the paid add-on problem', 'replay', '1h'], ['Answered: keep hidden clips out of Throwbacks', 'replay', '2h']];
+/* Decided earlier today, before this queue. What you decide in the mockup is added on top. */
+const EARLIER = [['Approved the look of Dodge', 'dodge', '6h']];
+/* One figure for today's spend, everywhere on the screen. */
+const SPENT = '$52.60';
 
 function frame(file, cap, style = '', cls = '', play = '') {
   return `<a href="#" class="frame ${cls}" style="${style}" aria-label="${esc(cap)}, opens full size in a new tab">
@@ -142,8 +149,11 @@ const S = {
   items: ITEMS.slice(),
   open: P.get('open') || ITEMS[0].id,
   dock: P.get('dock') || 'ready',           // ready | sending | failed | sent | invalid
+  decided: [],                              // [what, project, age], newest first
 };
-if (S.view === 'zero') S.items = [];
+if (S.view === 'zero') { S.items = []; S.decided = ITEMS.map((x, i) => [x.dock.log, x.project, ['2m', '4m', '7m', '9m', '12m', '15m', '18m'][i]]); }
+const ledger = () => S.decided.concat(EARLIER);
+const budgetHit = () => S.items.some(x => x.id === 'budget');
 const needsN = () => S.items.filter(x => x.needs).length;
 
 /* ── Chrome: sidebar (desktop), top bar (tablet/phone), tab bar (phone) ── */
@@ -152,7 +162,7 @@ function chrome() {
   const loading = S.view === 'loading' || S.view === 'error';
   const count = n && !loading ? `<span class="count ${u ? 'is-needs' : ''}" aria-hidden="true">${n}</span>` : '';
   const inboxLabel = n && !loading ? `Inbox, ${n} waiting${u ? `, ${u} need you now` : ''}` : 'Inbox';
-  const proj = [['replay', true, 4], ['atelier-ui', true, 1], ['dodge', false, 2]];
+  const proj = [['replay', true], ['atelier-ui', true], ['dodge', false]].map(([p, on]) => [p, on, S.items.filter(x => x.project === p).length]);
   document.getElementById('side').innerHTML = `
     <span class="brand">${mark}Atelier</span>
     <nav class="nav" aria-label="Main">
@@ -166,13 +176,13 @@ function chrome() {
     </nav>
     <div class="sidebar-foot">
       <div class="meter"><div class="meter-head"><span>Claude plan</span><b>41%</b></div><div class="meter-track" role="img" aria-label="41% of the 5-hour window used"><i style="--value:41%"></i></div><span class="meter-foot">5-hour window · resets in 2 h 10 min</span></div>
-      <div class="meter"><div class="meter-head"><span>Spent today</span><b>${zero ? '$31.80' : '$52.60'}</b></div><span class="meter-foot">${zero ? 'Every project within its budget' : 'replay is at its $40 limit'}</span></div>
+      <div class="meter"><div class="meter-head"><span>Spent today</span><b>${SPENT}</b></div><span class="meter-foot">${budgetHit() ? 'replay is at its $40 limit' : 'Every project within its budget'}</span></div>
       <a class="nav-item" href="#" style="margin:0 calc(-1 * var(--space-2))">${I('settings')}Settings</a>
     </div>`;
   document.getElementById('top').innerHTML = `
     <span class="brand">${mark}Atelier</span>
     <nav class="tabs" aria-label="Main"><a class="tab" aria-current="page" href="#" aria-label="${inboxLabel}">Inbox ${count}</a><a class="tab" href="#">Office</a><a class="tab" href="#">Projects</a><a class="tab" href="#">Activity</a></nav>
-    <span class="topbar-status"><span>Plan <b>41%</b></span><span>Today <b>${zero ? '$31.80' : '$52.60'}</b></span></span>`;
+    <span class="topbar-status"><span>Plan <b>41%</b></span><span>Today <b>${SPENT}</b></span></span>`;
   document.getElementById('tabs').innerHTML = `
     <a aria-current="page" href="#" aria-label="${inboxLabel}">${I('inbox')}Inbox${count ? `<span class="badge-n ${u ? '' : 'is-quiet'}" aria-hidden="true">${n}</span>` : ''}</a>
     <a href="#">${I('office')}Office</a><a href="#">${I('projects')}Projects</a><a href="#">${I('activity')}Activity</a>`;
@@ -200,14 +210,15 @@ function queue() {
 }
 function dock(x) {
   const d = x.dock, st = S.dock;
-  if (st === 'sent') return `<div class="dock is-sent" role="status"><div class="dock-row"><span class="dock-msg is-done">${I('check')}${d.done}</span><span class="spacer"></span><button class="btn btn-ghost" data-act="undo">Undo</button></div></div>`;
+  if (st === 'sent') return `<div class="dock is-sent" role="status"><div class="dock-row"><span class="dock-msg is-done">${I('check')}${(S.which === 'secondary' && d.alt || d).done}</span></div></div>`;
   const sending = st === 'sending', failed = st === 'failed', invalid = st === 'invalid';
   const SAMPLE = { design: 'Go with it. Keep the orange for actions only.', question: 'Keep them out, same rule as the feed.', finding: 'Fix it now, before the feed is built.', proof: 'Feels fair. The glow fooled me once, but fine.' };
   const val = S.note || (sending || failed ? SAMPLE[x.id] || '' : '');
   const field = d.note ? `<textarea class="input" id="note" rows="1" aria-label="${esc(d.note)}" placeholder="${esc(d.note)}" ${sending ? 'disabled' : ''} ${invalid ? 'aria-invalid="true" aria-describedby="noteErr"' : ''}>${esc(val)}</textarea>` : '';
   const err = invalid ? `<span class="field-error" id="noteErr">${I('alert')}${esc(d.required || "Say what's wrong so the team can fix it.")}</span>` : '';
-  const primary = `<button class="btn btn-primary" data-act="primary" ${sending ? 'aria-busy="true"' : ''}>${sending ? d.busy : failed ? 'Try again' : d.primary}</button>`;
-  const second = d.secondary ? `<button class="btn btn-secondary" data-act="secondary" ${sending ? 'disabled' : ''}>${d.secondary}</button>` : '';
+  const alt = S.which === 'secondary';   // the busy label sits on the button you pressed
+  const primary = `<button class="btn btn-primary" data-act="primary" ${sending ? (alt ? 'disabled' : 'aria-busy="true"') : ''}>${sending && !alt ? d.busy : failed && !alt ? 'Try again' : d.primary}</button>`;
+  const second = d.secondary ? `<button class="btn btn-secondary" data-act="secondary" ${sending ? (alt ? 'aria-busy="true"' : 'disabled') : ''}>${sending && alt ? 'Sending…' : failed && alt ? 'Try again' : d.secondary}</button>` : '';
   const ghost = d.ghost ? `<a class="btn btn-ghost" href="#">${d.ghost}</a>` : '';
   const msg = failed ? `<span class="dock-msg is-error" role="alert">${I('alert')}Couldn't reach Atelier. Nothing was sent.</span>`
     : d.hint ? `<span class="dock-hint">${d.hint}</span>` : d.note ? `<span class="dock-hint"><span class="kbd">Ctrl</span><span class="kbd">↵</span> to send</span>` : '';
@@ -241,8 +252,7 @@ function render() {
     main.innerHTML = head() + `<div class="inbox"><section class="focus"><div class="zero">
       <div class="empty"><span class="empty-mark">${I('check')}All caught up</span><h2 class="empty-title" tabindex="-1" id="ttl">Nothing needs you.</h2><p>Three agents are working on their own. Anything that needs you will show up here.</p></div>
       <div class="queue-group"><div class="queue-head" style="padding:0"><span>Working now</span><span class="n">${WORKING.length}</span></div><div class="zero-working">${agents()}</div></div></div></section>
-      <aside class="queue" aria-label="Today"><div class="queue-group"><div class="queue-head"><span>You decided today</span><span class="n">${DECIDED.length}</span></div><div class="ledger">${DECIDED.map(([w, p, a]) => `<a href="#" class="ledger-row">${I('check')}<span class="what">${w}</span><span class="qitem-age">${a}</span><span class="meta">${p}</span></a>`).join('')}</div></div>
-      <div class="queue-group" style="padding:0 var(--space-3)"><div class="meter"><div class="meter-head"><span>Spent today</span><b>$31.80</b></div><div class="meter-track" role="img" aria-label="$31.80 of $120 across projects"><i style="--value:26%"></i></div><span class="meter-foot">of $120 across 3 projects</span></div></div></aside></div>`;
+      <aside class="queue" aria-label="Today"><div class="queue-group"><div class="queue-head"><span>You decided today</span><span class="n">${ledger().length}</span></div><div class="ledger">${ledger().map(([w, p, a]) => `<a href="#" class="ledger-row">${I('check')}<span class="what">${w}</span><span class="qitem-age">${a}</span><span class="meta">${p}</span></a>`).join('')}</div></div></aside></div>`;
     return;
   }
   const x = S.items.find(y => y.id === S.open) || S.items[0];
@@ -275,7 +285,7 @@ function decide(which) {
   const note = document.getElementById('note')?.value.trim() || '';
   S.note = note;
   if ((x.dock.required && which === 'primary' && !note) || (x.dock.rejectNeedsNote && which === 'secondary' && !note)) { S.dock = 'invalid'; render(); document.getElementById('note').focus(); return; }
-  S.dock = 'sending'; render();
+  S.which = which; S.dock = 'sending'; render();
   setTimeout(() => {
     if (failOnce) { failOnce = false; S.dock = 'failed'; render(); return; }
     S.dock = 'sent'; render();
@@ -285,12 +295,14 @@ function decide(which) {
       row?.classList.add('is-leaving');
       setTimeout(() => {
         const i = S.items.indexOf(x);
+        const r = which === 'secondary' && x.dock.alt || x.dock;
         last = { x, i };
         S.items.splice(i, 1);
+        S.decided.unshift([r.log, x.project, 'now']);
         S.open = (S.items[i] || S.items[0] || {}).id; S.dock = 'ready'; S.note = '';
         render();
         const next = S.items.find(y => y.id === S.open);
-        toast(next ? `${x.dock.toast} Next: ${next.title}` : `${x.dock.toast} That was the last one.`, true);
+        toast(next ? `${r.toast} Next: ${next.title}` : `${r.toast} That was the last one.`, true);
         document.getElementById('ttl')?.focus();
       }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dur-slow')) || 1);
     }, 700);
@@ -303,14 +315,14 @@ document.addEventListener('click', e => {
   if (!a) return;
   const act = a.dataset.act;
   if (act === 'primary' || act === 'secondary') decide(act);
-  if (act === 'undo' || act === 'toast-undo') { if (last) { S.items.splice(last.i, 0, last.x); S.open = last.x.id; last = null; } S.dock = 'ready'; render(); document.getElementById('toasts').innerHTML = ''; }
+  if (act === 'toast-undo') { if (last) { S.items.splice(last.i, 0, last.x); S.open = last.x.id; S.decided.shift(); last = null; } S.dock = 'ready'; render(); document.getElementById('toasts').innerHTML = ''; }
   if (act === 'retry') { S.view = 'items'; render(); }
 });
 document.addEventListener('keydown', e => {
   const typing = ['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName);
   if (typing && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); decide('primary'); return; }
   if (typing || S.view !== 'items' || !S.items.length || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.key === 'j') go(1); if (e.key === 'k') go(-1);
+  const k = e.key.toLowerCase(); if (k === 'j') go(1); if (k === 'k') go(-1);
 });
 
 render();

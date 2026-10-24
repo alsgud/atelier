@@ -147,7 +147,7 @@
     <p class="why">After a decision: what happened, and Undo for 6 seconds. Errors keep what you typed and offer Retry.</p>
     <div class="row">
       <div class="cell"><span class="lbl">success with undo</span><div class="toast toast-success toast-static" role="status"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span class="toast-text">Approved. Next: Should hidden clips stay out of Throwbacks?</span><button class="toast-action">Undo</button></div></div>
-      <div class="cell"><span class="lbl">neutral · action focused</span><div class="toast toast-static" role="status"><span class="toast-text">Moved to the end of the queue.</span><button class="toast-action is-focus">Undo</button></div></div>
+      <div class="cell"><span class="lbl">neutral · action focused</span><div class="toast toast-static" role="status"><span class="toast-text">Raised replay's limit to $60 for today.</span><button class="toast-action is-focus">Undo</button></div></div>
       <div class="cell"><span class="lbl">error with retry</span><div class="toast toast-error toast-static" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><span class="toast-text">Couldn't reach Atelier. Your answer is kept.</span><button class="toast-action">Retry</button></div></div>
       <div class="cell w-640"><span class="lbl">banner · inbox didn't load</span><div class="banner" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><span>The Inbox didn't load. Trying again in 15 s.</span><span class="spacer"></span><button class="btn btn-secondary">Try now</button></div></div>
     </div>
@@ -258,10 +258,11 @@ const D = (lbl, inner, cls = '') => `<div class="cell w-640"><span class="lbl">$
 const note = (ph, v = '', extra = '') => `<textarea class="input" rows="1" aria-label="${ph}" placeholder="${ph}" ${extra}>${v}</textarea>`;
 document.getElementById('docks').innerHTML =
   D('ready · note optional', `${note('Add a note for the lead (optional)')}<div class="dock-row">${B('btn-primary', 'Yes, fix it')}${B('btn-secondary', "No, it's fine")}<span class="dock-hint"><span class="kbd">Ctrl ↵</span> fix it</span></div>`)
-  + D('needs your words first (approve disabled until typed)', `${note('Your decision, in your own words', '', 'aria-describedby="h1"')}<div class="dock-row">${B('btn-primary', 'Approve design', 'aria-disabled="true"')}${B('btn-secondary', 'Skip this phase')}<span class="dock-hint" id="h1">Say what you're approving, in a few words</span></div>`)
+  + D('needs your words (Approve stays enabled; an empty note is caught on click, see the error below)', `${note('Your decision, in your own words')}<div class="dock-row">${B('btn-primary', 'Approve design')}${B('btn-secondary', 'Skip this phase')}<span class="dock-hint"><span class="kbd">Ctrl ↵</span> to send</span></div>`)
   + D('sending', `${note('Your decision', 'Go with it. Keep the orange for actions only.', 'disabled')}<div class="dock-row">${B('btn-primary', 'Approving…', 'aria-busy="true"')}${B('btn-secondary', 'Skip this phase', 'disabled')}</div>`)
   + D("couldn't send · words kept", `${note('Your decision', 'Go with it. Keep the orange for actions only.')}<div class="dock-row">${B('btn-primary', 'Try again')}${B('btn-secondary', 'Skip this phase')}<span class="dock-msg is-error">${I('alert')}Couldn't reach Atelier. Nothing was sent.</span></div>`)
-  + D('sent (shown for a moment, then the next item slides in)', `<div class="dock-row"><span class="dock-msg is-done">${I('check')}Approved. The designer starts on every screen.</span><span class="spacer"></span>${B('btn-ghost', 'Undo')}</div>`, 'is-sent')
+  + D('sent (about a second, then the next item slides in; Undo is in the toast)', `<div class="dock-row"><span class="dock-msg is-done">${I('check')}Approved. The designer starts on the rest.</span></div>`, 'is-sent')
+  + D('approving with no note (error)', `<div class="field">${note('Your decision, in your own words', '', 'aria-invalid="true"')}<span class="field-error">${I('alert')}Say what you approve in a few words. It goes to the designer.</span></div><div class="dock-row">${B('btn-primary', 'Approve design')}${B('btn-secondary', 'Skip this phase')}</div>`)
   + D('rejecting needs a note (error)', `<div class="field">${note('Why are you rejecting it?', '', 'aria-invalid="true"')}<span class="field-error">${I('alert')}Say what's wrong so the team can fix it.</span></div><div class="dock-row">${B('btn-primary', 'Accept')}${B('btn-secondary', 'Reject')}</div>`);
 
 // Ledger

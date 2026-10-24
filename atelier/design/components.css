@@ -367,7 +367,8 @@ textarea.input { min-height: 64px; display: block; }
   .frames { --cols: 2; gap: var(--space-3); }
   .frames.is-hero { --cols: 2; }
   .frames.is-hero > .frame-more { display: none; }
-  .focus .dock { bottom: var(--space-2); padding: var(--space-2); }
+  /* Phone: the tab bar is sticky at the bottom too, so the dock sits just above it (and above the home indicator). */
+  .focus .dock { bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-2)); padding: var(--space-2); }
   .dock .btn { height: var(--size-control-lg); flex: 1; }
   .dock .btn-ghost { flex: 0 0 auto; }
   .dock textarea.input { min-height: var(--size-control-lg); }

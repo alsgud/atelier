@@ -44,14 +44,14 @@ Mobbin needs a paid plan, which would spend money (see Open questions), so refer
 ## Flows
 
 1. **Glance (desktop)**: open → sidebar shows Inbox `7` in red (some need you now) → page head says "7 waiting · 2 need you now" → the top item is already open. If the count is grey, nothing is urgent; if it is absent, inbox zero.
-2. **Decide one item**: read the eyebrow (kind · project · age), the title, one sentence, see the work (pictures, question, finding) → act in the dock (primary, secondary, optional note) → the dock shows **Sending…** → **sent** (green wash, what happens next, Undo) → the queue row turns green, collapses out → the next item opens, focus moves to its title, a toast says "Done. Next: …" with Undo (6 s).
+2. **Decide one item**: read the eyebrow (kind · project · age), the title, one sentence, see the work (pictures, question, finding) → act in the dock (primary, secondary, optional note) → the dock shows **Sending…** → **sent** (green wash, what happens next; no Undo here, see the toast) → the queue row turns green, collapses out → the next item opens, focus moves to its title, a toast says "Done. Next: …" with Undo (6 s). The toast is the one place for Undo: the sent dock is only on screen for about a second, too short to be a usable target. A secondary action (Reject, Skip, No, Retire) gets its own sent line, toast and ledger line; the busy label sits on the button you pressed.
 3. **Clear a session**: J/K or the pager move through items without deciding (this replaces "Later"; nothing is sent). Clicking any queue row opens it. Ctrl+Enter sends from the note field.
-4. **Decide on the phone**: Inbox tab (red badge with the count) → the top item fills the screen, dock under the thumb above the tab bar, 44 px buttons → after a decision the next item opens at the top of the page → "Also waiting" is the queue below the item.
-5. **First run / zero**: "All caught up · Nothing needs you." with who is working and what you decided today. Nothing red anywhere (R8).
+4. **Decide on the phone**: Inbox tab (red badge with the count) → the top item fills the screen, dock under the thumb, sticky `--size-tabbar` + safe area + `--space-2` above the bottom of the viewport, so it is always above the tab bar and on top (hit-tested), 44 px buttons → after a decision the next item opens at the top of the page → "Also waiting" is the queue below the item.
+5. **First run / zero**: "All caught up · Nothing needs you." with who is working and what you decided today. Nothing red anywhere (R8). Reached by deciding, every number agrees: project counts come from the items still waiting (so they disappear), the ledger lists what you just decided on top of earlier decisions, and the spend line only mentions a limit while a budget item is still waiting. One spend figure per screen (sidebar on desktop, top bar below 1280).
 6. **Errors and recovery**:
    - Validation: approving a design or rejecting proof with an empty note → the field turns red with one plain line ("Say what's wrong so the team can fix it."), focus goes to the field. Nothing is sent.
    - Send fails → dock shows "Couldn't reach Atelier. Nothing was sent." in red; the primary becomes **Try again**; your words stay in the field.
-   - Undo → the item comes back where it was, open.
+   - Undo (toast, 6 s) → the item comes back where it was, open and undecided; its ledger line is removed.
    - The Inbox itself fails to load → banner "The Inbox didn't load. Trying again in 15 s." with **Try now**, and a calm line that agents keep working. Counts in the chrome are hidden until data arrives (never show stale numbers as fact).
    - Live refresh (R7) never replaces the open item, the note being typed or the scroll position; new items join the queue quietly.
 
@@ -134,7 +134,7 @@ Every component is on `design/components.html` in every state, light and dark. C
 - **Inbox**: `design/screens/inbox.html`. Specified here and below.
   - Page head (52): "Inbox" 14/600 · summary 13 "7 waiting · **2 need you now**" (red part only when > 0) · pager at the right "3 of 7 ‹ ›  J K to move".
   - Focus column, top to bottom with `--space-6` between blocks: eyebrow 13 ("● Needs you now" in red when so · glyph + kind 500 · project · age); title in display serif; one `.lede` sentence; the thing itself (hero frames, quote, facts, choices, meter); Details (closed) for anything technical; links (Open all screens, Read the design notes, Run log); the dock.
-  - Queue column: Needs you now, When you have a minute, Working now. On inbox zero: You decided today, Spent today.
+  - Queue column: Needs you now, When you have a minute, Working now. On inbox zero: You decided today (spend stays in the sidebar or top bar, never twice).
   - Item kinds and their docks (all from `inventory.md`): finding (Yes, fix it / No, it's fine + optional note); budget (Raise today to $60 / Budget settings; "Or do nothing: work resumes at midnight"); design gate (your words required / Approve design / Skip this phase); question (suggested answers + own answer / Send answer / Open the task); owner judgement with proof (Accept / Reject, note required to reject); outcome (Approve / Retire it); task plan (Approve plan / Read the brief). Charter, screen-use, push-failure and earned-trust items use the same parts: eyebrow, title, one sentence, the thing, the dock.
 - **Office, Projects, Project page, Task page, New project, Settings, Activity**: come in the next task, built from these tokens and components.
 
@@ -154,7 +154,7 @@ Shown on `components.html` (component states) and `screens/inbox.html` (screen s
 | Preview frame | border `--border-strong`, `--shadow-2`, caption text 2 | ring on the image | opens view port in a new tab | — | shimmer (`.is-loading`) | — | dashed well "Couldn't load this picture. Open it instead" |
 | Details | text 1 | ring | chevron rotates | — | — | — | — |
 | Dock | — | — | — | buttons disabled while sending | "Sending…" | — (no dock on zero) | "Couldn't reach Atelier. Nothing was sent." + Try again |
-| Dock, sent | — | — | — | — | — | — | green wash, what happens next, Undo |
+| Dock, sent | — | — | — | — | — | — | green wash, what happens next (Undo lives in the toast) |
 | Toast | action underline bg 10% | ring in inverse text colour | — | — | — | — | error variant with Retry |
 | Inbox screen | — | skip link "Skip to the decision" | — | — | `?state=loading`: skeleton head, frames, 5 queue rows; chrome counts hidden | `?state=zero` | `?state=error`: banner + Try now |
 
@@ -250,6 +250,15 @@ Before: `review/round-3/before/`. After: `review/round-3/after/`. Final matrix r
 - **Changed**: `.agent-progress` is now a column with the track full width and the figure under it; on the phone, `.links a` is `--size-control-lg` (44 px) tall with no row gap, so the list doesn't grow taller than it needs to.
 - **Result**: 0 unnamed controls, 0 targets under 44 px, 0 Tab stops without a ring across design, proof, question, budget and zero at 390, light and dark; 0 text pairs under 4.5:1.
 
+### Round 4 (reviewer's findings)
+
+Before: the reviewer's shots `runs/68h6/review-evidence/p1-390-dark-design-viewport.png`, `u1-after-dock-undo.png`, `z1-cleared-to-zero.png`. After: `review/round-4/`.
+
+- **Found (review, real phone viewport)**: at 390×844 the sticky dock sat at `--space-2` from the bottom, under the sticky tab bar, so Accept/Reject and Approve were covered. Our own matrix missed it because `?full` un-sticks every bar, and a11y.mjs measured size, not occlusion.
+- **Found (review, journey)**: the sent dock's Undo didn't cancel the pending removal, and was on screen for about a second. Rejecting proof toasted "Accepted". Inbox zero reached by deciding kept stale project counts, "replay is at its $40 limit" after the limit was raised, a second spend figure ($31.80 vs $52.60) and a ledger that didn't include what you'd just decided.
+- **Changed**: phone dock `bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-2))`. The sent dock has no Undo; the toast's Undo (6 s) is the only one and also removes the ledger line. Secondary actions have their own sent line, toast and ledger line. Project counts come from the waiting items; the spend line is one figure and mentions a limit only while a budget item waits; the zero column lists what you decided, newest first. J/K work with Caps Lock. Component sheet: the design gate's Approve stays enabled and validates on click (as the screen does), and the neutral toast no longer refers to the removed "Later".
+- **Result** (`runs/68h6/tools/iter4.mjs`, real viewport, no `?full`): design, proof and question at 390 in light and dark, at the top and at the end of the item: 0 dock controls covered, every dock control is the top element at its centre. Decide-all journey: sidebar counts `[]`, one spend figure, "Every project within its budget", ledger 8 (7 just decided + 1 earlier). Toast Undo restores the item and its count, and it stays restored. 0 page errors.
+
 ## Open questions
 
 These are for the lead. They touch what the server sends, or they add scope.
@@ -259,5 +268,5 @@ These are for the lead. They touch what the server sends, or they add scope.
 - **Proof inside an owner judgement.** The item needs the evidence (screenshots, recording length, run log) of the task that delivered that outcome. Today only `/api/task/<id>` has it.
 - **Suggested answers to a question.** These need the agent to offer them in QUESTIONS.md. Without them, the item shows only "Write your own answer".
 - **Budget breakdown.** The per-task split of today's spend ("Trim editor $18.40 …") must come from the R2 summary, not be added up on the client.
-- **Undo** needs a short grace period on the server, or a reverse action for each decision. If neither is possible, the toast shows no Undo and the dock's sent state shows no Undo either. That is a behaviour change, so it is the lead's call.
+- **Undo** needs a short grace period on the server, or a reverse action for each decision. If neither is possible, the toast shows no Undo (the dock's sent state already has none). That is a behaviour change, so it is the lead's call.
 - **Two groups** ("Needs you now" / "When you have a minute") assume the server marks urgency (`priority ≤ 1` or a high-severity finding, as today's red rule does). That is the same rule; it is now shown as a group.
