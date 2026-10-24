@@ -14,6 +14,7 @@
 </style>
 </head>
 <body>
+<a class="btn btn-primary skip" href="#ttl">Skip to the decision</a>
 <div class="shell" id="shell">
   <aside class="sidebar shell-side" id="side" aria-label="Atelier"></aside>
   <header class="topbar shell-top" id="top"></header>
@@ -59,7 +60,7 @@ const ITEMS = [
     body: () => `
       <p class="lede">The two tasks already running finish their current step. Nothing new starts until you raise the limit, or until midnight.</p>
       <div class="meter" style="max-width:420px"><div class="meter-head"><span>Spent today</span><b>$40.00 of $40</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div></div>
-      <dl class="facts">
+      <dl class="facts is-money">
         <dt>Trim editor</dt><dd class="num">$18.40</dd>
         <dt>Thumbnail indexing</dt><dd class="num">$9.10</dd>
         <dt>Reviews</dt><dd class="num">$6.30</dd>
@@ -148,17 +149,19 @@ const needsN = () => S.items.filter(x => x.needs).length;
 /* ── Chrome: sidebar (desktop), top bar (tablet/phone), tab bar (phone) ── */
 function chrome() {
   const n = S.items.length, u = needsN(), zero = S.view === 'zero';
-  const count = n ? `<span class="count ${u ? 'is-needs' : ''}" aria-label="${n} waiting${u ? `, ${u} need you now` : ''}">${n}</span>` : '';
+  const loading = S.view === 'loading' || S.view === 'error';
+  const count = n && !loading ? `<span class="count ${u ? 'is-needs' : ''}" aria-hidden="true">${n}</span>` : '';
+  const inboxLabel = n && !loading ? `Inbox, ${n} waiting${u ? `, ${u} need you now` : ''}` : 'Inbox';
   const proj = [['replay', true, 4], ['atelier-ui', true, 1], ['dodge', false, 2]];
   document.getElementById('side').innerHTML = `
     <span class="brand">${mark}Atelier</span>
     <nav class="nav" aria-label="Main">
-      <a class="nav-item" aria-current="page" href="#">${I('inbox')}Inbox${count}</a>
+      <a class="nav-item" aria-current="page" href="#" aria-label="${inboxLabel}">${I('inbox')}Inbox${count}</a>
       <a class="nav-item" href="#">${I('office')}Office<span class="count is-active">3 working</span></a>
       <a class="nav-item" href="#">${I('activity')}Activity</a>
     </nav>
     <nav class="nav" aria-label="Projects"><span class="nav-label">Projects</span>
-      ${proj.map(([p, on, c]) => `<a class="nav-item" href="#"><span class="dot ${on ? 'dot-active' : ''}" aria-label="${on ? 'Lead on, working' : 'Lead on, nobody working'}"></span>${p}${!zero && c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}
+      ${proj.map(([p, on, c]) => `<a class="nav-item" href="#"><span class="dot ${on ? 'dot-active' : ''}" aria-label="${on ? 'Lead on, working' : 'Lead on, nobody working'}"></span>${p}${!zero && !loading && c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}
       <a class="nav-item" href="#">${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
@@ -168,10 +171,10 @@ function chrome() {
     </div>`;
   document.getElementById('top').innerHTML = `
     <span class="brand">${mark}Atelier</span>
-    <nav class="tabs" aria-label="Main"><a class="tab" aria-current="page" href="#">Inbox ${count}</a><a class="tab" href="#">Office</a><a class="tab" href="#">Projects</a><a class="tab" href="#">Activity</a></nav>
+    <nav class="tabs" aria-label="Main"><a class="tab" aria-current="page" href="#" aria-label="${inboxLabel}">Inbox ${count}</a><a class="tab" href="#">Office</a><a class="tab" href="#">Projects</a><a class="tab" href="#">Activity</a></nav>
     <span class="topbar-status"><span>Plan <b>41%</b></span><span>Today <b>${zero ? '$31.80' : '$52.60'}</b></span></span>`;
   document.getElementById('tabs').innerHTML = `
-    <a aria-current="page" href="#">${I('inbox')}Inbox${n ? `<span class="badge-n ${u ? '' : 'is-quiet'}" aria-label="${n} waiting">${n}</span>` : ''}</a>
+    <a aria-current="page" href="#" aria-label="${inboxLabel}">${I('inbox')}Inbox${count ? `<span class="badge-n ${u ? '' : 'is-quiet'}" aria-hidden="true">${n}</span>` : ''}</a>
     <a href="#">${I('office')}Office</a><a href="#">${I('projects')}Projects</a><a href="#">${I('activity')}Activity</a>`;
   document.title = n ? `(${n}) Inbox · Atelier` : 'Inbox · Atelier';
 }
@@ -179,13 +182,13 @@ function chrome() {
 /* ── Main ── */
 function qitem(x) {
   const cur = x.id === S.open;
-  return `<a href="?open=${x.id}" class="qitem" data-id="${x.id}" ${cur ? 'aria-current="true"' : ''}>
+  return `<a href="?open=${x.id}" class="qitem" data-id="${x.id}" ${cur ? 'aria-current="true"' : ''} aria-label="${esc(x.title)}. ${x.project}, ${x.short}, ${x.ageLong}${x.needs ? '. Needs you now' : ''}">
     <span class="qitem-glyph">${I(x.glyph)}</span><span class="qitem-title">${esc(x.title)}</span>
     <span class="qitem-side">${x.needs ? '<span class="dot dot-needs" role="img" aria-label="Needs you now"></span>' : ''}<span class="qitem-age">${x.age}</span></span>
     <span class="qitem-meta">${x.project}<span class="sep"> · </span>${x.short}</span></a>`;
 }
 function agents() {
-  return WORKING.map(([w, m, p, v]) => `<a href="#" class="agent"><span class="agent-dot"><span class="dot dot-active is-live" role="img" aria-label="Working"></span></span><span class="agent-what">${w}</span><span class="agent-meta">${m}</span><span class="agent-progress"><span class="track"><i style="--value:${v}"></i></span>${p}</span></a>`).join('');
+  return WORKING.map(([w, m, p, v]) => `<a href="#" class="agent" aria-label="${w}. ${m}. ${p}"><span class="agent-dot"><span class="dot dot-active is-live" role="img" aria-label="Working"></span></span><span class="agent-what">${w}</span><span class="agent-meta">${m}</span><span class="agent-progress"><span class="track"><i style="--value:${v}"></i></span>${p}</span></a>`).join('');
 }
 function queue() {
   const now = S.items.filter(x => x.needs), later = S.items.filter(x => !x.needs);
@@ -199,7 +202,8 @@ function dock(x) {
   const d = x.dock, st = S.dock;
   if (st === 'sent') return `<div class="dock is-sent" role="status"><div class="dock-row"><span class="dock-msg is-done">${I('check')}${d.done}</span><span class="spacer"></span><button class="btn btn-ghost" data-act="undo">Undo</button></div></div>`;
   const sending = st === 'sending', failed = st === 'failed', invalid = st === 'invalid';
-  const val = S.note || (sending || failed ? (x.id === 'design' ? 'Go with it. Keep the orange for actions only.' : 'Fix it now, before the feed is built.') : '');
+  const SAMPLE = { design: 'Go with it. Keep the orange for actions only.', question: 'Keep them out, same rule as the feed.', finding: 'Fix it now, before the feed is built.', proof: 'Feels fair. The glow fooled me once, but fine.' };
+  const val = S.note || (sending || failed ? SAMPLE[x.id] || '' : '');
   const field = d.note ? `<textarea class="input" id="note" rows="1" aria-label="${esc(d.note)}" placeholder="${esc(d.note)}" ${sending ? 'disabled' : ''} ${invalid ? 'aria-invalid="true" aria-describedby="noteErr"' : ''}>${esc(val)}</textarea>` : '';
   const err = invalid ? `<span class="field-error" id="noteErr">${I('alert')}${esc(d.required || "Say what's wrong so the team can fix it.")}</span>` : '';
   const primary = `<button class="btn btn-primary" data-act="primary" ${sending ? 'aria-busy="true"' : ''}>${sending ? d.busy : failed ? 'Try again' : d.primary}</button>`;
@@ -215,7 +219,7 @@ function head() {
   const pager = n && S.view === 'items' ? `<div class="pager"><span class="of">${i + 1} of ${n}</span>
     <button class="btn btn-ghost btn-icon btn-sm" data-go="-1" aria-label="Previous item">${I('chevron-left')}</button>
     <button class="btn btn-ghost btn-icon btn-sm" data-go="1" aria-label="Next item">${I('chevron-right')}</button>
-    <span class="hint"><span class="kbd">J</span><span class="kbd">K</span></span></div>` : '';
+    <span class="hint"><span class="kbd">J</span><span class="kbd">K</span> to move</span></div>` : '';
   const summary = S.view === 'loading' ? 'Loading…' : S.view === 'error' ? '' : n ? `${n} waiting${u ? ` · <span class="is-needs">${u} need${u === 1 ? 's' : ''} you now</span>` : ''}` : 'Nothing waiting';
   return `<header class="page-head"><h1>Inbox</h1><span class="summary">${summary}</span>${pager}</header>`;
 }
@@ -246,7 +250,7 @@ function render() {
   main.innerHTML = head() + `<div class="inbox">
     <section class="focus" aria-labelledby="ttl">
       <div class="focus-head">
-        <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span><span class="sep">·</span>` : ''}<span class="kind">${I(x.glyph)}${x.kind}</span><span class="sep">·</span><a class="link" href="#">${x.project}</a><span class="sep">·</span><span>${x.ageLong}</span></div>
+        <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span><span class="sep">·</span>` : ''}<span class="kind">${I(x.glyph)}${x.kind}</span><span class="sep">·</span><span>${x.project}</span><span class="sep">·</span><span>${x.ageLong}</span></div>
         <h2 class="title-display" id="ttl" tabindex="-1">${esc(x.title)}</h2>
       </div>
       <div class="focus-body">${x.body()}</div>
@@ -310,7 +314,7 @@ document.addEventListener('keydown', e => {
 });
 
 render();
-if (P.has('toast')) toast("Approved the look of Replay. Next: Should hidden clips stay out of Throwbacks too?", true);
+if (P.has('toast')) toast("Asked the team to fix it. Next: Replay has used today's $40, so new work is paused", true);
 
 // Mockup state switcher
 const link = (k, v, l) => { const q = new URLSearchParams(P); q.delete('shot'); v === null ? q.delete(k) : q.set(k, v); return `<a href="?${q}">${l}</a>`; };

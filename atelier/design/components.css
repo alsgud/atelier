@@ -322,11 +322,19 @@ textarea.input { min-height: 64px; display: block; }
 .focus-head .title-display:focus { outline: none; }
 .focus-body { display: grid; gap: var(--space-5); }
 .focus .dock { position: sticky; bottom: var(--space-5); z-index: 2; }
+/* Fill the gap under the sticky dock so content never peeks out beneath it. */
+.focus .dock::after { content: ""; position: absolute; left: -1px; right: -1px; top: calc(100% + 1px); height: var(--space-5); background: var(--surface); }
+.zero > .queue-group { max-width: 560px; }
+.facts.is-money { max-width: 420px; grid-template-columns: 1fr auto; }
+.facts.is-money dd { text-align: right; font-variant-numeric: tabular-nums; }
+.skip { position: absolute; left: var(--space-2); top: var(--space-2); z-index: 60; transform: translateY(-200%); }
+.skip:is(:focus-visible, .is-focus) { transform: none; }
 .queue { border-left: var(--border-width) solid var(--border); padding: var(--space-5) var(--space-2) var(--space-8); display: grid; align-content: start; gap: var(--space-6);
   position: sticky; top: var(--size-topbar); align-self: start; max-height: calc(100vh - var(--size-topbar) - 2 * var(--space-2)); overflow-y: auto; overscroll-behavior: contain; }
 .queue-section-title { padding: 0 var(--space-3); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--weight-semibold); }
 .zero { display: grid; gap: var(--space-10); }
 .zero-working { display: grid; gap: var(--space-2); margin: 0 calc(-1 * var(--space-3)); }
+@media (max-width: 767px) { .facts.is-money { grid-template-columns: 1fr auto; gap: var(--space-2) var(--space-4); } }
 
 @media (max-width: 1279px) {
   .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
@@ -349,6 +357,9 @@ textarea.input { min-height: 64px; display: block; }
   .shell-tabs { display: grid; position: sticky; bottom: 0; z-index: 10; }
   .page-head { padding: 0 var(--space-2) 0 var(--space-4); }
   .page-head .pager .hint { display: none; }
+  .page-head .pager .btn-icon { width: var(--size-control-lg); height: var(--size-control-lg); }
+  .skip { height: var(--size-control-lg); }
+  .focus .dock::after { height: var(--space-2); }
   .focus { padding: var(--space-6) var(--space-4) var(--space-4); gap: var(--space-5); }
   .title-display { font-size: var(--text-xl-phone); line-height: var(--leading-xl-phone); }
   .empty-title { font-size: var(--text-xl); line-height: var(--leading-xl); }

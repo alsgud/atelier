@@ -3,39 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atelier redesign · pick a direction</title>
+<title>Atelier redesign · Inbox, direction B</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
 <style>
-:root { --bg: #fbfbfc; --text: #17171c; --muted: #696a74; --line: #e7e7eb; color-scheme: light dark; }
-@media (prefers-color-scheme: dark) { :root { --bg: #0e0f11; --text: #ececf0; --muted: #9a9ca6; --line: #24252b; } }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif; }
-main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; }
-h1 { font-size: 24px; margin: 0 0 6px; }
-p { color: var(--muted); margin: 0 0 28px; max-width: 64ch; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
-h2 { font-size: 17px; margin: 0 0 4px; }
-h2 a { color: inherit; }
-.grid p { margin-bottom: 12px; }
-.shots { display: grid; grid-template-columns: 3fr 1fr; gap: 10px; align-items: start; }
-.shots img { width: 100%; border: 1px solid var(--line); border-radius: 8px; display: block; }
-a:focus-visible { outline: 2px solid #6a5fc1; outline-offset: 2px; }
+  main { max-width: 1120px; margin: 0 auto; padding: var(--space-10) var(--space-6) var(--space-16); display: grid; gap: var(--space-8); }
+  h1 { font-family: var(--font-display); font-weight: var(--weight-regular); font-size: var(--text-2xl); line-height: var(--leading-2xl); letter-spacing: var(--tracking-display); }
+  .lede { margin-top: var(--space-2); }
+  .open { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .shots { display: grid; grid-template-columns: 3fr 1fr; gap: var(--space-4); align-items: start; }
+  .shots img { border: var(--border-width) solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-1); }
+  .shots figcaption { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--text-2); }
+  @media (max-width: 720px) { .shots { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>Two looks for the Inbox</h1>
-  <p>Same content, same decisions, different layout. Open each one to click through it; narrow the window to see the phone layout, and use the switcher in the corner for dark mode and the empty state.</p>
-  <div class="grid">
-    <section>
-      <h2><a href="direction-a/inbox.html">A · The list</a></h2>
-      <p>Everything that needs you in one list; an item opens in place with its buttons.</p>
-      <a class="shots" href="direction-a/inbox.html"><img src="shots/a-desktop-light.png" alt="Direction A on desktop"><img src="shots/a-phone-light.png" alt="Direction A on a phone"></a>
-    </section>
-    <section>
-      <h2><a href="direction-b/inbox.html">B · One at a time</a></h2>
-      <p>One decision fills the page with the work shown large; the rest of the queue waits beside it.</p>
-      <a class="shots" href="direction-b/inbox.html"><img src="shots/b-desktop-light.png" alt="Direction B on desktop"><img src="shots/b-phone-light.png" alt="Direction B on a phone"></a>
-    </section>
-  </div>
+  <header>
+    <span class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Atelier</span>
+    <h1>The Inbox, direction B</h1>
+    <p class="lede">One decision at a time, the work shown large, the decision under your hand, the rest of the queue quiet beside it. Built from a written system: tokens, components in every state, then the screen.</p>
+  </header>
+  <nav class="open" aria-label="Open">
+    <a class="btn btn-primary" href="screens/inbox.html">Open the Inbox</a>
+    <a class="btn btn-secondary" href="screens/inbox.html?state=zero">Inbox zero</a>
+    <a class="btn btn-secondary" href="components.html">Components</a>
+    <a class="btn btn-ghost" href="direction-a/inbox.html">D1 · A</a>
+    <a class="btn btn-ghost" href="direction-b/inbox.html">D1 · B</a>
+  </nav>
+  <figure class="shots" style="margin:0">
+    <div><img src="review/final/inbox-1440-light-open-design.png" alt="Inbox on desktop, light, with the Replay design to approve"><figcaption>Desktop, light: a design to approve</figcaption></div>
+    <div><img src="review/final/inbox-390-dark-open-proof.png" alt="Inbox on a phone, dark, with proof from Dodge"><figcaption>Phone, dark: proof to judge</figcaption></div>
+  </figure>
+  <figure class="shots" style="margin:0;grid-template-columns:1fr">
+    <div><img src="review/final/inbox-1440-light-state-zero.png" alt="Inbox zero on desktop"><figcaption>Nothing needs you</figcaption></div>
+  </figure>
 </main>
+<script>
+  const t = new URLSearchParams(location.search).get('theme');
+  if (t) document.documentElement.dataset.theme = t;
+</script>
 </body>
 </html>
