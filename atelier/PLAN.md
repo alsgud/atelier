@@ -26,12 +26,14 @@ Rough split (to be re-priced from real costs after the design task):
 | id | role | task | depends on | status |
 |---|---|---|---|---|
 | tkvt | designer | D1: inventory + two Inbox directions ($10, 5 it) | spec gate | running |
-| — | designer | D2: all screens + DESIGN.md in the chosen direction | owner picks direction | not started |
+| 68h6 | designer | D2: production-grade foundation (refs, tokens, components, critique x2) + Inbox in B ($16, 8 it) | R-1 | running |
+| — | designer | D3: every other screen on the D2 system | owner OK on D2 Inbox | not started |
 | — | frontend | Slice 1: shell + summary endpoint + Inbox | design gate | not started |
 | — | frontend | Slice 2: project + task pages | slice 1 | not started |
 | — | frontend | Slice 3: office, new project, settings | slice 2 | not started |
 | — | auditor | End-of-milestone audit | slice 3 | not started |
 
 ## Progress notes
+- 2026-10-24 eve: owner chose B's feel but called D1 sloppy, "winging it, no design guide" (overrule #1, ruling R-1, team check AC-17). Cause: lead's D1 brief cut the designer's research/system/critique steps for cost. D2 68h6 follows the full role process. Design line re-priced ~$25 -> ~$35 (D1 $4 + D2 $16 + D3 ~$15); holding the $120 total by keeping build tight. Charter draft gained a "production grade" line.
 - 2026-10-24 later: brief approved ("Continue"; taken as accepting the brief's assumptions incl. two directions + one-branch hand-off). Spec, contracts approved by lead. AC-1..7 approved by owner; AC-8..16 team checks. No holdout tests (personal scale; reviewer + end audit cover). Designer D1 tkvt started.
 - 2026-10-24: shift start. Brief already drafted. Charter drafted to atelier/CHARTER-draft.md (CHARTER.md is owner-only); sent owner a play-back + two questions. Next: once charter/brief approved, write SPEC + ~10 criteria, self-approve spec, start designer.

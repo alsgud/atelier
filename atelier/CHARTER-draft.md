@@ -9,6 +9,7 @@ A redesign of the Atelier dashboard: the one place where I, a solo developer run
 - I can tell at a glance whether work is really happening: live progress, the latest step, proof of real runs.
 - Every number (who's working, spend, budget, plan left) is the same on every screen.
 - The phone is a first-class screen, not a squeezed desktop.
+- Professional, production-grade design that holds up next to Linear or Vercel. It never looks improvised or unfinished.
 - Accessible: readable contrast, works from the keyboard, light and dark, respects reduced motion.
 
 ## Taste
