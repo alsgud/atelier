@@ -21,6 +21,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 /* A view-transition name, unless motion is reduced (then the whole page cross-fades once, nothing travels). */
 const vt = (name, cls = '') => RM ? '' : ` style="view-transition-name:${name}${cls ? `;view-transition-class:${cls}` : ''}"`;
 const wide = () => matchMedia('(min-width: 1024px)').matches;
+/* Queue rows only travel where the queue sits beside the item (≥ 1024). Below that the queue is under the
+   item, the page scrolls to the top on every change, and named rows would fly across the item. */
+const rowsMove = () => FEEL.rowNames && wide();
 
 /* ── Real content from the real projects (replay, dodge, atelier-ui). Typographic quotes and apostrophes. ── */
 const ITEMS = [
@@ -184,7 +187,7 @@ function chrome() {
 /* ── Main ── */
 function qitem(x) {
   const cur = x.id === S.open, t = !cur && tname(x.id);
-  return `<a href="?open=${x.id}" class="qitem" data-id="${x.id}" ${cur ? 'aria-current="true"' : ''}${FEEL.rowNames ? vt(`q-${x.id}`, 'row') : ''} aria-label="${esc(x.title)}. ${x.project}, ${x.short}, ${x.ageLong}${x.needs ? '. Needs you now' : ''}">
+  return `<a href="?open=${x.id}" class="qitem" data-id="${x.id}" ${cur ? 'aria-current="true"' : ''}${rowsMove() ? vt(`q-${x.id}`, 'row') : ''} aria-label="${esc(x.title)}. ${x.project}, ${x.short}, ${x.ageLong}${x.needs ? '. Needs you now' : ''}">
     <span class="qitem-glyph">${I(x.glyph)}</span><span class="qitem-title"${t ? vt(t, 'title') : ''}>${esc(x.title)}</span>
     <span class="qitem-side">${x.needs ? '<span class="dot dot-needs" role="img" aria-label="Needs you now"></span>' : ''}<span class="qitem-age">${x.age}</span></span>
     <span class="qitem-meta">${x.project}<span class="sep"> · </span>${x.short}</span></a>`;
@@ -195,11 +198,11 @@ function agent(a) {
 }
 const agents = () => WORKING.map(agent).join('');
 function ledgerRows(rows) {
-  return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#" class="ledger-row"${r.id && FEEL.rowNames ? vt(`l-${r.id}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${r.age}</span><span class="meta">${r.project}</span></a>`; }).join('');
+  return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#" class="ledger-row"${r.id && rowsMove() ? vt(`l-${r.id}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${r.age}</span><span class="meta">${r.project}</span></a>`; }).join('');
 }
 function queue() {
   const now = S.items.filter(x => x.needs), later = S.items.filter(x => !x.needs), L = ledger();
-  const g = n => FEEL.rowNames ? vt(n, 'row') : '';
+  const g = n => rowsMove() ? vt(n, 'row') : '';
   return `<aside class="queue" aria-label="Waiting on you">
     ${now.length ? `<div class="queue-group"><div class="queue-head is-needs"${g('h-now')}><span>Needs you now</span><span class="n">${now.length}</span></div>${now.map(qitem).join('')}</div>` : ''}
     ${later.length ? `<div class="queue-group"><div class="queue-head"${g('h-later')}><span>When you have a minute</span><span class="n">${later.length}</span></div>${later.map(qitem).join('')}</div>` : ''}
@@ -258,7 +261,7 @@ function draw() {
     main.innerHTML = head() + `<div class="inbox"><section class="focus"><div class="zero">
       <div class="empty"${vt('empty')}><span class="empty-mark"><span class="tick">${I('check')}</span>All caught up</span><h2 class="empty-title" tabindex="-1" id="ttl">Nothing needs you.</h2><p>Three agents are working on their own. Anything that needs you will show up here.</p></div>
       <div class="queue-group zero-group"${vt('zero-work')}><div class="queue-head" style="padding:0"><span>Working now</span><span class="n">${WORKING.length}</span></div><div class="zero-working">${agents()}</div></div></div></section>
-      <aside class="queue" aria-label="Today"><div class="queue-group"><div class="queue-head"${FEEL.rowNames ? vt('h-done', 'row') : ''}><span>You decided today</span><span class="n">${ledger().length}</span></div><div class="ledger">${ledgerRows(ledger())}</div></div></aside></div>`;
+      <aside class="queue" aria-label="Today"><div class="queue-group"><div class="queue-head"${rowsMove() ? vt('h-done', 'row') : ''}><span>You decided today</span><span class="n">${ledger().length}</span></div><div class="ledger">${ledgerRows(ledger())}</div></div></aside></div>`;
     return;
   }
   const x = S.items.find(y => y.id === S.open) || S.items[0];
