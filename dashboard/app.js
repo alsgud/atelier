@@ -83,7 +83,7 @@ async function refresh() {
   if (loadedVersion && state.version && state.version !== loadedVersion) return location.reload();
   loadedVersion = loadedVersion || state.version;
   renderChrome();
-  await route();
+  await route({ refreshing: true });
 }
 
 // ---------- chrome: sidebar + phone tab bar ----------
@@ -122,10 +122,10 @@ function renderChrome() {
 const topbar = (crumbs, right = '') => `<div class="top"><div class="crumbs">${crumbs}</div><div class="spacer"></div>${right}</div>`;
 
 // ---------- routing ----------
-async function route() {
+async function route({ refreshing = false } = {}) {
   const [, kind, a, b, c] = (location.hash || '#/inbox').split('/');
   try {
-    if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c);
+    if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c, refreshing);
     if (kind === 't' && a) return await renderTask(decodeURIComponent(a));
     if (kind === 'new') return renderNew();
     if (kind === 'projects') return renderProjects();
@@ -352,8 +352,21 @@ function renderActivity() {
 }
 
 // ---------- project (Vercel) ----------
-async function renderProject(alias, tab, sub) {
+// The last data seen for each project, so switching tabs paints at once; fresh data fills in when it arrives.
+const projectSeen = new Map();
+async function renderProject(alias, tab, sub, refreshing) {
+  const hash = location.hash;
+  const seen = refreshing ? null : projectSeen.get(alias);
+  if (seen) drawProject(seen.p, tab, sub);
   const p = await get(`/api/project/${encodeURIComponent(alias)}`);
+  if (location.hash !== hash) return; // the owner has already moved on
+  const text = JSON.stringify(p);
+  projectSeen.set(alias, { p, text });
+  if (seen && (seen.text === text || busy())) return; // already on screen, or the owner is typing in it
+  drawProject(p, tab, sub);
+}
+
+function drawProject(p, tab, sub) {
   const a = esc(p.alias);
   const own = state.queue.filter(q => q.project === p.alias);
   const step = nextStep(p, own);
@@ -576,7 +589,9 @@ function projSettings(p) {
 
 // ---------- task (Cursor / Devin agent view) ----------
 async function renderTask(id) {
+  const hash = location.hash;
   const t = await get(`/api/task/${encodeURIComponent(id)}`);
+  if (location.hash !== hash) return; // the owner has already moved on
   const m = t.meta;
   const s = taskStatus(m);
   const crit = t.criteria || [];
@@ -744,12 +759,15 @@ document.addEventListener('change', e => {
   if (sp) return act({ action: 'pace', spread: sp.checked }, sp.checked ? 'Spread over the week' : 'No weekly pacing');
 });
 
-// Refresh every 15 seconds while visible; never while the owner is typing or reading an open finding.
-setInterval(() => {
-  if (document.hidden || !state) return;
+// The owner is typing or reading an open finding: don't redraw under them.
+function busy() {
   const el = document.activeElement;
-  if (el && ['TEXTAREA', 'INPUT', 'SELECT'].includes(el.tagName)) return;
-  if (document.querySelector("details[open]:not([data-auto])")) return;
+  return (el && ['TEXTAREA', 'INPUT', 'SELECT'].includes(el.tagName)) || !!document.querySelector("details[open]:not([data-auto])");
+}
+
+// Refresh every 15 seconds while visible; never while the owner is busy.
+setInterval(() => {
+  if (document.hidden || !state || busy()) return;
   refresh().catch(() => {});
 }, 15000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && state) refresh().catch(() => {}); });
