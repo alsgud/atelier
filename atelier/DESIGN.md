@@ -845,7 +845,7 @@ Before / after pairs in `design/review/ux/before/` and `after/` (same file names
 
 ## Screens (D6, high-fi, PROVISIONAL)
 
-**Open `design/screens2/index.html`.** Every screen high-fi in the chosen brand (N1 + K1, dark first, Y1, Flow), drawn on the **recommended** UX answers because the owner hasn't replied to UX-1 … UX-15 yet. The index lists each decision used and which screens use it; each screen carries a `PROVISIONAL · drawn on UX-n …` flag at its foot (hidden in `?shot` and `?demo`). Build order, core first: Office, Project page, Task page, Inbox, then Projects, Activity, New project, Settings. Status: **Office done**; the rest follow in this task.
+**Open `design/screens2/index.html`.** Every screen high-fi in the chosen brand (N1 + K1, dark first, Y1, Flow), drawn on the **recommended** UX answers because the owner hasn't replied to UX-1 … UX-15 yet. The index lists each decision used and which screens use it; each screen carries a `PROVISIONAL · drawn on UX-n …` flag at its foot (hidden in `?shot` and `?demo`). Build order, core first: Office, Project page, Task page, Inbox, then Projects, Activity, New project, Settings. Status: **Office and Project page done**; the rest follow in this task.
 
 | File | What it is |
 |---|---|
@@ -882,14 +882,33 @@ Query on every screen (mockup only): `theme=light` · `motion=reduce` · `state=
 - **Accessibility**: each desk link has one sentence as its name ("Designer, Working. High-fi Inbox and Office screens. Drawing the Office floor at 390. Step 4 of 6, 4 min ago"); scenes and strips are `aria-hidden`; the legend is a labelled list.
 - **Demo**: `media/office-{desktop,phone}-dark.webm` (12–14 s) + `contact-office-*.png`: replay's builder finishes (green tick, back to waiting), the reviewer's light comes on, the auditor's quiet spell ends, the designer moves to the next step; "3 working" → 2 → 3 everywhere.
 
+### Project page (`screens2/project.html`; UX-6 A, UX-14 A, UX-3 A, UX-11 C)
+
+*Idea*: the page says what is going on in a sentence before it shows a number (UX-6 A). The figures underneath confirm the sentence; the phase track shows the milestone, and the current phase is split into its outcomes, so "4 of 9 met" is something you can see fill. Variants: `?p=replay` (default: at its budget limit, one task building), `?p=dodge` (lead off, the design waits), `?p=tidepool` (created a minute ago: the page's empty state), `?tab=tasks|outcomes|audits|docs`, `?ui=menu|stop` (lead menu, stop confirm).
+
+- **Head** (sticky 52): "‹ Projects" (13 `--text-2`), name 14/600 (phone 20/28 on its own line), lead state "● Lead on" 13 lilac (off: hollow dot, `--text-2`), then the one lead control (R16): on → **Lead ▾** menu with *Restart the lead* ("It picks up where it left off", instant, toast) and *Stop the lead…* ("Running tasks finish first", confirms); off → **▷ Start the lead** (busy: "Starting…"). Live line at the right.
+- **Section tabs** under the head (44 tall, sticky under it on desk and middle; scroll sideways on the phone, never wrap, each ≥ 44 wide): Overview · Tasks 2 (open) · Outcomes 4/9 · Audits 1 (open findings) · Docs · Activity (→ Activity filtered to the project) · Settings (→ the project's settings, UX-3 A). Counts `--text-3`, hidden until known.
+- **Layout** (page with facts): desk = reading column ≤ 760 (`--size-focus-max`) + facts 280, gap 48 (`--space-12`); the facts column is sticky under the tabs. Middle = one column, facts right under Now as a 2 × 2 grid between hairlines. Phone = facts fold "Money and facts · **$40.00 of $40 today**" (52 tall, closed), right under Now.
+- **Now** (R13): label "Now" 12 `--text-2`; one serif sentence 30/36 (`--font-display`, phone `--text-xl-phone`), max 24ch: "Today’s $40 is used, so new work waits."; lede 16/24 `--text-2`: what it means and what happens next; at most one primary button named for what it opens ("Review the budget ›", phone full width 44). Then the **phase track**: five 6 px bars (gap 4), past `--text-3`, future `--surface-selected`, the current one 2.6× wide and split into one pip per outcome (met = `--done`, not met = `--border-strong`); labels 12 under each (current 600 `--text`; phone shows only the last past and the current). Then **figures in one line** 13 `--text-2`, values 500 `--text`, "·" separators: "1 working · **1 needs you now** · 3 waiting on you · 4 of 9 outcomes met · **$40.00 of $40 today, at its limit**" (red only for needs-you-now and the limit; at ≥ 80 % the words "most of it used", UX-11 C). Phone: a 2-up grid, no dots.
+- **Needs you here** (only when > 0; count red if any needs you now): rows 52 tall (phone 60): dot, title 500 over kind 13 `--text-2`, age 12 `--text-3` right; hairlines between; each opens the Inbox at that item. The row's name is one sentence ("replay used today’s $40, so new work is paused. Needs you now, Budget, 12 min ago").
+- **In progress**: a card per task (radius `--radius-md`, padding 12 16): the Office's **window as its glyph** (14 × 19; lit lilac with a soft glow while working, green with a tick when done, dark when waiting), title 16/24 500, latest step 13 `--text-2`, then a 5-segment **stage track** (14 × 3 each: Planning · Building · Checking · Review · Done; current lilac while working, green when done), "Builder · Building" and "Try 2 of 5 · 1 min ago" 12. Working card border is 35 % lilac. Next tasks use the same card, dark window, "Next". None: one sentence ("Nothing is being built yet. Tasks appear here once the lead plans them." / lead off: "Nothing running. The lead is off, so nothing new starts.").
+- **Recent**: up to 4 events, time column 88 (phone 64) 12 `--text-3`, words 13 `--text-2` (good news `--text`), then "All activity for replay".
+- **Facts** (R14), four groups between hairlines, labels 12: *Spent on replay* (Today meter `$40.00 of $40`, full and red at the limit with "At its limit: new work waits until midnight"; "So far $286.40"; fold "Where it went": Tasks $241.10 · Lead $38.90 · Audits $6.40, "API-equivalent cost, not a bill."), *Your Claude plan* (41 % used, "Resets in 2 h 10 min · shared by every project", the same figure as the sidebar), *Team* (one line per agent: dot, role, state word in its colour; "Open the Office"), *How it runs* (Shipping, Gating, In the Claude app “replay lead”, stacked; "Change in Settings").
+- **Other tabs** (R15), each a plain list in the reading column: Tasks (dot · title · "Working · Builder · Building · try 2 of 5" · age), Outcomes (a ring per outcome, filled green with a tick when met; "Met 11:05 · review passed" / "Being built: …" / "Not yet: an audit found they can’t" / "Not started"), Audits (open findings → Inbox; past audits with checks, findings, cost), Docs (Charter, Spec, Design, Contracts as folds: "Approved by you 18 Oct · 1 min read", the first paragraph inside).
+- **Confirm** (UX-10, `<dialog>`, 420 max, radius `--radius-lg`, `--shadow-3`, scrim): "Stop the lead for replay?" / "Nothing new starts until you start it again. The builder finishes the try it is on." / **Keep it running** (focused, Esc) · **Stop the lead** (`.btn-danger`).
+- **States**: loading = Now, facts and two sections as skeletons, tab counts and chrome figures hidden; error = the neutral notice "The replay page didn’t load. Trying again in 15 s." + Try now; stale = "↻ Last updated 14:02 · Retrying", the working window loses its glow; empty = a project created a minute ago (`?p=tidepool`): "The lead is reading your description." / "It drafts a charter next, about ten minutes. You approve it in the Inbox; nothing else to do now.", the phase track on Brief with no pips, no Needs-you section, "Nothing is being built yet…", Recent "You created tidepool".
+- **Motion** (Flow; transform and opacity only): a task finishing turns its window green and the tick shows, its words rise 4 px (`hf-tick`); ~2.4 s later the card slides out (`--shift`, `--dur-base`, `--ease-exit`) and the event rises into Recent (`--dur-slow`, `--ease-enter`); a new task's card rises in; a met outcome's pip grows from the left (`scaleX`, `--spring-snappy`) and "4" ticks to "5" here, in the tab ("5/9") and in the phase track's spoken label. Counts in head, chrome and team tick in place; open folds, scroll and focus stay (R7). Menu and dialog enter with `p-in` (4 px, `--dur-base`). Reduced motion: fades only.
+- **Demo**: `media/project-{desktop,phone}-dark.webm` (13 s) + contact sheets: the builder finishes Trim clips (green window), the card leaves for Recent, the reviewer starts, its checks pass, an outcome is met (4 → 5 of 9); "Where it went" stays open the whole time.
+
 ### Sheet additions (D6)
 
-New shared parts, all in `screens2/hf.css` and built from tokens: `.hf-notice` (neutral self-retrying error), `.hf-live` (fresh / stale line), `.hf-empty` (serif line + sentence + one action), `.is-tick` (figure changes in place), `.strip` (window strip, Office), `.desk` (desk card with scene). `components.css` is unchanged.
+New shared parts, all in `screens2/hf.css` and built from tokens: `.hf-notice` (neutral self-retrying error), `.hf-live` (fresh / stale line), `.hf-empty` (serif line + sentence + one action), `.is-tick` (figure changes in place), `.strip` (window strip, Office), `.desk` (desk card with scene). Project page (`project.css`): `.p-phases` + `.pips` (phase track with outcomes), `.p-stages` (task stage track, also on the task page), `.p-win` (the window glyph at text size), `.p-task` (task card), `.p-row` (two-line link row), `.p-pop` (menu: 272 wide, items 44 tall with a one-line hint), `.p-dialog` (confirm). `components.css` is unchanged.
 
 ### Endpoint needs (for frontend; read data only, no new actions)
 
 - **Office desk** (`/api/overview` team): per agent, besides role/status/what: the latest step in plain words, progress as `[done, of, unit]` when known, time of last activity, and a "quiet longer than usual" flag (or the expected interval, so the client can compare). On-duty count in the one summary.
 - **Finished events**: a desk that just finished must say so for one refresh (`finishedAt`), so the green tick plays once and only on a real finish.
+- **Project page** (`/api/project/<id>`): a "Now" sentence and its one action are derived on the client from what the page already reads (the most urgent Inbox item, else the lead's state, else the phase); no new field. Needs, per project: outcomes as a list with met / not met and a short status (`met at`, or the task building it); the phase index; per task in progress the stage, latest step, progress `[done, of, unit]` and last activity (same as the Office desk); the money split Tasks / Lead / Audits from the one summary (R2), not added up on the client; the lead's name in the Claude app.
 
 ### If the owner answers differently
 
@@ -899,6 +918,10 @@ New shared parts, all in `screens2/hf.css` and built from tokens: `.hf-notice` (
 | UX-9 (money in chrome) | B: money on each screen | Office head gains the spend; sidebar foot loses it |
 | UX-7 (middle nav) | B: top bar + tabs at 768–1279 | `hf.css` middle block and `hf.js` rail only |
 | UX-2 (phone tabs) | other tabs | `hf.js` tab bar only |
+| UX-6 (top of a project) | B: figures first | `project.js` `now()`: the figures line moves above the sentence as four large numbers; C: the phase track moves up and grows. Data unchanged |
+| UX-14 (Outcomes) | B: keep "Criteria" | The word only: tab, figures line, Outcomes list heading (`project.js`) |
+| UX-3 (settings) | B: one Settings page for everything | The project's Settings tab and "Change in Settings" link to the global page with the project's section open |
+| UX-11 (early warning) | A / B: an Inbox item | The money line loses "most of it used"; the item appears in Needs you here like any other |
 
 ### Screens round S1 (Office: design-critique, accessibility-review, ux-copy)
 
@@ -915,6 +938,22 @@ Renders: `runs/pjv7/tools/s2-shots.mjs` (Office × 1440 / 768 / 390 × dark / li
 | (a11y) Desk links read "DesignerWorking High-fi…"; nav "Office3 working", "replay3" | One sentence per desk as its name; nav labels "Office, 3 working", "replay, 3 waiting, lead on" | 4.1.2 names that make sense read aloud |
 | (a11y) Phone targets under 44: brand link 67×20, floor names 63×21 | Both 44 tall | 2.5.5; after: 0 small targets on the phone |
 | (copy) "Idle", "On duty" on desks; "Auditing" | Only the four words: Working, Needs you, Waiting, Off (and Done for a moment) | §5: one short fixed list everywhere |
+
+### Screens round S2 (Project page: design-critique, accessibility-review, ux-copy)
+
+Renders: `s2-shots.mjs` (now takes `page~query`), project × 1440 / 768 / 390 × dark / light × (replay, dodge, tidepool, Outcomes, Docs, menu, stop confirm, loading, error, stale) = 60 + phone first screens; 0 console errors, no sideways scroll. `pcontrast.mjs` in dark and light on replay, dodge, Outcomes and with the menu open: **0 under AA**; lowest dark 5.15 (red count "3"), light 4.76. `a11y.mjs` at 390 and 1440 on replay and dodge: 0 small, 0 unnamed, a ring on every stop. Before / after in `review/screens2/s2/`.
+
+| Found | Changed | Why |
+|---|---|---|
+| (critique) The lead menu was open on load: `.p-pop { display: grid }` beat the `hidden` attribute | `.p-pop[hidden] { display: none }` | A menu that hides the tabs is a bug, not a state |
+| (critique) "3 waiting on you" was red although only one item needs the owner now | Figures say "**1 needs you now** · 3 waiting on you"; only the first is red | §5: red only when the owner must act now; seven red words would alarm (AC-1, AC-7) |
+| (critique) New project (`tidepool`): a big empty band between Now and In progress, because the tall facts column stretched the first grid row | `grid-template-rows: auto 1fr` (`before/after-project-tidepool-1440-light.png`) | The empty state should read as calm, not broken |
+| (critique) Middle width: facts groups stretched to each other's height, the plan meter floated mid-cell (`after-project-dodge-768-dark.png`) | Facts groups align to the top | Rhythm: labels on one line across the row |
+| (critique) Phone: the figures line wrapped with a "·" at the start of a line | A 2-up grid on the phone, no dots | A stray separator reads as a typo |
+| (critique) "How it runs" squeezed "Draft pull requests you merge" into a 140 px column | Stacked: label over value | The facts column is 280; two columns there only fit numbers |
+| (a11y) Phone tabs 29 px wide ("Docs"); then, after a 44 px min-width, the tabs shrank and overlapped ("Tasks 2Outcomes 4/9") | `min-width: 44px; flex: none` (`before/after-project-tabs-390.png`) | 2.5.5 targets, and a scroller must not squeeze its items |
+| (a11y) Row names ran together: "…pausedBudget" | Each row's name is one sentence: title, state, kind, age | 4.1.2 names that make sense read aloud |
+| (copy) Checked every string against the eight plain-words rules (§5): no IDs in a first line, the project named, buttons named for what they open or do, the menu items carry a one-line consequence, the confirm names both results | No change needed | Recorded so the next round knows it was checked, not skipped |
 
 ## Open questions
 

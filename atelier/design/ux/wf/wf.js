@@ -44,7 +44,48 @@ window.ATELIER_MODEL = (() => {
       { id: 'd-re-reviewer', role: 'Reviewer', k: '', st: 'Waiting', what: 'Nothing to review yet', step: 'Last review 40 min ago', ago: '40 min ago', href: 'project.html' }] },
     { p: 'dodge', working: 0, today: '$0.00', quiet: true, lead: false, note: 'Lead off · nothing running · the design waits for your OK in the Inbox', desks: [] },
   ];
-  return { UX, NOW, PROJECTS, OFFICE };
+  /* Project pages (UX-6 A: Now first). Every figure agrees with NOW, PROJECTS and OFFICE above.
+     needs: [k, title, kind, age] (the project's Inbox items); work: tasks in progress or next; recent: [time, words, k]. */
+  const PHASES = ['Brief', 'Spec', 'Design', 'Contracts', 'Build'];
+  const PAGES = {
+    replay: {
+      lead: true, app: 'replay lead', phase: 4, met: 4, of: 9, tasks: 6, audits: 1,
+      now: 'Today’s $40 is used, so new work waits.',
+      nowMore: 'The builder finishes its current try first. Raise today’s limit, or work starts again at midnight.',
+      act: ['Review the budget', 'inbox.html'],
+      needs: [['needs', 'replay used today’s $40, so new work is paused', 'Budget', '12 min'], ['', 'Does trimming keep the sound in sync?', 'Your judgement', '1 h'], ['', 'The trim handles can’t be reached by keyboard', 'Auditor finding', '3 h']],
+      work: [
+        { id: 't-trim', k: 'active', title: 'Trim clips on the timeline', who: 'Builder', stage: 1, step: 'Wiring the trim handles into the timeline', prog: 'Try 2 of 5', ago: '1 min ago', href: 'task.html' },
+        { id: 't-share', k: '', title: 'Share a clip as a link', who: 'Next', stage: 0, step: 'Starts when the budget allows', prog: '', ago: '', href: 'task.html' }],
+      recent: [['13:40', 'Paused: today’s budget is used', ''], ['13:31', 'First try failed the check: audio drifts by 40 ms', ''], ['13:22', 'Trim clips on the timeline showed its work', ''], ['11:05', 'Review passed: the clip list scrolls smoothly', 'done']],
+      money: { today: '$40.00', limit: '$40', pct: 100, total: '$286.40', split: [['Tasks', '$241.10'], ['Lead', '$38.90'], ['Audits', '$6.40']] },
+      facts: [['Shipping', 'Draft pull requests you merge'], ['Gating', 'Standard: you OK the spec, design and contracts']],
+      team: [['Lead', 'needs', 'Needs you'], ['Builder', 'active', 'Working'], ['Reviewer', '', 'Waiting']],
+    },
+    dodge: {
+      lead: false, app: 'dodge lead', phase: 2, met: 0, of: 6, tasks: 0, audits: 0,
+      now: 'The design waits for your OK.',
+      nowMore: 'Two screens: playing a round and the results. The lead is off; it starts again when you approve.',
+      act: ['Review the design', 'inbox.html'],
+      needs: [['needs', 'The design for dodge is ready for your OK', 'Design gate', '2 h'], ['', 'The charter changed after you approved it', 'Charter', 'Mon']],
+      work: [],
+      recent: [['Yesterday 16:30', 'Lead stopped by you', ''], ['Yesterday 16:04', 'The design is ready for your OK', '']],
+      money: { today: '$0.00', limit: '$20', pct: 0, total: '$64.20', split: [['Tasks', '$0.00'], ['Lead', '$58.10'], ['Audits', '$6.10']] },
+      facts: [['Shipping', 'Draft pull requests you merge'], ['Gating', 'Standard: you OK the spec, design and contracts']],
+      team: [['Lead', 'off', 'Off']],
+    },
+    /* A project created a minute ago (New project → here): the lead reads the description and drafts a charter. */
+    tidepool: {
+      lead: true, app: 'tidepool lead', phase: 0, met: 0, of: 0, tasks: 0, audits: 0, fresh: true,
+      now: 'The lead is reading your description.',
+      nowMore: 'It drafts a charter next, about ten minutes. You approve it in the Inbox; nothing else to do now.',
+      act: null, needs: [], work: [], recent: [['14:02', 'You created tidepool', '']],
+      money: { today: '$0.04', limit: '$20', pct: 0, total: '$0.04', split: [['Tasks', '$0.00'], ['Lead', '$0.04'], ['Audits', '$0.00']] },
+      facts: [['Shipping', 'Draft pull requests you merge'], ['Gating', 'Standard: you OK the spec, design and contracts']],
+      team: [['Lead', 'active', 'Working']],
+    },
+  };
+  return { UX, NOW, PROJECTS, OFFICE, PHASES, PAGES };
 })();
 
 (() => {
@@ -204,7 +245,7 @@ window.ATELIER_MODEL = (() => {
     </div></div>`,
   });
 
-  const ptabs = active => `<nav class="wf-tabsrow tabs" aria-label="Project">${[['Overview'], ['Tasks', '6'], ['Outcomes', '4/9'], ['Audits', '1'], ['Docs'], ['Activity'], ['Settings']].map(([t, c]) =>
+  const ptabs = active => `<nav class="wf-tabsrow tabs" aria-label="Project">${[['Overview'], ['Tasks', '2'], ['Outcomes', '4/9'], ['Audits', '1'], ['Docs'], ['Activity'], ['Settings']].map(([t, c]) =>
     `<a class="tab" href="project.html"${t === active ? ' aria-current="page"' : ''}>${t}${c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}</nav>`;
 
   S.project = () => ({

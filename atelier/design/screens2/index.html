@@ -55,7 +55,8 @@
   /* Every screen of the D6 task, in build order (core first). ready = drawn high-fi; ux = the decisions it is drawn on. */
   const SCREENS = [
     { id: 'office', name: 'Office', ready: true, ux: ['UX-8', 'UX-9', 'UX-7', 'UX-2'], what: 'A floor per project, a desk per agent: a lit window while it works, a raised hand when it needs you. Live changes in place.', states: ',loading,empty,error,stale' },
-    { id: 'project', name: 'Project page', ux: ['UX-6', 'UX-14', 'UX-3', 'UX-11'], what: 'Now first (what needs you here, what is happening, the phase track), figures in one line, then the tabs.' },
+    { id: 'project', name: 'Project page', ready: true, ux: ['UX-6', 'UX-14', 'UX-3', 'UX-11'], what: 'Now first: one sentence on what is going on and its button, the phase track with its outcomes, the figures in one line. Then what needs you here, what is in progress, recent events; money, plan and team beside it. Live refresh in place.', states: ',loading,error,stale',
+      also: [['dodge, lead off', 'project.html?p=dodge'], ['tidepool, created a minute ago (empty)', 'project.html?p=tidepool'], ['Lead menu', 'project.html?ui=menu'], ['Stop the lead: confirm', 'project.html?ui=stop'], ['Tasks', 'project.html?tab=tasks'], ['Outcomes', 'project.html?tab=outcomes'], ['Audits', 'project.html?tab=audits'], ['Docs', 'project.html?tab=docs']] },
     { id: 'task', name: 'Task page', ux: ['UX-4', 'UX-5'], what: 'Stage track, latest step, last active, the proof (screenshots and recordings), history.' },
     { id: 'inbox', name: 'Inbox', ux: ['UX-1', 'UX-10'], what: 'The D2 Inbox in N1 + K1 dark, every behaviour kept: decide, Undo in the toast, zero.' },
     { id: 'projects', name: 'Projects', ux: ['UX-14'], what: 'One sentence per project.' },
@@ -68,6 +69,8 @@
   const DEMOS = [
     ['office-desktop-dark', 'Office as agents start and finish · desktop'],
     ['office-phone-dark', 'Office as agents start and finish · phone', true],
+    ['project-desktop-dark', 'A project page while a task finishes (live refresh, R7) · desktop'],
+    ['project-phone-dark', 'A project page while a task finishes · phone', true],
   ];
   document.getElementById('ix').innerHTML = `
     <header>
@@ -90,6 +93,7 @@
           <h3><a class="link" href="${s.id}.html">${s.name}</a><small>${s.ux.map(k => `${k} ${M.UX[k][0]}`).join(' · ')}</small></h3>
           <p>${s.what}</p>
           <div class="grid-links">Open at ${views(s)}</div>
+          ${s.also ? `<div class="grid-links">Also ${s.also.map(([t, u]) => `<a href="frame.html?src=${encodeURIComponent(u)}${s.states ? '&states=' + s.states : ''}">${t}</a>`).join('')}</div>` : ''}
         </div>
       </article>` : `
       <article class="card is-todo"><div class="info"><h3>${s.name}<small>coming in this task · ${s.ux.map(k => `${k} ${M.UX[k][0]}`).join(' · ')}</small></h3><p>${s.what} Wireframe: <a class="link" href="../ux/wf/${s.id}.html">ux/wf/${s.id}.html</a></p></div></article>`).join('')}
