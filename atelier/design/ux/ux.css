@@ -120,6 +120,26 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: var(--text-sm); l
 
 /* Small labelled figures: a caption under anything */
 .cap { color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); margin-top: var(--space-2); }
+/* §7 wireframes: desk shot beside the phone's first screen */
+.wf-key { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--brand-accent); border: var(--border-width) dashed color-mix(in srgb, var(--brand-accent) 55%, transparent); border-radius: var(--radius-xs); padding: 0 var(--space-1); }
+.wf-index { margin: var(--space-6) 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); border-top: var(--border-width) solid var(--border); }
+.wf-index a { display: flex; gap: var(--space-3); align-items: center; min-height: var(--size-control-lg); color: var(--text); text-decoration: none; border-bottom: var(--border-width) solid var(--border); }
+.wf-index a:hover { color: var(--text); background: var(--surface-hover); }
+.wf-index .n { color: var(--text-3); width: 2ch; font-variant-numeric: tabular-nums; }
+.wfc { display: grid; gap: var(--space-3); margin-top: var(--space-12); scroll-margin-top: var(--space-6); }
+.wfc-head { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; }
+.wfc-head h3 { margin: 0; }
+.wfc .cap { margin: 0; max-width: var(--measure); }
+.wfc-shots { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px); gap: var(--space-4); align-items: start; }
+.wfc-shots figure { margin: 0; display: grid; gap: var(--space-1-5); }
+.wfc-shots img { width: 100%; height: auto; display: block; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.wfc-shots figcaption { color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+@media (max-width: 767px) {
+  .wfc-shots { grid-template-columns: minmax(0, 1fr); }
+  .wfc-phone { width: min(100%, 300px); justify-self: center; }
+  .wfc-head .btn { height: var(--size-control-lg); }
+}
+
 .shot { margin: 0; display: grid; gap: var(--space-2); min-width: 0; }
 .shot img { width: 100%; height: auto; display: block; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); background: var(--surface-sunken); }
 

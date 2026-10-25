@@ -126,6 +126,34 @@
       <dl><dt>1440</dt><dd>${esc(t.desk)}</dd><dt>768</dt><dd>${esc(t.mid)}</dd><dt>390</dt><dd>${esc(t.phone)}</dd></dl>
     </div>`).join('');
 
+  /* §7 Wireframes: desk and phone shots of design/ux/wf/<screen>.html (runs/6umt/tools/wf-shots.mjs), each linked live */
+  const WF = [
+    { id: 'inbox', file: 'inbox.html', name: 'Inbox', look: 'The top item is already open with the thing itself (the two dodge screens) and the dock under it. The queue keeps the two groups; on the phone it follows the item as “Also waiting”.', dec: 'UX-1 UX-2 UX-9 UX-10' },
+    { id: 'inbox-zero', file: 'inbox.html?state=zero', name: 'Inbox, nothing waiting', look: 'One green line, who is working, what you decided today, New project. No count anywhere in the chrome, nothing red.', dec: 'UX-1' },
+    { id: 'office', file: 'office.html', name: 'Office', look: 'A floor per project, busiest first, a desk per agent with its state in a word; the quiet project is one line at the foot.', dec: 'UX-8' },
+    { id: 'projects', file: 'projects.html', name: 'Projects', look: 'One sentence per project and how many things wait on you there. Nothing else to read.', dec: 'UX-14' },
+    { id: 'project', file: 'project.html', name: 'A project (replay)', look: '“Now” first: the next step with its button, the phase track, outcomes met. Then what needs you here, what is in progress, and recent events; money in the facts column. On the phone the tabs scroll sideways.', dec: 'UX-6 UX-11 UX-14' },
+    { id: 'task', file: 'task.html', name: 'A task (Trim clips on the timeline)', look: 'Stage, latest step and last active; proof full width, pictures large. No dock, because nothing needs you. Facts fold away on the phone.', dec: 'UX-4 UX-5' },
+    { id: 'new', file: 'new.html', name: 'New project', look: 'One short form. The description can grow into a pasted brief. Create goes straight to the new project.', dec: 'UX-12' },
+    { id: 'activity', file: 'activity.html', name: 'Activity', look: 'One feed by day, newest first, a project picker and “Only problems”. Red only for problems, green only for good news.', dec: 'UX-13' },
+    { id: 'settings', file: 'settings.html', name: 'Settings', look: 'Only what covers every project: your Claude plan limits, appearance, this device, about. Each project keeps its own Settings tab.', dec: 'UX-3 UX-9' },
+  ];
+  if ($('wf-list')) {
+    $('wf-index').innerHTML = WF.map((w, i) => `<li><a href="#wf-${w.id}"><span class="n">${i + 1}</span>${esc(w.name)}</a></li>`).join('');
+    $('wf-list').innerHTML = WF.map((w, i) => `
+      <article class="wfc" id="wf-${w.id}" aria-labelledby="wf-${w.id}-h">
+        <header class="wfc-head">
+          <h3 id="wf-${w.id}-h"><span class="faint">${i + 1} ·</span> ${esc(w.name)}</h3>
+          <a class="btn btn-secondary btn-sm" href="wf/${w.file}" target="_blank" rel="noopener">Open<span class="sr-only"> the ${esc(w.name)} wireframe</span> ↗</a>
+        </header>
+        <p class="cap">${esc(w.look)} <span class="from">${dref(w.dec)}</span></p>
+        <div class="wfc-shots">
+          <figure class="wfc-desk"><img src="img/wf-${w.id}-1440.png" alt="${esc(w.name)} wireframe at the desk, 1440 wide" decoding="async"><figcaption>Desk · 1440</figcaption></figure>
+          <figure class="wfc-phone"><img src="img/wf-${w.id}-390v.png" alt="${esc(w.name)} wireframe on the phone, 390 wide, the first screen" decoding="async"><figcaption>Phone · 390, first screen</figcaption></figure>
+        </div>
+      </article>`).join('');
+  }
+
   /* §8 Decisions: schematic pictures (structure only, low-fi on purpose), then one card per decision */
   const B = (w, c = '') => `<i class="mf-b${c ? ' ' + c : ''}" style="--w:${w}%"></i>`;
   const L = t => `<span class="mf-l">${esc(t)}</span>`;

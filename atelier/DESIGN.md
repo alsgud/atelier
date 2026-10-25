@@ -778,6 +778,15 @@ One look per thing, on every screen; every figure from the one summary (R2).
 - **Live (R7)**: every 15 s and on tab return, in place; scroll, folds and typing untouched; the open Inbox item is never swapped; "You decided this on another device"; rows never reorder under the pointer.
 - **Notifications**: in-app count (red only for Needs you now), tab title "(2) Atelier", favicon dot; toasts only answer the owner's own action; outside the app is UX-15.
 
+### Wireframes (page §7, `ux/wf/`)
+
+- One engine, one page per screen: `ux/wf/wf.js` + `wf.css` (tokens.css and D2 components for chrome, controls and dots; content is plain type on hairlines). Pages: `inbox.html` (also `?state=zero`), `office.html`, `projects.html`, `project.html`, `task.html`, `new.html`, `activity.html`, `settings.html`. They link to each other, so the owner can click through.
+- Three plans per screen, from the layout system: sidebar 240 + inset panel (≥ 1280), 64 px rail + full-bleed panel (768–1279, UX-7 A), top bar 52 + tab bar 56 (< 768). The dock is sticky at the foot of the reading column and 8 above the tab bar on the phone, with a fill under it so nothing peeks out.
+- Each is drawn with the recommended answers (UX-1 A Inbox first, UX-3 A global Settings, UX-5 A stage + latest step, UX-6 A "Now" first, UX-8 A floors and desks, UX-9 A money in the chrome, UX-12 B growing description, UX-13 A filters). If the owner picks differently, only `wf.js` changes.
+- Dashed blue mono labels (`.wf-note`, `--brand-accent`) name each region and its size; `?clean` hides them, `?shot` puts sticky bars in flow for full-page shots.
+- Real content, one data set: 7 waiting (2 now), 3 working, $52.60 today, plan 41 %, replay at its $40 limit, dodge's design gate with the lead off; proof pictures are replay's and dodge's real screens (`screens/img/`).
+- Shots: `runs/6umt/tools/wf-shots.mjs <worktree> <out> [widths]` renders 1440 / 768 / 390 full page plus the phone's first screen (`-390v`), and reports console errors, sideways scroll and broken images. §7 embeds the 1440 full page and the 390 first screen from `ux/img/`. Result: 0 errors, 0 broken images, no sideways scroll (the project tabs row scrolls by itself on the phone, by design).
+
 ### Decisions (page §8, `ux/decisions.js`)
 
 Each card: the question, why it matters, 2–3 options (schematic picture where it helps), the recommendation marked in words and with the accent border, and why. A "Your reply" block prefills the recommendations as one line with a copy button.
