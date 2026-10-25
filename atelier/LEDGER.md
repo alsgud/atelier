@@ -2,8 +2,9 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
-## Running
-- ysk4 designer D4b brand round 2 ($16, 6 it, base atelier/hspr): N1-N12 logos from L8 + L12, dark-first K1-K3 from C4, Y1 fixed, phone dark vs light, 3 combos. Page brand/r2/index.html. Owner feedback 2026-10-25 = overrule #3, R-6.
+## Waiting on the owner (brand round 2)
+- ysk4 APPROVED round 2; page worktrees/ysk4/atelier/design/brand/r2/index.html; marks N1-N11, schemes K1-K3; combos 1 = N1+K1 (designer's top), 2 = N6+K2, 3 = N11+K3. Lead checked 1-1440-dark. Sent 2026-10-25. Then D5 other screens dark-first, base atelier/ysk4.
+- (done) ysk4 designer D4b brand round 2 ($16, 6 it, base atelier/hspr): N1-N12 logos from L8 + L12, dark-first K1-K3 from C4, Y1 fixed, phone dark vs light, 3 combos. Page brand/r2/index.html. Owner feedback 2026-10-25 = overrule #3, R-6.
 
 ## Waiting on the owner (new)
 - (superseded by ysk4) Brand pick: hspr APPROVED round 2 (~$14). Pick page worktrees/hspr/atelier/design/brand/index.html: L1-L16, C1-C5, Y1-Y3, Combos A-D. Designer's top pick Combo B = L14 Chop + C2 Warm studio + Y1 Sidebar; lead checked b-1440-light and b-390-dark, looks polished. Sent 2026-10-25. Then D5 other screens, base atelier/hspr. Note for Y3: no logo on phone.
