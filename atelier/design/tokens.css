@@ -4,11 +4,12 @@
    (10-12 px badge, tab-bar and kbd labels; 28-32 px compact nav rows, play pill and toast action; the dock's 160 px
    note cap). They live only in components.css; screens never add their own.
    Rules: colour means something. Lilac = active / working, red = needs you now or wrong, green = done.
-   Everything else is a warm neutral. Actions are ink (neutral), not coloured, so colour stays a signal.
+   Everything else is K1's cool slate neutral. Actions are ink (neutral), not coloured, so colour stays a signal.
+   The brand accent (slate blue) is only on the mark and the focus ring. Dark is the default (ruling R-7).
    Fonts are the system's own; nothing loads from the internet. */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
   /* ── Type families ─────────────────────────────────────────────── */
   --font-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Helvetica Neue", Arial, sans-serif;
@@ -113,111 +114,109 @@
      phone < 768 · tablet 768–1279 · desktop ≥ 1280 */
 }
 
-/* ── Colour roles: light ─────────────────────────────────────────── */
-:root, [data-theme="light"] {
-  --bg: #f5f4f1;              /* the canvas behind the app panel; sidebar sits on it */
-  --surface: #ffffff;         /* the app panel, dock, frames */
-  --surface-sunken: #f0eee9;  /* queue column, wells, code */
-  --surface-hover: #ebe9e4;   /* row and ghost-button hover */
-  --surface-selected: #e5e2dc;/* the open queue item, current nav item */
-  --surface-inverse: #1c1b19; /* toasts */
-  --toast-done: #5ccf91;      /* status colours on the inverse toast surface */
-  --toast-needs: #ff8170;
-  --text-on-needs: #ffffff;   /* count on the red phone badge */
-  --overlay-media: rgba(16, 16, 15, 0.78); /* labels laid over screenshots: same in both themes */
+/* ── Colour roles: K1 North light, night (the chosen brand, ruling R-7; DESIGN.md › Chosen brand) ──
+   Dark is the default: it is what :root carries, so a page with no data-theme is dark.
+   Light is opt-in with data-theme="light". The app sets data-theme itself: dark on first run, then the
+   phone's setting (prefers-color-scheme) unless the owner picks one in Settings. Tokens never guess.
+   Values are K1 from brand/r2/schemes-k.css pushed through the shared role mapping (brand/schemes.css),
+   so the r2 pick page and these tokens are the same colours. */
+:root, [data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0e12;             /* n0 canvas: behind the app panel; the sidebar sits on it */
+  --surface: #141920;         /* n2 the app panel, dock, frames */
+  --surface-sunken: #0f1318;  /* n1 wells, quotes, code */
+  --surface-hover: #1b2129;   /* n3 row and ghost-button hover */
+  --surface-selected: #222a33;/* n4 the open queue item, current nav item (neutral: lilac means working) */
+  --surface-inverse: #e9edf1; /* n10 toasts */
+  --toast-done: #13704a;      /* status colours on the inverse toast surface */
+  --toast-needs: #b0261b;
+  --text-on-needs: #141a21;   /* count on the red phone badge */
+  --overlay-media: rgba(11, 14, 18, 0.78); /* labels laid over screenshots: same in both themes */
   --text-on-media: #ffffff;
-  --border: #e3e0da;          /* hairlines */
-  --border-strong: #cfcbc3;   /* frame hover, dividers that must show */
-  --border-field: #8a857c;    /* text fields and checkboxes: 3:1 against the surface (WCAG 1.4.11) */
+  --border: #222a33;          /* n4 hairlines */
+  --border-strong: #313b46;   /* n5 frame hover, dividers that must show */
+  --border-field: #65707c;    /* n6 text fields and checkboxes: 3:1 against the surface (WCAG 1.4.11) */
 
-  --text: #1c1b19;            /* 16.3:1 on surface */
-  --text-2: #5d5953;          /* 6.7:1 on surface, 5.9:1 on sunken */
-  --text-3: #67625a;          /* meta, placeholders; ≥4.5:1 on every light surface */
-  --text-inverse: #f5f4f1;
-  --text-on-ink: #ffffff;
+  --text: #e9edf1;            /* n10 */
+  --text-2: #a7b0bb;          /* n8 */
+  --text-3: #919ba7;          /* n7 meta, placeholders; ≥ 4.5:1 on every dark surface */
+  --text-inverse: #0f1318;
+  --text-on-ink: #0f1318;
 
-  --ink: #1c1b19;             /* primary button */
-  --ink-hover: #3a3834;
-  --ink-active: #000000;
-
-  --active: #6447cc;          /* lilac: working, live, focus */
-  --active-soft: #efeafc;     /* lilac wash behind a working row */
-  --active-track: #ddd3f7;    /* empty part of a progress bar */
-  --needs: #b0291a;           /* red: needs you now, wrong, error */
-  --needs-soft: #fcece9;
-  --done: #176a40;            /* green: done */
-  --done-soft: #e5f3eb;
-
-  --focus-ring: #6447cc;
-  --scrim: rgba(28, 27, 25, 0.32);
-
-  --shadow-1: 0 1px 2px rgba(28, 27, 25, 0.05);
-  --shadow-2: 0 1px 2px rgba(28, 27, 25, 0.04), 0 10px 28px -10px rgba(28, 27, 25, 0.16);
-  --shadow-3: 0 2px 6px rgba(28, 27, 25, 0.06), 0 18px 40px -12px rgba(28, 27, 25, 0.28);
-  --skeleton: #ebe9e4;
-  --skeleton-shine: #f5f4f1;
-}
-
-/* ── Colour roles: dark ──────────────────────────────────────────── */
-[data-theme="dark"] {
-  --bg: #0f0f0e;
-  --surface: #181816;
-  --surface-sunken: #141412;
-  --surface-hover: #22211f;
-  --surface-selected: #2a2927;
-  --surface-inverse: #f1efeb;
-  --toast-done: #176a40;
-  --toast-needs: #b0291a;
-  --text-on-needs: #1c1b19;
-  --overlay-media: rgba(16, 16, 15, 0.78);
-  --text-on-media: #ffffff;
-  --border: #2a2927;
-  --border-strong: #3b3936;
-  --border-field: #6f6a63;
-
-  --text: #edebe7;            /* 14.9:1 on surface */
-  --text-2: #aaa59d;          /* 7.4:1 on surface */
-  --text-3: #9a958c;
-  --text-inverse: #1c1b19;
-  --text-on-ink: #141412;
-
-  --ink: #edebe7;
+  --ink: #e9edf1;             /* primary button: the ramp's top step, never pure white */
   --ink-hover: #ffffff;
-  --ink-active: #d6d3cd;
+  --ink-active: #d3d9e0;
 
-  --active: #b19cff;          /* 7.4:1 on surface */
-  --active-soft: #231e36;
-  --active-track: #352d55;
-  --needs: #ff8170;           /* 7.0:1 on surface */
-  --needs-soft: #34201c;
-  --done: #5ccf91;            /* 9.0:1 on surface */
-  --done-soft: #17291f;
+  --brand-accent: #8fb6e6;    /* moonlit slate blue: the mark's light patch and the focus ring only, never content */
+  --brand-knock: #141920;     /* knock-outs inside the mark */
+  --wait: #919ba7;            /* waiting is neutral (R4): a hollow ring and the word */
 
-  --focus-ring: #b19cff;
+  --active: #b39cff;          /* lilac: working, live */
+  --active-soft: #211d35;     /* lilac wash behind a working row */
+  --active-track: #352d56;    /* empty part of a progress bar */
+  --needs: #ff8578;           /* red: needs you now, wrong, error */
+  --needs-soft: #321c1d;
+  --done: #5fd198;            /* green: done */
+  --done-soft: #132820;
+
+  --focus-ring: #8fb6e6;
   --scrim: rgba(0, 0, 0, 0.56);
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 32px -10px rgba(0, 0, 0, 0.7);
   --shadow-3: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
-  --skeleton: #22211f;
-  --skeleton-shine: #2a2927;
+  --skeleton: #1b2129;
+  --skeleton-shine: #222a33;
 }
 
-/* Follow the system when no theme is forced. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f0f0e; --surface: #181816; --surface-sunken: #141412; --surface-hover: #22211f;
-    --surface-selected: #2a2927; --surface-inverse: #f1efeb; --toast-done: #176a40; --toast-needs: #b0291a; --text-on-needs: #1c1b19; --overlay-media: rgba(16, 16, 15, 0.78); --text-on-media: #ffffff; --border: #2a2927; --border-strong: #3b3936; --border-field: #6f6a63;
-    --text: #edebe7; --text-2: #aaa59d; --text-3: #9a958c; --text-inverse: #1c1b19; --text-on-ink: #141412;
-    --ink: #edebe7; --ink-hover: #ffffff; --ink-active: #d6d3cd;
-    --active: #b19cff; --active-soft: #231e36; --active-track: #352d55;
-    --needs: #ff8170; --needs-soft: #34201c; --done: #5ccf91; --done-soft: #17291f;
-    --focus-ring: #b19cff; --scrim: rgba(0, 0, 0, 0.56);
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 32px -10px rgba(0, 0, 0, 0.7);
-    --shadow-3: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
-    --skeleton: #22211f; --skeleton-shine: #2a2927;
-  }
+/* ── Colour roles: K1 North light, day (light, opt-in) ───────────── */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #edf0f3;             /* n1 cool paper, never #fff (C2 light read as glaring) */
+  --surface: #f7f9fa;         /* n0 */
+  --surface-sunken: #e8ecf0;  /* n2 */
+  --surface-hover: #e1e6eb;   /* n3 */
+  --surface-selected: #d9dfe5;/* n4 */
+  --surface-inverse: #131a21; /* n10 */
+  --toast-done: #5fd198;
+  --toast-needs: #ff8578;
+  --text-on-needs: #ffffff;
+  --overlay-media: rgba(11, 14, 18, 0.78);
+  --text-on-media: #ffffff;
+  --border: #d9dfe5;          /* n4 */
+  --border-strong: #c1c9d1;   /* n5 */
+  --border-field: #7b8591;    /* n6 */
+
+  --text: #131a21;            /* n10 */
+  --text-2: #4a5460;          /* n8 */
+  --text-3: #56606c;          /* n7; lowest pair: on --surface-selected 4.76 */
+  --text-inverse: #edf0f3;
+  --text-on-ink: #f7f9fa;
+
+  --ink: #131a21;
+  --ink-hover: #2b333c;
+  --ink-active: #000000;
+
+  --brand-accent: #2e65a1;
+  --brand-knock: #f7f9fa;
+  --wait: #56606c;
+
+  --active: #6443cc;
+  --active-soft: #ebe6f8;
+  --active-track: #d8cff3;
+  --needs: #a8241a;
+  --needs-soft: #f6e7e5;
+  --done: #116a46;
+  --done-soft: #dfede6;
+
+  --focus-ring: #2e65a1;
+  --scrim: rgba(0, 0, 0, 0.3);
+
+  --shadow-1: 0 1px 2px rgba(19, 26, 33, 0.05);
+  --shadow-2: 0 1px 2px rgba(19, 26, 33, 0.04), 0 10px 28px -10px rgba(19, 26, 33, 0.16);
+  --shadow-3: 0 2px 6px rgba(19, 26, 33, 0.06), 0 18px 40px -12px rgba(19, 26, 33, 0.28);
+  --skeleton: #e1e6eb;
+  --skeleton-shine: #edf0f3;
 }
 
 /* Reduced motion: nothing travels, scales, pulses or shimmers. What changes, changes with a short cross-fade

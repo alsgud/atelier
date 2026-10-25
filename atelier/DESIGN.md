@@ -672,6 +672,26 @@ Each is the full Flow Inbox in dark at 1440 and 390 and light at 390 (`r2/img/co
 - *Changed*: each `.contrast` box is `role="region"`, `tabindex="0"`, `aria-label="K1 contrast table, scrolls sideways"`.
 - *Kept*: the "·" separators stay readable to screen readers; hiding them would run "replay" and "25 min ago" together.
 
+## Chosen brand
+
+**N1 Window and its light + K1 North light, night + Y1 Sidebar, dark by default** (ruling R-7, the owner's pick from round 2; it was the top pick, Combo 1). Everything from D5 on is built on it.
+
+| Part | Choice | Where it lives |
+|---|---|---|
+| Mark | **N1 Window and its light**: a round arch over a sheared, sharp-cornered patch of light on the floor. Its small cut (no transom, heavier line, bigger patch) is used at 20 px and under | `brand/r2/marks.js` (`mark2('N1', size)`), crops in `brand/r2/img/bar/` |
+| Colour | **K1 North light, night** (dark) and **North light, day** (light): slate near-black `#0b0e12`, surface `#141920`; cool paper `#edf0f3` / `#f7f9fa`. The slate-blue accent (`#8fb6e6` / `#2e65a1`) is only on the mark and the focus ring; on content, colour still only means working (lilac), needs you (red) or done (green) | `design/tokens.css` (now K1, dark in `:root`), source `brand/r2/schemes-k.css` |
+| Layout | **Y1 Sidebar**: 240 px sidebar with the lockup, nav, projects and the plan/spend foot; phone tab bar | `brand/r2/app/inbox.html?logo=N1&scheme=k1` |
+| Mode | **Dark by default.** First run is dark everywhere. After first run the phone follows the device's setting (`prefers-color-scheme`); the desktop stays dark until the owner changes it. A plain dropdown in Settings (Dark · Light · Follow the device) overrides both | Tokens: `:root` / `[data-theme="dark"]` = dark, `[data-theme="light"]` = light. The app sets `data-theme`; the tokens never guess |
+| Motion | **Flow**, unchanged (R-5) | `design/feel/flow/` |
+
+*Why* (from round 2): N1 keeps what the owner liked in L8 from afar and adds the one thing it lacked, the light on the floor: a crisp shape under a soft arch (the owner's "smooth curves against crisp edges") that says "the light is on, the work is going on". K1 is the C4 North light the owner liked, turned dark first, so the one brand colour on a calm near-black page is the light in the mark. Name, mark and colour tell one story. Dark suits night check-ins and OLED phones; the light mode is soft paper, never white, for outdoors.
+
+Rationale, options and every render: `design/brand/r2/index.html` (the pick page), combo screens `brand/r2/img/combo/1-*.png`, demos `brand/r2/img/combo/combo-1-{desktop,phone}-dark.webm` with contact sheets `contact-1-*.png`.
+
+**What changed in the system**: `tokens.css` colour roles are K1 (contrast measured from the file, `runs/6umt/tools/contrast-k1.mjs`: 0 text pairs under 4.5:1 in either mode; lowest light `--text-3` on `--surface-selected` 4.76, lowest dark 5.15; field borders 3.50 / 3.16, focus ring 8.41 / 5.69). New roles: `--brand-accent`, `--brand-knock`, `--wait`. The focus ring is now the brand accent, not lilac, so lilac means only working. Type, spacing, sizes, radii, motion: unchanged. Older pages that load `tokens.css` (D2 `screens/inbox.html`, `components.html`, D3 feels) now render in K1 too; their 2×2 grid mark is superseded by N1 and stays only for the record.
+
+Still to do in the high-fi task (from the round-2 hand-off): export N1 and its small cut as `brand/mark.svg` / `mark-16.svg`, favicon and a 512 px app icon (N3 on the tile), outline the wordmark; fold Y1's rules into `components.css`; trademark search before public use (Open questions).
+
 ## Open questions
 
 - **D4: trademark search** for the logo the owner picks (USPTO / EUIPO image search, or a lawyer). Outward-facing, so not done by an agent.
