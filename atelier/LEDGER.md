@@ -19,6 +19,9 @@
 - Owner: feel and animations still lacking; wants more demos and refined versions (overrule #2, ruling R-3). Cancelled w9ew. 57cv started: motion references, motion system, three feel variants with recorded demos.
 - Ruling R-4 and team check AC-18 (speed). 6dug started.
 
+## Lead's own cost
+- 2026-10-25: re-arming the 30-min watch while idle cost ~$7 with no work running. While nothing runs and only owner decisions are pending, let the watch lapse; rely on the 2-hour check-in and owner chat. Re-arm as soon as any task starts.
+
 ## Next
 - 6dug done and reviewed: check the timings, land it if the owner agrees, tell the owner it's faster.
 - 57cv done: watch the demos myself, then send the owner feel/index.html and the phone demos, recommend one.
