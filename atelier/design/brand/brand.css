@@ -66,7 +66,7 @@
 .meanings { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--space-2) var(--space-4); }
 .meaning { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
 .meaning b { font-weight: var(--weight-medium); }
-.meaning code { color: var(--text-3); font-family: var(--font-mono); font-size: var(--text-xs); margin-left: auto; }
+.meaning code { color: var(--text-3); font-family: var(--font-mono); font-size: var(--text-xs); margin-left: auto; white-space: nowrap; }
 .dot-wait { display: inline-block; width: var(--size-dot); height: var(--size-dot); border-radius: var(--radius-full); box-shadow: inset 0 0 0 1.5px var(--wait); flex: none; }
 .sample { background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); display: grid; gap: var(--space-3); }
 .sample .title-display { font-size: var(--text-lg); line-height: var(--leading-lg); }

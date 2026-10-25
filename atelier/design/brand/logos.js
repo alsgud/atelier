@@ -10,7 +10,28 @@
   const SA = (w = 3) => `fill="none" style="stroke:var(--brand-accent)" stroke-width="${w}"`;
   const SB = (w = 3) => `fill="none" style="stroke:var(--brand-knock)" stroke-width="${w}"`;
   const R = 'stroke-linecap="round" stroke-linejoin="round"';
-  const serif = 'style="font-family:var(--font-display);font-weight:400"';
+  /* The Maker's-mark letters are drawn, not set, so they look the same on every device.
+     serifA: a cap A with a thin left stroke, a thick right stroke, a thin bar and slab feet; drawn at cap height 10
+     around the baseline centre, then scaled to H. All polygons run clockwise so overlaps union. */
+  const SERIF_A = [
+    [[-1, -10], [0, -10], [-3.4, 0], [-4.4, 0]],      // thin left stroke
+    [[-0.9, -10], [1.1, -10], [4.7, 0], [2.7, 0]],    // thick right stroke
+    [[-2.6, -3.9], [1.9, -3.9], [1.9, -3], [-2.6, -3]], // bar
+    [[-5.6, -0.8], [-2.4, -0.8], [-2.4, 0], [-5.6, 0]], // left foot
+    [[1.4, -0.8], [6, -0.8], [6, 0], [1.4, 0]],        // right foot
+  ];
+  const serifA = (cx, base, H, fill) => {
+    const s = H / 10, f = n => +n.toFixed(2);
+    const d = SERIF_A.map(p => 'M' + p.map(([x, y]) => `${f(cx - 0.2 * s + x * s)} ${f(base + y * s)}`).join('L') + 'Z').join('');
+    return `<path d="${d}" ${fill}/>`;
+  };
+  /* serifA2: a double-storey a (bowl heavier on the left, hooked top with a ball terminal, stem with a tail),
+     drawn for the L14 chop at x-height 12 on baseline 23. */
+  const serifA2 = fill => `<g transform="translate(-0.6 0)">`
+    + `<path fill-rule="evenodd" d="M11 19.6a4.6 3.5 0 1 0 9.2 0a4.6 3.5 0 1 0-9.2 0ZM13.7 19.9a2.6 2.1 0 1 0 5.2 0a2.6 2.1 0 1 0-5.2 0Z" ${fill}/>`
+    + `<path d="M21.6 15.4C21.6 12.4 19.4 11 16.2 11C13.8 11 12 11.8 11.3 13.1L13.6 14C14.1 13.3 15 12.9 16.2 12.9C18 12.9 18.8 13.8 18.8 15.4Z" ${fill}/>`
+    + `<circle cx="12.4" cy="14" r="2" ${fill}/>`
+    + `<path d="M18.8 14.6H21.6V21.1C21.6 21.9 22 22.2 22.6 22.2H23.6V23H21.4C19.8 23 18.8 22.3 18.8 21.1Z" ${fill}/></g>`;
   let uid = 0;
   const clip = (d, body) => { const id = `lc${++uid}`; return `<clipPath id="${id}"><path d="${d}"/></clipPath><g clip-path="url(#${id})">${body}</g>`; };
 
@@ -55,13 +76,13 @@
       body: () => `<path d="M21 9.5v9a7.25 7.25 0 1 0 0 .01V26" ${SK(3)} ${R}/><circle cx="26.75" cy="25" r="2.5" ${A}/>` },
     /* ── Maker's mark ── */
     { id: 'L13', concept: 'seal', name: 'Seal ring', idea: 'A serif A in a ring; a quarter of the ring is lit, the work under way.',
-      body: () => `<circle cx="16" cy="16" r="13.5" ${SK(2.5)}/><path d="M16 2.5a13.5 13.5 0 0 1 13.5 13.5" ${SA(2.5)}/><text x="16" y="21.6" text-anchor="middle" font-size="16" ${K} ${serif}>A</text>` },
+      body: () => `<circle cx="16" cy="16" r="13.5" ${SK(2.5)}/><path d="M16 2.5a13.5 13.5 0 0 1 13.5 13.5" ${SA(2.5)}/>${serifA(16, 21.5, 11, K)}` },
     { id: 'L14', concept: 'seal', name: 'Chop', idea: 'A square chop with a serif a cut out of it, like a studio’s stamp. Ink only.',
-      body: () => `<rect x="1" y="1" width="30" height="30" rx="7" ${K}/><text x="16" y="23" text-anchor="middle" font-size="24" ${B} ${serif}>a</text>` },
+      body: () => `<rect x="1" y="1" width="30" height="30" rx="7" ${K}/>${serifA2(B)}` },
     { id: 'L15', concept: 'seal', name: 'Hallmark', idea: 'A cut-corner hallmark with the A and the line under it: signed off.',
-      body: () => `<path d="M9 3h14l6 6v14l-6 6H9l-6-6V9z" ${SK(2.5)} stroke-linejoin="round"/><text x="16" y="20" text-anchor="middle" font-size="14" ${K} ${serif}>A</text><path d="M11.5 23.25h9" ${SA(2.5)} stroke-linecap="round"/>` },
+      body: () => `<path d="M9 3h14l6 6v14l-6 6H9l-6-6V9z" ${SK(2.5)} stroke-linejoin="round"/>${serifA(16, 20, 9.5, K)}<path d="M11.5 23.25h9" ${SA(2.5)} stroke-linecap="round"/>` },
     { id: 'L16', concept: 'seal', name: 'Signet', idea: 'A solid signet with the A cut in, and a lit dot on its rim: you, present.',
-      body: () => `<circle cx="16" cy="16" r="14" ${K}/><text x="16" y="22" text-anchor="middle" font-size="17" ${B} ${serif}>A</text><circle cx="25.5" cy="25.5" r="5" ${B}/><circle cx="25.5" cy="25.5" r="3" ${A}/>` },
+      body: () => `<circle cx="16" cy="16" r="14" ${K}/>${serifA(15.5, 21.5, 11, B)}<circle cx="25.5" cy="25.5" r="5" ${B}/><circle cx="25.5" cy="25.5" r="3" ${A}/>` },
   ];
 
   const markSVG = (id, size = 32, label = '') => {

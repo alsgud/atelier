@@ -128,8 +128,8 @@ const lum = c => { const [r, g, b] = c.map(v => { v /= 255; return v <= 0.03928 
 const rgb = h => { h = h.trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 const ratio = (a, b) => { const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 const PAIRS_C = [
-  ...[['text', 'Text'], ['text-2', 'Text 2'], ['text-3', 'Meta']].flatMap(([f, n]) => [['surface', 'surface'], ['bg', 'canvas'], ['surface-sunken', 'sunken'], ['surface-selected', 'selected']].map(([b, m]) => [f, b, 4.5, `${n} on ${m}`])),
-  ...[['active', 'Working'], ['done', 'Done'], ['needs', 'Needs you']].flatMap(([f, n]) => [[f, 'surface', 4.5, `${n} on surface`], [f, 'bg', 4.5, `${n} on canvas`], [f, 'surface-selected', 4.5, `${n} on selected`], [f, `${f}-soft`, 4.5, `${n} on its wash`]]),
+  ...[['text', 'Text'], ['text-2', 'Text 2'], ['text-3', 'Meta']].flatMap(([f, n]) => [['surface', 'surface'], ['bg', 'canvas'], ['surface-sunken', 'sunken'], ['surface-hover', 'hover'], ['surface-selected', 'selected']].map(([b, m]) => [f, b, 4.5, `${n} on ${m}`])),
+  ...[['active', 'Working'], ['done', 'Done'], ['needs', 'Needs you']].flatMap(([f, n]) => [[f, 'surface', 4.5, `${n} on surface`], [f, 'bg', 4.5, `${n} on canvas`], [f, 'surface-sunken', 4.5, `${n} on sunken`], [f, 'surface-hover', 4.5, `${n} on hover`], [f, 'surface-selected', 4.5, `${n} on selected`], [f, `${f}-soft`, 4.5, `${n} on its wash`]]),
   ['text', 'active-soft', 4.5, 'Text on working wash'], ['text', 'done-soft', 4.5, 'Text on done wash'], ['text', 'needs-soft', 4.5, 'Text on needs wash'],
   ['text-on-ink', 'ink', 4.5, 'Primary button label'], ['text-inverse', 'surface-inverse', 4.5, 'Toast text'],
   ['toast-done', 'surface-inverse', 4.5, 'Toast “done” word'], ['toast-needs', 'surface-inverse', 4.5, 'Toast “needs” word'], ['text-on-needs', 'needs', 4.5, 'Count on red badge'],
