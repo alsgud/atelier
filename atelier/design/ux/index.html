@@ -83,7 +83,7 @@
           <li><b>One queue, triaged by urgency, that you can empty.</b><p>Linear’s inbox splits “Priority” from “Other”; GitHub and Superhuman sell zero as the goal. Filters and rule builders (GitHub’s notification filters, Linear’s triage rules) are for teams with thousands of items; you have tens.</p><p class="so">So: one Inbox, two groups (Needs you now · When you have a minute), no filters, a calm zero. <span class="from">J1</span></p></li>
           <li><b>Status is a dot and a word, from a short fixed list.</b><p>Vercel uses five (Ready, Error, Building, Queued, Canceled), GitHub four. Nobody explains a status in a paragraph.</p><p class="so">So: four meanings everywhere: <em>Working</em> (lilac), <em>Needs you</em> (red), <em>Done</em> (green), and neutral for <em>Waiting</em>, <em>Stopped</em>, <em>Off</em>. Each task, desk and project uses the same words. <span class="from">J2 J4</span></p></li>
           <li><b>Progress is a shape you can see, not a counter.</b><p>GitHub’s run graph shows jobs as boxes with durations; Devin’s progress tab lists steps with a replay timeline. “Iteration 0 of 6” says nothing (your pain point 3).</p><p class="so">So: a task shows its <em>stage</em> (Planning, Building, Checking, Review, Done), the latest step in a sentence, and “last active 2 min ago”. <a class="dref" href="#ux-5">UX-5</a> <span class="from">J4</span></p></li>
-          <li><b>Failures open at the failure, everything else folded.</b><p>GitHub Actions opens the failed step’s log and folds the green ones.</p><p class="so">So: a failed task opens on what went wrong, in one sentence, with Retry and the log tail under Details. <span class="from">J7</span></p></li>
+          <li><b>Failures open at the failure, everything else folded.</b><p>GitHub Actions opens the failed step’s log and folds the green ones.</p><p class="so">So: a failed task opens on what went wrong, in one sentence, with what the lead is doing about it; the log tail sits under Details. <span class="from">J7</span></p></li>
           <li><b>Approving shows the thing, and asks for words only when you say no.</b><p>GitHub’s PR review puts the state beside the title and the verdict in one place; a comment is optional to approve and expected to request changes.</p><p class="so">So: the Inbox item shows the design, proof or question itself; rejecting asks for a note, approving a gate asks for a few words (as today, they go to the designer). <span class="from">J6</span></p></li>
           <li><b>Confirm only what can’t be undone; undo the rest.</b><p>Vercel’s redeploy dialog names exactly what will happen and where. Linear never confirms a triage action: it offers undo.</p><p class="so">So: decisions are instant with Undo in the toast; stopping a lead, cancelling a task and running an audit (it spends money) ask first, in one sentence. <a class="dref" href="#ux-10">UX-10</a> <span class="from">J1 J7</span></p></li>
           <li><b>The phone is a companion, not the desktop squeezed.</b><p>Linear calls its app “the portable companion”: inbox, quick actions, swipes. GitHub Mobile shows agent sessions as a list with a status line.</p><p class="so">So: on the phone, Inbox, Office, project Now and the task page are first-class; Settings and Docs work but are laid out for the desk. <a class="dref" href="#ux-2">UX-2</a> <span class="from">J1 J2</span></p></li>
@@ -193,8 +193,88 @@
       </details>
     </section>
 
-    <section class="sec" id="flows" aria-labelledby="flows-h"><div class="sec-head"><span class="sec-num">3</span><h2 id="flows-h">Seven journeys, step by step</h2></div></section>
-    <section class="sec" id="layout" aria-labelledby="layout-h"><div class="sec-head"><span class="sec-num">4</span><h2 id="layout-h">Layout system</h2></div></section>
+    <!-- ───────────────────────── 3 JOURNEYS ───────────────────────── -->
+    <section class="sec" id="flows" aria-labelledby="flows-h">
+      <div class="sec-head"><span class="sec-num">3</span><h2 id="flows-h">Seven journeys, step by step</h2></div>
+      <div class="prose">
+        <p>Each journey lists the screens it passes through, the state each one is in, what you do there and what it costs you in taps. Under each, <strong>what can go wrong</strong>: where it branches off, what you see, and where it leads. A tap is a press that changes something; reading costs nothing.</p>
+      </div>
+      <div class="tbl-wrap" role="region" aria-label="Journeys at a glance, table" tabindex="0">
+        <table class="tbl" id="flows-index">
+          <thead><tr><th scope="col">Journey</th><th scope="col">For</th><th scope="col">Cost</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="flows" id="flows-list"></div>
+    </section>
+
+    <!-- ───────────────────────── 4 LAYOUT ───────────────────────── -->
+    <section class="sec" id="layout" aria-labelledby="layout-h">
+      <div class="sec-head"><span class="sec-num">4</span><h2 id="layout-h">Layout system</h2></div>
+      <div class="prose">
+        <p>No twelve-column grid. Every screen is <strong>one fluid column with a reading limit</strong>, plus at most one fixed column beside it: the Inbox queue, or a task’s facts. Three widths only (desk, middle, phone), so each screen has one plan per width and nothing in between to guess. <em>Why</em>: dashboards with many columns ask you to scan; this one asks you to read one thing and decide.</p>
+      </div>
+
+      <figure class="shot bp-figure" id="bp-figure"></figure>
+
+      <h3>Measurements</h3>
+      <div class="tbl-wrap" role="region" aria-label="Layout measurements, table" tabindex="0">
+        <table class="tbl tbl-stack">
+          <thead><tr><th scope="col">Part</th><th scope="col">Desk ≥ 1280</th><th scope="col">Middle 768–1279</th><th scope="col">Phone &lt; 768</th></tr></thead>
+          <tbody>
+            <tr><td>Navigation</td><td data-k="Desk:">Sidebar 240 (<code>--size-sidebar</code>)</td><td data-k="Middle:">Rail 64, icons with labels on hover and focus <a class="dref" href="#ux-7">UX-7</a></td><td data-k="Phone:">Top bar 52 (<code>--size-topbar</code>) + tab bar 56 (<code>--size-tabbar</code>) + safe area</td></tr>
+            <tr><td>App panel</td><td data-k="Desk:">Inset 8 from the window, radius 14, hairline, <code>--shadow-1</code></td><td data-k="Middle:">Full bleed beside the rail</td><td data-k="Phone:">Full bleed</td></tr>
+            <tr><td>Page padding</td><td data-k="Desk:">32 (<code>--space-8</code>)</td><td data-k="Middle:">24 (<code>--space-6</code>)</td><td data-k="Phone:">16 (<code>--space-4</code>)</td></tr>
+            <tr><td>Reading column</td><td data-k="Desk:">Fluid, content ≤ 760 (<code>--size-focus-max</code>), text ≤ 62ch (<code>--measure</code>)</td><td data-k="Middle:">Same limits</td><td data-k="Phone:">Full width</td></tr>
+            <tr><td>Fixed column</td><td data-k="Desk:">Inbox queue 344 (<code>--size-queue</code>) · task facts 280</td><td data-k="Middle:">Queue 300 at ≥ 1024, else under the item · facts under the header as one line</td><td data-k="Phone:">Under the item / a Facts fold</td></tr>
+            <tr><td>Rows</td><td data-k="Desk:">36 one line, 52 two lines</td><td data-k="Middle:">Same</td><td data-k="Phone:">≥ 44 one line, 60 two lines (R5)</td></tr>
+            <tr><td>Controls</td><td data-k="Desk:">36 (<code>--size-control</code>), compact 28</td><td data-k="Middle:">36; 44 when the device is touch (<code>pointer: coarse</code>)</td><td data-k="Phone:">44 (<code>--size-control-lg</code>)</td></tr>
+            <tr><td>Gaps</td><td data-k="Desk:">Blocks 24, sections 32, rows 0 with a hairline</td><td data-k="Middle:">Same</td><td data-k="Phone:">Blocks 16, sections 24</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Density</h3>
+      <div class="prose">
+        <p><strong>Compact on the desk, roomy under the thumb.</strong> Desk rows are Linear-dense (36 px, 14 px text) because you scan them with a mouse and keys; reading text inside an item is 16 px on a 24 px line, because that is where you decide. On the phone every row and control is at least 44 px, and the meta line moves under the title instead of beside it. Spacing is the 4 px scale in <code>tokens.css</code>; nothing uses a value outside it.</p>
+      </div>
+
+      <h3>Five kinds of screen</h3>
+      <div class="grid-2" id="screen-types"></div>
+
+      <h3>List and detail, or a full page</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <h4>Side by side: only the Inbox</h4>
+          <p class="cap" style="margin:0">You go through the Inbox in order, one decision after another, so the list stays beside the open item (direction B, ruling R-1). Choosing a row changes the item; the list keeps its scroll. On the phone the item fills the screen and the list follows it.</p>
+        </div>
+        <div class="panel">
+          <h4>A page of its own: everything else</h4>
+          <p class="cap" style="margin:0">A project or a task is something you read, not a queue you work through, so it opens as a page with a back link and its own address. Whether a task can also open as a peek beside the Office or a task list is <a class="dref" href="#ux-4">UX-4</a>.</p>
+        </div>
+      </div>
+
+      <h3>Where the dock and the toasts live</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <h4>The decision dock</h4>
+          <ul class="plain">
+            <li><b>Desk</b>: stuck to the foot of the reading column, the same place for every item, 20 from the panel’s edge. The item scrolls under it.</li>
+            <li><b>Phone</b>: 8 above the tab bar, buttons full width and 44 tall; the note line grows up to 160 then scrolls.</li>
+            <li><b>Task page</b>: the same dock, only while the task needs you (a question, a plan to approve). Otherwise there is none: no dock means nothing to decide.</li>
+            <li>Never two docks on one screen; never a dock on a page that only shows things.</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>Toasts</h4>
+          <ul class="plain">
+            <li><b>With a dock on screen</b>: the toast rises out of the dock and covers only the dock, as wide as it, never a tab or another button (measured in D3).</li>
+            <li><b>Without a dock</b>: bottom centre of the content column (not over the sidebar); on the phone 8 above the tab bar.</li>
+            <li>One at a time; a new one replaces the old. 6 s, paused while hovered or focused; Undo or Try again is its only button.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
     <section class="sec" id="info" aria-labelledby="info-h"><div class="sec-head"><span class="sec-num">5</span><h2 id="info-h">Information design</h2></div></section>
     <section class="sec" id="patterns" aria-labelledby="patterns-h"><div class="sec-head"><span class="sec-num">6</span><h2 id="patterns-h">Interaction patterns</h2></div></section>
     <section class="sec" id="wireframes" aria-labelledby="wireframes-h"><div class="sec-head"><span class="sec-num">7</span><h2 id="wireframes-h">Wireframes</h2></div></section>
@@ -206,6 +286,7 @@
 <script src="../brand/r2/marks.js"></script>
 <script src="ia.js"></script>
 <script src="refs.js"></script>
+<script src="flows.js"></script>
 <script src="ux.js"></script>
 </body>
 </html>

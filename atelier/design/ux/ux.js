@@ -64,6 +64,68 @@
       <nav class="tabbar" style="position:static"><a aria-current="page">${I('inbox')}Inbox<span class="badge-n">7</span></a><a>${I('office')}Office</a><a>${I('projects')}Projects</a><a>${I('activity')}Activity</a></nav>
     </div>`;
 
+  /* §3 Journeys: an index table, then each flow as a numbered track of steps with its failure paths */
+  const tapWord = n => n === 0 ? 'no tap' : n === 1 ? '1 tap' : `${n} taps`;
+  if ($('flows-index') && window.FLOWS) $('flows-index').tBodies[0].innerHTML = FLOWS.map((f, i) =>
+    `<tr><td><a href="#flow-${f.id}">${i + 1} · ${esc(f.title)}</a></td><td>${esc(f.jobs)}</td><td>${esc(f.total)}</td></tr>`).join('');
+  if ($('flows-list') && window.FLOWS) $('flows-list').innerHTML = FLOWS.map((f, i) => `
+    <article class="flow panel" id="flow-${f.id}" aria-labelledby="flow-${f.id}-h">
+      <header class="flow-head">
+        <span class="flow-n">${i + 1}</span>
+        <div><h3 id="flow-${f.id}-h">${esc(f.title)}</h3>
+        <p class="flow-meta">${esc(f.where)} · jobs ${esc(f.jobs)} · <b>${esc(f.total)}</b></p></div>
+      </header>
+      <ol class="flow-steps">${f.steps.map((s, j) => `
+        <li class="step${s.optional ? ' is-optional' : ''}" id="flow-${f.id}-${j + 1}">
+          <span class="step-n" aria-hidden="true">${j + 1}</span>
+          <div class="step-body">
+            <b class="step-screen">${esc(s.screen)}${s.optional ? ' <span class="faint">(optional)</span>' : ''}</b>
+            <span class="step-state">${esc(s.state)}</span>
+            <p>${dref(s.do)}</p>
+            <span class="step-taps">${tapWord(s.taps)}</span>
+          </div>
+        </li>`).join('')}
+      </ol>
+      <div class="flow-fails">
+        <h4>What can go wrong</h4>
+        <ul>${[...f.fails].sort((a, b) => a.at - b.at).map(x => `
+          <li><span class="from-step">at step ${x.at + 1}</span><div><b>${esc(x.if)}</b><p>${dref(x.then)}</p></div></li>`).join('')}
+        </ul>
+      </div>
+    </article>`).join('');
+
+  /* §4 Layout: the three widths as proportional frames (HTML, so the labels stay readable at any size) */
+  if ($('bp-figure')) $('bp-figure').innerHTML = `
+    <div class="bp-row" aria-hidden="true">
+      <div class="bp bp-desk"><div class="bp-win">
+        <div class="bp-side"><i>Sidebar 240</i></div>
+        <div class="bp-panel"><div class="bp-focus"><i>Item, content ≤ 760</i><span class="bp-dock">Dock</span></div><div class="bp-queue"><i>Queue 344</i></div></div>
+      </div><b>Desk · 1440</b></div>
+      <div class="bp bp-mid"><div class="bp-win">
+        <div class="bp-side bp-rail"><i>64</i></div>
+        <div class="bp-panel bp-col"><div class="bp-focus"><i>Item</i><span class="bp-dock">Dock</span></div><div class="bp-queue bp-under"><i>Queue under the item</i></div></div>
+      </div><b>Middle · 768</b></div>
+      <div class="bp bp-phone"><div class="bp-win bp-col">
+        <div class="bp-top"><i>Top bar 52</i></div>
+        <div class="bp-focus"><i>Item, full width</i><span class="bp-dock">Dock</span></div>
+        <div class="bp-tabs"><i>Tabs 56</i></div>
+      </div><b>Phone · 390</b></div>
+    </div>
+    <figcaption class="cap">The Inbox at the three widths, to scale. The same plan holds for every screen: navigation, one reading column, at most one fixed column, the dock at the foot of the reading column.</figcaption>`;
+
+  const TYPES = [
+    { name: 'Queue and item', who: 'Inbox', desk: 'Sidebar · item (≤ 760) · queue 344 on the right.', mid: 'Rail · item; the queue sits beside it from 1024, under it below.', phone: 'The item fills the screen; the queue follows it; the dock above the tabs.' },
+    { name: 'Board', who: 'Office', desk: 'One floor per project, desks in rows of three (min 280 each), quiet floors one line.', mid: 'Two desks a row.', phone: 'One desk a row, each one line plus its progress; busiest floor first.' },
+    { name: 'List', who: 'Projects, Activity, a project’s Tasks, Outcomes, Audits', desk: 'One column ≤ 960; status dot, the sentence, meta at the right.', mid: 'Same.', phone: 'Meta moves under the sentence; rows ≥ 44.' },
+    { name: 'Page with facts', who: 'Project page, task page, Docs', desk: 'Reading column ≤ 760 · facts 280 at the right (status, budget, files, PR).', mid: 'Facts become one line under the header.', phone: 'Facts fold away under the page’s sentence; proof full width.' },
+    { name: 'Form', who: 'New project, Settings', desk: 'One column ≤ 640, labels above fields; Settings has its sections as a list on the left (200).', mid: 'Sections become a menu at the top.', phone: 'Sections a list you open one at a time; Save sticks above the tabs.' },
+  ];
+  if ($('screen-types')) $('screen-types').innerHTML = TYPES.map(t => `
+    <div class="panel stype">
+      <h4>${esc(t.name)} <small>${esc(t.who)}</small></h4>
+      <dl><dt>1440</dt><dd>${esc(t.desk)}</dd><dt>768</dt><dd>${esc(t.mid)}</dd><dt>390</dt><dd>${esc(t.phone)}</dd></dl>
+    </div>`).join('');
+
   /* ?open: every fold open (for screenshots) */
   if (new URLSearchParams(location.search).has('open')) document.querySelectorAll('details').forEach(d => d.open = true);
 

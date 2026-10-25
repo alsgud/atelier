@@ -148,3 +148,65 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: var(--fo
   .tbl-stack td + td { margin-top: var(--space-1); }
   .tbl-stack td[data-k]::before { content: attr(data-k) " "; color: var(--text-3); }
 }
+
+/* §3 Journeys: a spine of numbered steps; what can go wrong beside it (desk) or under it (phone) */
+.flows { display: grid; gap: var(--space-6); }
+.flow { scroll-margin-top: var(--space-4); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1024px) { .flow { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); column-gap: var(--space-8); } .flow-head { grid-column: 1 / -1; } }
+.flow-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.flow-head h3 { margin: 0; }
+.flow-n { color: var(--text-3); font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
+#flows-index td:nth-child(2) { white-space: nowrap; }
+.flow-meta { margin: var(--space-1) 0 0; color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.flow-meta b { color: var(--text-2); font-weight: var(--weight-medium); }
+.flow-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: var(--size-glyph-box) minmax(0, 1fr); gap: var(--space-3); position: relative; padding-bottom: var(--space-4); }
+.step:not(:last-child)::before { content: ""; position: absolute; left: calc(var(--size-glyph-box) / 2 - 0.5px); top: var(--size-glyph-box); bottom: 0; width: 1px; background: var(--border-strong); }
+.step-n { display: grid; place-items: center; width: var(--size-glyph-box); height: var(--size-glyph-box); border-radius: var(--radius-full); border: 1.5px solid var(--text-2); color: var(--text); font-size: var(--text-sm); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; background: var(--surface); }
+.step.is-optional .step-n { border-style: dashed; border-color: var(--text-3); color: var(--text-2); }
+.step-body { display: grid; gap: 2px; padding-top: 3px; min-width: 0; }
+.step-screen { font-weight: var(--weight-semibold); color: var(--text); }
+.step-state { color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.step-body p { margin: var(--space-1) 0 0; color: var(--text-2); max-width: var(--measure); }
+.step-taps { color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); font-variant-numeric: tabular-nums; }
+.flow-fails { display: grid; gap: var(--space-3); align-content: start; padding-top: var(--space-4); border-top: var(--border-width) solid var(--border); }
+@media (min-width: 1024px) { .flow-fails { padding: 0 0 0 var(--space-6); border-top: 0; border-left: var(--border-width) solid var(--border); } }
+.flow-fails h4 { color: var(--text-2); font-weight: var(--weight-medium); font-size: var(--text-sm); }
+.flow-fails ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.flow-fails li { display: grid; gap: 2px; font-size: var(--text-sm); line-height: var(--leading-sm); }
+.flow-fails b { color: var(--text); font-weight: var(--weight-medium); }
+.flow-fails p { margin: 0; color: var(--text-2); }
+.from-step { color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+
+/* §4 Layout: the three widths to scale, built in HTML */
+.bp-row { display: grid; gap: var(--space-6); grid-template-columns: 1440fr 768fr 390fr; align-items: end; }
+@media (max-width: 1023px) { .bp-row { grid-template-columns: minmax(0, 1fr); justify-items: center; } .bp-mid { width: min(100%, 300px); } .bp-phone { width: min(100%, 200px); } .bp-desk { width: 100%; } }
+.bp { display: grid; gap: var(--space-2); min-width: 0; }
+.bp > b { color: var(--text-2); font-size: var(--text-sm); font-weight: var(--weight-medium); text-align: center; }
+.bp-win { display: flex; border: var(--border-width) solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg); overflow: hidden; font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-2); }
+.bp-desk .bp-win { aspect-ratio: 1440 / 900; }
+.bp-mid .bp-win { aspect-ratio: 768 / 1024; }
+.bp-phone .bp-win { aspect-ratio: 390 / 844; }
+.bp-win i { font-style: normal; padding: var(--space-1-5); }
+.bp-side { flex: 0 0 16.667%; border-right: var(--border-width) dashed var(--border-strong); }
+.bp-rail { flex-basis: 8.333%; display: grid; justify-items: center; }
+.bp-rail i { padding: var(--space-1-5) 0; }
+.bp-panel { flex: 1; display: flex; min-width: 0; background: var(--surface); }
+.bp-desk .bp-panel { margin: 0.6%; border: var(--border-width) solid var(--border); border-radius: var(--radius-sm); }
+.bp-col { flex-direction: column; }
+.bp-focus { flex: 1; position: relative; display: grid; align-content: start; min-height: 0; background: var(--surface); }
+.bp-queue { flex: 0 0 23.9%; border-left: var(--border-width) dashed var(--border-strong); background: var(--surface-sunken); }
+.bp-under { flex: 0 0 22%; border-left: 0; border-top: var(--border-width) dashed var(--border-strong); }
+.bp-dock { position: absolute; left: 8%; right: 8%; bottom: 4%; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); background: var(--surface-hover); border: var(--border-width) solid var(--border-strong); color: var(--text); text-align: center; }
+.bp-top, .bp-tabs { flex: 0 0 auto; background: var(--bg); text-align: center; }
+.bp-top { height: 6.2%; border-bottom: var(--border-width) dashed var(--border-strong); display: grid; place-items: center; }
+.bp-tabs { height: 6.6%; border-top: var(--border-width) dashed var(--border-strong); display: grid; place-items: center; }
+.bp-top i, .bp-tabs i { padding: 0; }
+.bp-phone .bp-dock { left: 4%; right: 4%; bottom: 1.5%; }
+
+.stype h4 small { color: var(--text-3); font-weight: var(--weight-regular); font-size: var(--text-sm); margin-left: var(--space-2); }
+.stype dl { margin: 0; display: grid; grid-template-columns: 4.5ch minmax(0, 1fr); gap: var(--space-2) var(--space-3); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.stype dt { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.stype dd { margin: 0; color: var(--text-2); }
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
+ul.plain b { color: var(--text); font-weight: var(--weight-medium); }

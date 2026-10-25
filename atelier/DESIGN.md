@@ -714,7 +714,7 @@ Ruling R-8: before any more screens, walk the owner through the whole UX, resear
 1. One queue, triaged by urgency, that you can empty → one Inbox, two groups, no filters, calm zero (J1).
 2. Status is a dot and a word from a short fixed list → four meanings everywhere: Working (lilac), Needs you (red), Done (green), neutral for Waiting, Stopped, Off (J2, J4).
 3. Progress is a shape, not a counter → a task shows its stage, the latest step and when it was last active (UX-5, J4).
-4. Failures open at the failure → a failed task opens on what went wrong in one sentence, Retry, log under Details (J7).
+4. Failures open at the failure → a failed task opens on what went wrong in one sentence and what the lead is doing about it, log under Details (J7).
 5. Approving shows the thing and asks for words only to say no → as D2 (J6).
 6. Confirm only what can't be undone; undo the rest (UX-10).
 7. The phone is a companion → Inbox, Office, project Now and task page first-class (UX-2).
@@ -729,6 +729,32 @@ Two levels. **Global** (all projects): Inbox (home, UX-1), Office, Projects, Act
 Navigation: Y1 sidebar ≥ 1280 (240 px: lockup, Inbox/Office/Activity with counts, projects with lead dot and waiting count, New project; foot: plan, spend today, Settings), 64 px rail 768–1279 (UX-7), phone top bar (mark, today's spend as text, Settings) + tab bar Inbox · Office · Projects · Activity (UX-2).
 
 **Coverage (R1, AC-9)**: all 95 lines of `inventory.md` are mapped in `ux/ia.js` and shown in the page's site map; `runs/6umt/tools/ia-check.mjs <worktree>` checks it line by line (95 of 95, none missing, none invented). 31 lines change where they sit or how they work; each names the decision behind it.
+
+### Journeys (`ux/flows.js`, page §3)
+
+Seven flows, each as screens → state → what you do → taps, with failure paths keyed to the step they branch from. Only actions that exist today (`inventory.md`).
+
+| # | Journey | Jobs | Cost |
+|---|---|---|---|
+| 1 | Morning check-in on the phone | J1 J2 | 3 taps for two decisions; 1 when nothing needs you |
+| 2 | Deciding a gate with its proof | J6 J1 | 2 taps and a few words |
+| 3 | New project from a brief | J3 | 4 taps and the form; the rest arrives in the Inbox |
+| 4 | Watching a task and its proof | J4 J2 | 2 taps from the Office |
+| 5 | A task fails or pauses for the lead | J7 J8 | 1–2 taps to answer; 0 when the lead handles it |
+| 6 | Budget warning and limit | J5 | 1 tap to raise; 0 to wait for midnight |
+| 7 | The owner corrects the lead | J8 | 2 taps and a sentence (reject with a note → ruling); restart last |
+
+Failure rules common to all: an action that fails keeps your choice and your text, says why in the dock, offers Try again, and the item stays; offline keeps the last screen with "Last updated hh:mm · Retrying" and disables decide buttons with the reason; "quiet for longer than usual" is neutral text, never red.
+
+### Layout system (page §4)
+
+One fluid reading column (content ≤ 760 `--size-focus-max`, text ≤ 62ch `--measure`) plus at most one fixed column: the Inbox queue 344 (`--size-queue`) or task facts 280. *Why*: the owner reads one thing and decides; more columns ask them to scan.
+
+- Widths: desk ≥ 1280 (sidebar 240, panel inset 8, padding 32) · middle 768–1279 (rail 64 per UX-7, padding 24, queue beside from 1024) · phone < 768 (top bar 52, tab bar 56, padding 16).
+- Density: desk rows 36 / 52 (two lines), controls 36; phone rows ≥ 44 / 60, controls 44; reading text 16/24. Gaps: blocks 24, sections 32 (phone 16 / 24).
+- Five screen types: queue and item (Inbox), board (Office: desks min 280, 3 / 2 / 1 a row), list (≤ 960: Projects, Activity, Tasks, Outcomes, Audits), page with facts (project, task, Docs), form (≤ 640: New project, Settings with a 200 section list).
+- List + detail only for the Inbox; everything else is a page with its own address and a back link (task peek is UX-4).
+- Dock: foot of the reading column (desk, sticky 20 from the panel edge), 8 above the tab bar (phone); on a task page only while it needs you; never two. Toasts: rise out of the dock and cover only it; with no dock, bottom centre of the content column (phone: 8 above the tabs); one at a time, 6 s, paused on hover or focus.
 
 ### Decisions (numbering fixed; options and recommendations are on the page)
 
@@ -751,4 +777,6 @@ These are for the lead. They touch what the server sends, or they add scope.
 - **D3: Decided today in the queue.** The last three decisions now sit at the foot of the queue on every view (they were only on inbox zero). The server already returns today's decisions for the zero view; it's the same data. A small layout change, flagged so the lead can veto it.
 - **D3: the dock sits at the foot of the focus column** for every item, not right under short items. Layout change in favour of "the dock never moves"; same components.
 - **D3: the Undo window pauses while the toast is hovered or focused.** Needs the server's grace period (above) to allow a little longer than 6 s, or the client holds the request until the toast closes.
+- **D5: no Retry on a failed task.** Today's dashboard has no retry, resume or extend action (only approve plan, answer, stop). Journey 5 shows the lead re-planning. A Retry button would be a new action: the lead's call.
+- **D5: early budget warning** (UX-11) at 80 % of a project's daily budget needs the server to raise a new, low-urgency Inbox item. New behaviour: the lead's call if the owner picks it.
 - **Two groups** ("Needs you now" / "When you have a minute") assume the server marks urgency (`priority ≤ 1` or a high-severity finding, as today's red rule does). That is the same rule; it is now shown as a group.
