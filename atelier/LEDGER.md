@@ -2,6 +2,9 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## Waiting on the owner (phone viewing)
+- Owner wants to view round 2 on the phone. The Artifact upload is denied in this session (don't-ask mode), and sources outside the repo are refused. When home, the owner runs `/permissions` to allow Artifact plus `/add-dir C:\Users\oiyew\.atelier\worktrees\ysk4`, then the lead publishes atelier/share/brand-r2.html (the root page, untracked) with the files mapped under design/... (a helper already reviewed all 77 files: no external URLs or secrets). Meanwhile, the dashboard view-port route works: Design > Open the clickable screens, then change the end of the URL to atelier/design/brand/r2/index.html.
+
 ## Waiting on the owner (brand round 2)
 - ysk4 APPROVED round 2; page worktrees/ysk4/atelier/design/brand/r2/index.html; marks N1-N11, schemes K1-K3; combos 1 = N1+K1 (designer's top), 2 = N6+K2, 3 = N11+K3. Lead checked 1-1440-dark. Sent 2026-10-25. Then D5 other screens dark-first, base atelier/ysk4.
 - (done) ysk4 designer D4b brand round 2 ($16, 6 it, base atelier/hspr): N1-N12 logos from L8 + L12, dark-first K1-K3 from C4, Y1 fixed, phone dark vs light, 3 combos. Page brand/r2/index.html. Owner feedback 2026-10-25 = overrule #3, R-6.
