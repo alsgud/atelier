@@ -13,3 +13,6 @@ _2026-10-24 · owner, chat 2026-10-25: 'Feeling and animations are still quite l
 
 ## R-4: The dashboard must stay fast to use with all real project history: switching screens or tabs shows the new screen at once (under about 100 ms to first paint, under 300 ms to full data), and a slow read never freezes the page.
 _2026-10-24 · owner, chat 2026-10-25: 'I can't even use the dashboard anymore. It's too slow or unresponsive when I try to switch tabs.'_
+
+## R-5: Flow is the chosen feel (motion system and timings from D3 Flow). Colour, layout and the logo are not settled yet: the designer shows the owner many original logo options, each paired with a matching colour scheme, plus a few layout options, on one page where the owner can pick by number. Logos must be original and must not resemble any existing brand.
+_2026-10-25 · owner chat 2026-10-25: 'I like flow a lot more... let's now look at the design color and layout as well as the logo... a whole bunch of logos for me to approve from, which also ties in with our color scheming'_

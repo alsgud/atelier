@@ -2,9 +2,11 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## Running
+- hspr designer D4 brand: 16+ logos, 4-5 colour schemes, 3 layouts, 3-4 combos with demos on brand/index.html ($20, 7 it, base atelier/57cv). Next: owner picks e.g. L7 + C2 + Y1, then D5 other screens in that pick. (cg59 cancelled at once: PowerShell double quotes truncated its goal. Never put double quotes inside --goal.)
+
 ## Waiting on the owner
-- Pick a feel: Calm, Flow or Crisp (57cv APPROVED by reviewer round 2, branch atelier/57cv, $18.75; lead checked the contact sheets) — asked 2026-10-25 — lead and designer recommend Flow. Then D4 (other pages) bases on atelier/57cv.
-- Price: redesign now estimated ~$150 instead of ~$120 (more design rounds for feel and motion) — told 2026-10-25
+- Price: redesign now estimated ~$185 instead of ~$120 (feel rounds + brand task $20) — telling owner 2026-10-25
 - Merge the speed hotfix: 6dug APPROVED (reviewer round 3: tab switch max 27 ms, warm API 4 ms, actions 10/10). `atelier land` refuses under `branch` autonomy, so the owner merges `atelier/6dug` and restarts the dashboard process (the service restarts it within 5 min) — sent the commands 2026-10-25
 - Charter: draft in atelier/CHARTER-draft.md; owner to adopt in the dashboard — since 2026-10-24
 
@@ -15,6 +17,7 @@
 - 68h6 stays in review on branch atelier/68h6 (autonomy `branch`); 57cv builds on it.
 
 ## Since last update
+- Owner picked Flow ("really like the feel") but wants colour, layout and logo revisited, with many logo options tied to colour schemes (R-5). Started hspr.
 - Owner accepted AC-7 ("feels calm") on the D2 Inbox, 2026-10-25.
 - Owner: feel and animations still lacking; wants more demos and refined versions (overrule #2, ruling R-3). Cancelled w9ew. 57cv started: motion references, motion system, three feel variants with recorded demos.
 - Ruling R-4 and team check AC-18 (speed). 6dug started.
