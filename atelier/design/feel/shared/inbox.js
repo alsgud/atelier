@@ -17,7 +17,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const mark = '<span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
 /* D4 brand options (design/brand/app/): the page may supply its own lockup (mark + wordmark). */
 const brand = () => window.BRAND_HTML || `${mark}Atelier`;
-const IMG = '../../screens/img/';
+const IMG = window.IMG_BASE || '../../screens/img/'; /* brand/r2/app sits one folder deeper */
 const tok = v => parseFloat(getComputedStyle(ROOT).getPropertyValue(v)) || 0;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* A view-transition name, unless motion is reduced (then the whole page cross-fades once, nothing travels). */

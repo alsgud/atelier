@@ -1,0 +1,57 @@
+/* Atelier colour schemes, brand round 2 (D4b): dark first.
+   The owner liked C4 North light and asked for dark as the main mode and the default. K1 is C4 made dark-first
+   and refined; K2 and K3 are its neighbours. No warm-brown darks (C2's walnut read strange to the owner).
+   Light modes are kept off white: the brightest surface is a cool paper (#f6f8fa and nearby), never #fff,
+   because C2 light read as glaring.
+   Same structure as round 1 (../schemes.css supplies the shared role mapping for any [data-scheme][data-theme]):
+   an 11-step neutral ramp per theme, one brand accent used only on the mark and the focus ring, and the meanings
+   of SPEC R4 (working lilac, needs-you red, done green; waiting neutral), each retuned to its ramp.
+   Contrast for every pair: Contrast section of r2/index.html (measured live) and tools/contrast-k.mjs. */
+
+/* ── K1 North light, night: C4's slate-blue paper turned to its dark side; a moonlit slate-blue mark ── */
+[data-scheme="k1"][data-theme="dark"] {
+  --n0: #0b0e12; --n1: #0f1318; --n2: #141920; --n3: #1b2129; --n4: #222a33; --n5: #313b46; --n6: #65707c; --n7: #919ba7; --n8: #a7b0bb; --n9: #d3d9e0; --n10: #e9edf1;
+  --brand-accent: #8fb6e6;
+  --active: #b39cff; --active-soft: #211d35; --active-track: #352d56;
+  --needs: #ff8578; --needs-soft: #321c1d; --done: #5fd198; --done-soft: #132820;
+  --toast-done: #13704a; --toast-needs: #b0261b; --text-on-needs: #141a21;
+}
+[data-scheme="k1"][data-theme="light"] {
+  --n0: #f7f9fa; --n1: #edf0f3; --n2: #e8ecf0; --n3: #e1e6eb; --n4: #d9dfe5; --n5: #c1c9d1; --n6: #7b8591; --n7: #56606c; --n8: #4a5460; --n9: #2b333c; --n10: #131a21;
+  --brand-accent: #2e65a1;
+  --active: #6443cc; --active-soft: #ebe6f8; --active-track: #d8cff3;
+  --needs: #a8241a; --needs-soft: #f6e7e5; --done: #116a46; --done-soft: #dfede6;
+  --toast-done: #5fd198; --toast-needs: #ff8578; --text-on-needs: #ffffff;
+}
+
+/* ── K2 Night sky: cooler and deeper, a navy-blue dark like the sky over the skylight; a starlight mark ── */
+[data-scheme="k2"][data-theme="dark"] {
+  --n0: #080b13; --n1: #0c101a; --n2: #111623; --n3: #181e2d; --n4: #1f2637; --n5: #2d364a; --n6: #616b82; --n7: #8e98ad; --n8: #a5aec1; --n9: #d2d7e2; --n10: #e8ebf2;
+  --brand-accent: #a9c8f5;
+  --active: #b7a1ff; --active-soft: #221d38; --active-track: #382f5c;
+  --needs: #ff8579; --needs-soft: #301b22; --done: #62d39b; --done-soft: #12272a;
+  --toast-done: #13704a; --toast-needs: #b0261b; --text-on-needs: #111623;
+}
+[data-scheme="k2"][data-theme="light"] {
+  --n0: #f6f8fb; --n1: #ecf0f6; --n2: #e6ebf2; --n3: #dfe5ee; --n4: #d6dde8; --n5: #bec7d5; --n6: #78839a; --n7: #535e74; --n8: #485269; --n9: #293145; --n10: #121828;
+  --brand-accent: #2f5ea8;
+  --active: #6343cf; --active-soft: #eae6f9; --active-track: #d7cff4;
+  --needs: #a8241d; --needs-soft: #f6e7e7; --done: #106a47; --done-soft: #deede8;
+  --toast-done: #62d39b; --toast-needs: #ff8579; --text-on-needs: #ffffff;
+}
+
+/* ── K3 Slate and aurora: a deep neutral slate (less blue than K1) with a soft aurora-cyan mark ── */
+[data-scheme="k3"][data-theme="dark"] {
+  --n0: #0c0f11; --n1: #101416; --n2: #151a1d; --n3: #1c2225; --n4: #242b2f; --n5: #343d42; --n6: #67737a; --n7: #929ea4; --n8: #a8b3b8; --n9: #d4dbde; --n10: #e9eef0;
+  --brand-accent: #7fd3e3;
+  --active: #b39dff; --active-soft: #201d33; --active-track: #342e52;
+  --needs: #ff8676; --needs-soft: #301c1b; --done: #62d196; --done-soft: #13271f;
+  --toast-done: #13704a; --toast-needs: #b0261b; --text-on-needs: #151a1d;
+}
+[data-scheme="k3"][data-theme="light"] {
+  --n0: #f7f9f9; --n1: #edf1f2; --n2: #e8edee; --n3: #e1e7e9; --n4: #d8dfe1; --n5: #c0c9cc; --n6: #7a868b; --n7: #556166; --n8: #49555a; --n9: #2a3438; --n10: #121a1d;
+  --brand-accent: #1c6c7c;
+  --active: #6443cc; --active-soft: #ebe6f7; --active-track: #d8cff2;
+  --needs: #a8251b; --needs-soft: #f6e7e5; --done: #116a45; --done-soft: #dfede6;
+  --toast-done: #62d196; --toast-needs: #ff8676; --text-on-needs: #ffffff;
+}
