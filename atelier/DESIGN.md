@@ -498,6 +498,18 @@ Each scheme is an 11-step neutral ramp per theme (`--n0` … `--n10`) mapped ont
 
 **Contrast (AC-13).** Every text and status pair, both themes, every scheme: 460 pairs measured by `runs/hspr/tools/contrast-schemes.mjs`, 0 below AA; the pick page measures the same pairs again from its computed colours as it loads (Contrast section, one table per scheme). Lowest text pairs: meta text on the selected row (C1 light 4.64, C2 light 4.69 after round B1, C4 light 4.59, C5 light 4.68), done on selected in C3 light 4.56. Non-text (3:1): the waiting ring, field borders, the focus ring / mark accent on surface and canvas, progress fill on its track.
 
+### Layouts (Y1–Y3)
+
+`design/brand/app/layouts.css`, switched by `html[data-layout]`. Only the shell moves; the item, the dock, the queue's contents and Flow's motion are byte-for-byte the same in all three, so the owner judges the frame, not a new design. Pick page › Layouts shows each at 1440 and 390 in L1 + C1 (shots: `design/brand/img/layout/`, made by `runs/hspr/tools/layouts.mjs`).
+
+| | 1440 | 390 | Trade-off |
+|---|---|---|---|
+| **Y1 Sidebar** | 240 px sidebar (nav, projects, plan meter, settings) \| item \| queue (D2's shell unchanged) | Brand bar on top, four tabs at the bottom | Everything one glance away, at the cost of 240 px the item and queue could use |
+| **Y2 Top bar** | `--size-topbar` bar: mark, four sections, "Plan 41%", "Today $52.60"; item and queue full width | Tabs under the logo, no bottom bar; the dock owns the bottom | Roomiest item and cleanest edges, but projects drop out of view and the phone tabs leave thumb reach |
+| **Y3 Queue first** | 64 px icon rail \| queue \| item, like a mail client | No top bar: the item starts at the top; tabs at the bottom | Queue before decision suits a full inbox; the rail hides names behind icons and the phone loses the logo |
+
+*Why Y3 is not a "focused single column"*: one column hides the queue, and Flow's decided title then has nowhere to fly (DECISIONS). *Y3 rail foot*: "Claude plan" / "Spent today" don't fit 64 px, so the rail shows Y2's short labels "Plan" / "Today" (generated, with alt text `""`); the long label stays in the DOM, visually hidden, for screen readers.
+
 ### Critique log (Brand)
 
 **Round B1** (self-review of the first render at 1440 and 390, with measured contrast; the skill-led rounds B2 and B3 follow once layouts and combinations are on the page).

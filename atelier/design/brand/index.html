@@ -38,6 +38,12 @@
     <p id="contrast-sum" class="tradeoff"></p>
     <div id="contrast-tables"></div>
   </section>
+
+  <section class="pick-sec" id="layouts" aria-labelledby="layouts-h">
+    <header><h2 id="layouts-h">Layouts</h2>
+      <p>Three ways to arrange the same Inbox. Only the frame moves: the item, the decision dock, the queue and Flow’s motion are identical in all three. Shown in L1 and C1 so only the layout differs.</p></header>
+    <div id="layout-list"></div>
+  </section>
 </main>
 <script src="logos.js"></script>
 <script>
@@ -135,6 +141,26 @@ const tables = SCHEMES.map(s => {
     <thead><tr><th scope="col">Pair</th><th scope="col">Needs</th><th scope="col">Light</th><th scope="col">Ratio</th><th scope="col">Dark</th><th scope="col">Ratio</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
 }).join('');
 document.getElementById('contrast-tables').innerHTML = tables;
+/* ── Layouts ── */
+const LAYOUTS = [
+  { id: 'Y1', name: 'Sidebar', desk: 'Sidebar | item | queue. Projects, the plan meter and settings always in view.', phone: 'Brand bar on top, four tabs at the bottom under your thumb.',
+    trade: 'Everything is one glance away, at the cost of 240 px the item and queue could use.' },
+  { id: 'Y2', name: 'Top bar', desk: 'One bar across the top: the mark, four sections, plan and spend. Item and queue get the full width.', phone: 'The tabs sit under the logo; no bottom bar, so the dock has the bottom to itself.',
+    trade: 'The roomiest item and the cleanest edges, but projects drop out of view and the phone tabs move out of thumb reach.' },
+  { id: 'Y3', name: 'Queue first', desk: 'A 64 px icon rail, the queue on the left, the item on the right, like a mail client.', phone: 'No top bar at all: the item starts at the top, tabs at the bottom.',
+    trade: 'Reads the queue before the decision, which suits a full inbox; the rail hides names behind icons and the phone loses the logo.' },
+];
+document.getElementById('layout-list').innerHTML = LAYOUTS.map(l => {
+  const y = l.id.toLowerCase(), live = `app/inbox.html?logo=L1&scheme=c1&layout=${y}`;
+  return `<article class="scheme" id="${l.id}" aria-labelledby="${y}-h">
+    <div class="concept-head"><h3 id="${y}-h">${l.id} ${l.name}</h3><p class="tradeoff"><b>Trade-off:</b> ${l.trade}</p></div>
+    <div class="shots">
+      <figure class="shot"><img src="img/layout/${y}-1440-light.png" alt="${l.id} ${l.name} at 1440 px: ${l.desk}" width="1440" height="900" loading="lazy"><figcaption class="tile-cap">1440 · ${l.desk} <a href="${live}">Open it live</a></figcaption></figure>
+      <figure class="shot"><img src="img/layout/${y}-390-light.png" alt="${l.id} ${l.name} on a phone, 390 px: ${l.phone}" width="390" height="844" loading="lazy"><figcaption class="tile-cap">390 · ${l.phone}</figcaption></figure>
+    </div>
+  </article>`;
+}).join('');
+
 document.getElementById('contrast-sum').innerHTML = `<b>${all} pairs measured, ${bad ? `${bad} below AA` : 'all pass AA'}.</b> Open a scheme to see every pair.`;
 </script>
 </body>
