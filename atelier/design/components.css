@@ -206,9 +206,9 @@ textarea.input { min-height: 64px; display: block; }
 .eyebrow { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
 .eyebrow .kind { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--text); font-weight: var(--weight-medium); }
 .eyebrow .sep { color: var(--text-3); }
-/* A separator wraps with the item after it; a separator that starts a wrapped line falls in the clipped strip left of the edge, so no line ends or starts with a dot. */
-.eyebrow { --sep-clip: calc(0.5em + var(--space-2)); margin-left: calc(-1 * var(--sep-clip)); clip-path: inset(-4px -4px -4px var(--sep-clip)); }
-.eyebrow > :first-child { margin-left: var(--sep-clip); }
+/* Grouped markup only (each separator wrapped with the item after it in a .grp): a separator that starts a wrapped line falls in the clipped strip left of the edge, so no line ends or starts with a dot. Ungrouped eyebrows are untouched. */
+.eyebrow:has(> .grp) { --sep-clip: calc(0.5em + var(--space-2)); margin-left: calc(-1 * var(--sep-clip)); clip-path: inset(-4px -4px -4px var(--sep-clip)); }
+.eyebrow:has(> .grp) > :first-child { margin-left: var(--sep-clip); }
 .eyebrow .grp { display: inline-flex; align-items: center; gap: var(--space-2); }
 .eyebrow .grp > .sep { display: inline-block; width: 0.5em; text-align: center; }
 .eyebrow .is-needs { color: var(--needs); font-weight: var(--weight-medium); display: inline-flex; align-items: center; gap: var(--space-1-5); }
