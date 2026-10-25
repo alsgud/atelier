@@ -19,7 +19,7 @@
   [data-layout="y2"] .shell-top { flex-wrap: wrap; height: auto; row-gap: 0; padding-top: var(--space-2); }
   [data-layout="y2"] .shell-top .brand { min-height: var(--size-control-lg); }
   [data-layout="y2"] .shell-top .tabs { display: flex; order: 3; flex: 1 0 100%; gap: var(--space-5); overflow-x: auto; scrollbar-width: none; }
-  [data-layout="y2"] .shell-top .tab { min-height: var(--size-control-lg); white-space: nowrap; }
+  [data-layout="y2"] .shell-top .tab { min-height: var(--size-control-lg); min-width: var(--size-control-lg); justify-content: center; text-align: center; white-space: nowrap; }
   [data-layout="y2"] .focus .dock { bottom: calc(env(safe-area-inset-bottom) + var(--space-2)); }
   [data-layout="y2"] .toasts { --toast-bottom: calc(env(safe-area-inset-bottom) + var(--space-2)); }
 }
