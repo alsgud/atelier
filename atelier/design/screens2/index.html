@@ -59,7 +59,8 @@
       also: [['dodge, lead off', 'project.html?p=dodge'], ['tidepool, created a minute ago (empty)', 'project.html?p=tidepool'], ['Lead menu', 'project.html?ui=menu'], ['Stop the lead: confirm', 'project.html?ui=stop'], ['Tasks', 'project.html?tab=tasks'], ['Outcomes', 'project.html?tab=outcomes'], ['Audits', 'project.html?tab=audits'], ['Docs', 'project.html?tab=docs']] },
     { id: 'task', name: 'Task page', ready: true, ux: ['UX-4', 'UX-5', 'UX-10'], what: 'The latest step as the headline, why and what next under it, last active (or the quiet signal), the stage track filling to its progress. Then the proof large (screenshots, the recording with its length, the run log), latest steps, review, and history and notes folded; status, tries, spend, outcomes and the work beside it. A dock only when it needs you.', states: ',loading,error,stale',
       also: [['Auditor: quiet longer than usual, no proof yet', 'task.html?t=audit'], ['Designer', 'task.html?t=draw'], ['It asked you a question (dock)', 'task.html?v=needs'], ['Waits for your OK on its plan (dock)', 'task.html?v=plan'], ['Done: review passed', 'task.html?v=done'], ['Proof viewer', 'task.html?ui=proof'], ['Stop: confirm', 'task.html?ui=stop'], ['Answer sent, toast up', 'task.html?v=needs&ui=toast']] },
-    { id: 'inbox', name: 'Inbox', ux: ['UX-1', 'UX-10'], what: 'The D2 Inbox in N1 + K1 dark, every behaviour kept: decide, Undo in the toast, zero.' },
+    { id: 'inbox', name: 'Inbox', ready: true, ux: ['UX-1', 'UX-10', 'UX-2', 'UX-7', 'UX-9'], what: 'The chosen Flow Inbox in the D6 shell, every behaviour kept: the top item large with the thing itself, the dock, decide → the next arrives → toast with Undo above the dock, J / K, Ctrl + Enter, Z. Seven items, the same counts as every other screen; every item kind has its look.', states: ',zero,empty,loading,error,stale',
+      also: [['Budget used up', 'inbox.html?open=budget'], ['Question from the lead', 'inbox.html?open=question'], ['Your judgement (proof)', 'inbox.html?open=judge'], ['Auditor finding', 'inbox.html?open=finding'], ['Charter changed (what changed)', 'inbox.html?open=charter'], ['Notice: a window was closed', 'inbox.html?open=notice'], ['Outcome to approve', 'inbox.html?kind=outcome&open=outcome'], ['Several outcomes', 'inbox.html?kind=outcomes&open=outcomes'], ['Task plan', 'inbox.html?kind=plan&open=plan'], ['Screen use', 'inbox.html?kind=screen&open=screen'], ['Charter to approve', 'inbox.html?kind=charter&open=charter'], ['Blocked: not reaching GitHub', 'inbox.html?kind=github&open=github'], ['Earned trust', 'inbox.html?kind=trust&open=trust'], ['Send fails once', 'inbox.html?fail=1']] },
     { id: 'projects', name: 'Projects', ux: ['UX-14'], what: 'One sentence per project.' },
     { id: 'activity', name: 'Activity', ux: ['UX-13'], what: 'One feed by day; a project picker and Only problems.' },
     { id: 'new', name: 'New project', ux: ['UX-12'], what: 'The same create field, growing into a brief.' },
@@ -74,6 +75,8 @@
     ['project-phone-dark', 'A project page while a task finishes · phone', true],
     ['task-desktop-dark', 'Open a task from the Office and read its proof · desktop'],
     ['task-phone-dark', 'Open a task from the Office and read its proof · phone', true],
+    ['inbox-desktop-dark', 'The Inbox: decide, Undo, decide again, raise a budget · desktop'],
+    ['inbox-phone-dark', 'The Inbox: decide and Undo · phone', true],
   ];
   document.getElementById('ix').innerHTML = `
     <header>

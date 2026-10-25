@@ -28,7 +28,7 @@ const wide = () => matchMedia('(min-width: 1024px)').matches;
 const rowsMove = () => FEEL.rowNames && wide();
 
 /* ── Real content from the real projects (replay, dodge, atelier-ui). Typographic quotes and apostrophes. ── */
-const ITEMS = [
+const ITEMS = window.INBOX?.items || [
   { id: 'finding', needs: true, glyph: 'finding', kind: 'From the auditor', project: 'replay', age: '25m', ageLong: '25 min ago',
     title: 'Some of your clips may need a paid Windows add‑on to play',
     short: 'from the auditor',
@@ -117,15 +117,15 @@ const ITEMS = [
     dock: { primary: 'Approve plan', busy: 'Approving…', ghost: 'Read the brief', done: 'Approved. The builder starts within a minute.', toast: 'Approved the plan.', log: 'Approved the last Dodge task' } },
 ];
 /* Working now: real figures that tick while you watch (R7 live refresh). */
-const WORKING = [
+const WORKING = window.INBOX?.working || [
   { id: 'trim', what: 'Building the trim editor', meta: 'replay · frontend', when: 'finishing its step', n: 4, of: 6, unit: 'step' },
   { id: 'thumbs', what: 'Indexing clip thumbnails', meta: 'replay · backend', when: '1 min ago', n: 1240, of: 1800, unit: 'clips' },
   { id: 'inbox', what: 'Drawing the Inbox in direction B', meta: 'atelier-ui · designer', when: 'just now', n: 1, of: 2, unit: 'round' },
 ];
 const fmt = n => n.toLocaleString('en-US');
-const figure = a => a.unit === 'step' ? `step ${a.n} of ${a.of}` : a.unit === 'round' ? `critique round ${a.n} of ${a.of}` : `${fmt(a.n)} of ${fmt(a.of)} ${a.unit}`;
-const EARLIER = [['Approved the look of Dodge', 'dodge', '6h']];
-const SPENT = '$52.60';
+const figure = a => a.unit === 'try' ? `try ${a.n} of ${a.of}` : a.unit === 'step' ? `step ${a.n} of ${a.of}` : a.unit === 'round' ? `critique round ${a.n} of ${a.of}` : `${fmt(a.n)} of ${fmt(a.of)} ${a.unit}`;
+const EARLIER = window.INBOX?.earlier || [['Approved the look of Dodge', 'dodge', '6h']];
+const SPENT = window.INBOX?.spent || '$52.60';
 
 function frame(file, cap, cls = '', play = '') {
   return `<a href="#" class="frame ${cls}" aria-label="${esc(cap)}, opens full size in a new tab">
@@ -135,7 +135,7 @@ function frame(file, cap, cls = '', play = '') {
 
 /* ── State ── */
 const S = {
-  view: P.get('state') || 'items',  // items | zero | loading | error
+  view: ({ stale: 'items', empty: 'zero' })[P.get('state')] || P.get('state') || 'items',  // items | zero | loading | error (D6: stale shows items, empty = first run)
   tab: P.get('tab') || 'inbox',     // inbox | office (the tab switch; Office's own screen comes next)
   items: ITEMS.slice(),
   open: P.get('open') || ITEMS[0].id,
@@ -143,7 +143,8 @@ const S = {
   decided: [],                       // { what, project, age, id }, newest first
   note: '',
 };
-if (S.view === 'zero') { S.items = []; S.decided = ITEMS.map((x, i) => ({ what: x.dock.log, project: x.project, age: ['2m', '4m', '7m', '9m', '12m', '15m', '18m'][i] })); }
+if (S.view === 'zero') S.items = [];
+if (S.view === 'zero' && P.get('state') !== 'empty') { S.decided = ITEMS.map((x, i) => ({ what: x.dock.log, project: x.project, age: ['2m', '4m', '7m', '9m', '12m', '15m', '18m'][i] })); }
 const ledger = () => S.decided.concat(EARLIER.map(([what, project, age], i) => ({ what, project, age, key: `early-${i}` })));
 const budgetHit = () => S.items.some(x => x.id === 'budget');
 const needsN = () => S.items.filter(x => x.needs).length;
@@ -162,6 +163,8 @@ function chrome() {
   const count = n && !loading ? `<span class="count ${u ? 'is-needs' : ''}" aria-hidden="true"${cn}>${n}</span>` : '';
   const inboxLabel = n && !loading ? `Inbox, ${n} waiting${u ? `, ${u} need you now` : ''}` : 'Inbox';
   const cur = t => S.tab === t ? 'aria-current="page"' : '';
+  /* D6 (screens2/inbox.html) draws its own chrome from the one data model */
+  if (FEEL.chrome) return FEEL.chrome({ n, u, loading, items: S.items });
   const proj = [['replay', true], ['atelier-ui', true], ['dodge', false]].map(([p, on]) => [p, on, S.items.filter(x => x.project === p).length]);
   document.getElementById('side').innerHTML = `
     <span class="brand">${brand()}</span>
@@ -200,7 +203,7 @@ function qitem(x) {
 /* named: the queue's agent rows travel with their header (unnamed rows jump while the header slides) */
 function agent(a, named) {
   const v = a.n / a.of;
-  return `<a href="#" class="agent" data-agent="${a.id}"${named && rowsMove() ? vt(`w-${a.id}`, 'row') : ''} aria-label="${a.what}. ${a.meta}. ${figure(a)}"><span class="agent-dot"><span class="dot dot-active is-live" role="img" aria-label="Working"></span></span><span class="agent-what">${a.what}</span><span class="agent-meta">${a.meta} · <span class="when">${a.when}</span></span><span class="agent-progress"><span class="track"><i style="--v:${v.toFixed(4)}"></i></span><span class="fig">${figure(a)}</span></span></a>`;
+  return `<a href="${a.href || '#'}" class="agent" data-agent="${a.id}"${named && rowsMove() ? vt(`w-${a.id}`, 'row') : ''} aria-label="${a.what}. ${a.meta}. ${figure(a)}"><span class="agent-dot"><span class="dot dot-active is-live" role="img" aria-label="Working"></span></span><span class="agent-what">${a.what}</span><span class="agent-meta">${a.meta} · <span class="when">${a.when}</span></span><span class="agent-progress"><span class="track"><i style="--v:${v.toFixed(4)}"></i></span><span class="fig">${figure(a)}</span></span></a>`;
 }
 const agents = named => WORKING.map(a => agent(a, named)).join('');
 function ledgerRows(rows) {
@@ -222,9 +225,10 @@ function dock(x) {
   const sending = st === 'sending', failed = st === 'failed', invalid = st === 'invalid';
   const field = d.note ? `<textarea class="input" id="note" rows="1" aria-label="${esc(d.note)}" placeholder="${esc(d.note)}" ${sending ? 'disabled' : ''} ${invalid ? 'aria-invalid="true" aria-describedby="noteErr"' : ''}>${esc(S.note)}</textarea>` : '';
   const err = invalid ? `<span class="field-error" id="noteErr">${I('alert')}${esc(d.required || 'Say what’s wrong so the team can fix it.')}</span>` : '';
-  const primary = `<button class="btn btn-primary" data-act="primary" ${sending ? (alt ? 'disabled' : 'aria-busy="true"') : ''}><span class="lbl">${sending && !alt ? d.busy : failed && !alt ? 'Try again' : d.primary}</span></button>`;
+  /* No primary: an item with nothing to decide (a blocker that only explains, D6) */
+  const primary = !d.primary ? '' : `<button class="btn btn-primary" data-act="primary" ${sending ? (alt ? 'disabled' : 'aria-busy="true"') : ''}><span class="lbl">${sending && !alt ? d.busy : failed && !alt ? 'Try again' : d.primary}</span></button>`;
   const second = d.secondary ? `<button class="btn btn-secondary" data-act="secondary" ${sending ? (alt ? 'aria-busy="true"' : 'disabled') : ''}><span class="lbl">${sending && alt ? 'Sending…' : failed && alt ? 'Try again' : d.secondary}</span></button>` : '';
-  const ghost = d.ghost ? `<a class="btn btn-ghost" href="#">${d.ghost}</a>` : '';
+  const ghost = d.ghost ? `<a class="btn btn-ghost" href="${d.ghostHref || '#'}">${d.ghost}</a>` : '';
   const msg = failed ? `<span class="dock-msg is-error" role="alert">${I('alert')}Couldn’t reach Atelier. Nothing was sent.</span>`
     : d.hint ? `<span class="dock-hint">${d.hint}</span>` : d.note ? `<span class="dock-hint"><span class="kbd">Ctrl</span><span class="kbd">↵</span> to send</span>` : '';
   return `<div class="dock" aria-label="Your decision" role="group"${vt('dock')}>${field ? `<div class="field">${field}${err}</div>` : ''}<div class="dock-row">${primary}${second}${ghost}${msg}</div></div>`;
@@ -237,8 +241,9 @@ function head() {
     <button class="btn btn-ghost btn-icon btn-sm" data-go="-1" aria-label="Previous item">${I('chevron-left')}</button>
     <button class="btn btn-ghost btn-icon btn-sm" data-go="1" aria-label="Next item">${I('chevron-right')}</button>
     <span class="hint"><span class="kbd">J</span><span class="kbd">K</span> to move</span></div>` : '';
+  const end = FEEL.headEnd ? FEEL.headEnd(S) : '';
   const summary = S.view === 'loading' ? 'Loading…' : S.view === 'error' ? '' : n ? `${n} waiting${u ? ` · <span class="is-needs">${u} need${u === 1 ? 's' : ''} you now</span>` : ''}` : 'Nothing waiting';
-  return `<header class="page-head"${vt('head')}><h1>Inbox</h1><span class="summary num">${summary}</span>${pager}</header>`;
+  return `<header class="page-head"${vt('head')}><h1>Inbox</h1><span class="summary num">${summary}</span>${pager}${end}</header>`;
 }
 function draw() {
   chrome();
@@ -258,11 +263,13 @@ function draw() {
       <aside class="queue" aria-label="Waiting on you"><div class="queue-group">${Array.from({ length: 5 }, () => `<div class="qitem is-skeleton"><span class="skeleton" style="width:28px;height:28px"></span><span class="skeleton" style="height:12px;width:85%;margin-top:4px"></span><span></span><span class="qitem-meta"><span class="skeleton" style="height:10px;width:45%;margin-top:6px"></span></span></div>`).join('')}</div></aside></div>`;
     return;
   }
+  if (S.view === 'error' && FEEL.errorHTML) { main.innerHTML = head() + FEEL.errorHTML(); return; }
   if (S.view === 'error') {
     main.innerHTML = head() + `<div class="inbox"><section class="focus"><div class="banner" role="alert">${I('alert')}<span>The Inbox didn’t load. Trying again in 15 s.</span><span class="spacer"></span><button class="btn btn-secondary" data-act="retry">Try now</button></div>
       <p class="lede">Your agents keep working while the dashboard is away; nothing is lost.</p></section><aside class="queue" aria-label="Waiting on you"><p class="faint" style="padding:0 var(--space-3);font-size:var(--text-sm)">The list comes back when the Inbox loads.</p></aside></div>`;
     return;
   }
+  if (!S.items.length && FEEL.firstRunHTML && P.get('state') === 'empty') { main.innerHTML = head() + FEEL.firstRunHTML(); return; }
   if (!S.items.length) {
     main.innerHTML = head() + `<div class="inbox"><section class="focus"><div class="zero">
       <div class="empty"${vt('empty')}><span class="empty-mark"><span class="tick">${I('check')}</span>All caught up</span><h2 class="empty-title" tabindex="-1" id="ttl">Nothing needs you.</h2><p>Three agents are working on their own. Anything that needs you will show up here.</p></div>
@@ -276,7 +283,7 @@ function draw() {
   main.innerHTML = head() + `<div class="inbox">
     <section class="focus" aria-labelledby="ttl">
       <div class="focus-head"${vt('ih')}>
-        <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${I(x.glyph)}${x.kind}</span></span><span class="grp"><span class="sep">·</span><span>${x.project}</span></span><span class="grp"><span class="sep">·</span><span>${x.ageLong}</span></span></div>
+        <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${I(x.glyph)}${x.kind}</span></span><span class="grp"><span class="sep">·</span>${FEEL.projectHref ? `<a class="proj" href="${FEEL.projectHref(x.project)}">${x.project}</a>` : `<span>${x.project}</span>`}</span><span class="grp"><span class="sep">·</span><span>${x.ageLong}</span></span></div>
         <h2 class="title-display" id="ttl" tabindex="-1"${t ? vt(t, 'title') : ''}>${esc(x.title)}</h2>
       </div>
       <div class="focus-body"${vt('ib')}>${x.body()}</div>
@@ -285,7 +292,7 @@ function draw() {
     ${queue()}
   </div>`;
 }
-function render() { draw(); placeToast(); }
+function render() { draw(); FEEL.drawn?.(); placeToast(); }
 
 /* ── Transitions ── */
 let busy = Promise.resolve();
@@ -369,8 +376,8 @@ function placeToast() {
   const gap = tok('--space-2'), r = dk.getBoundingClientRect();
   box.style.setProperty('--toast-x', `${r.left + r.width / 2}px`); box.style.setProperty('--toast-w', `${r.width}px`);
   const bar = s => { const e = document.querySelector(s); if (!e) return null; const cs = getComputedStyle(e); return cs.display === 'none' || !['sticky', 'fixed'].includes(cs.position) ? null : e.getBoundingClientRect(); };
-  const topLimit = Math.max(0, ...['.shell-top', '.page-head'].map(bar).filter(Boolean).map(b => b.bottom));
-  const tabs = bar('.shell-tabs'), bottomLimit = tabs ? tabs.top : innerHeight;
+  const topLimit = Math.max(0, ...(FEEL.topBars || ['.shell-top', '.page-head']).map(bar).filter(Boolean).map(b => b.bottom));
+  const tabs = bar(FEEL.tabBar || '.shell-tabs'), bottomLimit = tabs ? tabs.top : innerHeight;
   const h = box.offsetHeight, above = r.top - gap - h, below = r.bottom + gap;
   const top = above >= topLimit + gap ? above : below + h <= bottomLimit - gap ? below : topLimit + gap;
   box.style.setProperty('--toast-top', `${Math.round(top)}px`); box.setAttribute('data-anchor', '');
@@ -464,7 +471,7 @@ render();
 FEEL.boot?.();
 
 const link = (k, v, l) => { const q = new URLSearchParams(P); q.delete('shot'); v === null ? q.delete(k) : q.set(k, v); return `<a href="?${q}">${l}</a>`; };
-document.getElementById('mock').innerHTML = link('theme', theme === 'dark' ? 'light' : 'dark', theme === 'dark' ? 'Light' : 'Dark')
+if (document.getElementById('mock')) document.getElementById('mock').innerHTML = link('theme', theme === 'dark' ? 'light' : 'dark', theme === 'dark' ? 'Light' : 'Dark')
   + link('motion', RM ? null : 'reduce', RM ? 'Full motion' : 'Reduced motion')
   + link('state', null, 'Items') + link('state', 'zero', 'Inbox zero') + link('state', 'loading', 'Loading') + link('fail', '1', 'Next send fails')
   + '<a href="../index.html">All three feels</a>';

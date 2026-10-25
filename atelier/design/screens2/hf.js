@@ -21,6 +21,7 @@ window.HF = (() => {
   const PROJECTS = first ? [] : q.get('p') === 'tidepool' ? [...M.PROJECTS, { id: 'tidepool', lead: true, waiting: 0, today: '$0.04', limit: '$20', line: 'Brief · the lead is drafting the charter' }] : M.PROJECTS;
   const pHref = id => `project.html${id === 'replay' ? '' : '?p=' + id}`;
   const n = v => (known && v ? v : '');
+  const N0 = N, known0 = known;
 
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const I = (n, cls = '') => `<svg class="icon ${cls}" aria-hidden="true" focusable="false"><use href="#i-${n}"/></svg>`;
@@ -28,7 +29,11 @@ window.HF = (() => {
   const lockup = (size = 20) => `<span class="lockup">${window.mark2('N1', size)}<span class="wm">Atelier</span></span>`;
   const keep = href => { const k = ['theme', 'motion'].filter(p => q.has(p)).map(p => `${p}=${q.get(p)}`).join('&'); return k ? `${href}${href.includes('?') ? '&' : '?'}${k}` : href; };
 
-  function chrome(cur) {
+  /* o (Inbox only): live counts from the page's own list: { now: { waiting, needs }, pw: { project: waiting }, known } */
+  function chrome(cur, o = {}) {
+    const N = { ...N0, ...(o.now || {}) }, known = o.known ?? known0;
+    const pw = p => (o.pw && p.id in o.pw ? o.pw[p.id] : p.waiting);
+    const n = v => (known && v ? v : '');
     const curP = p => (cur === p ? ' aria-current="page"' : '');
     const inboxLabel = known ? `Inbox, ${N.waiting} waiting, ${N.needs} need you now` : 'Inbox';
     const side = `
@@ -41,7 +46,7 @@ window.HF = (() => {
       </nav>
       <nav class="nav" aria-label="Projects">
         <a class="nav-label" href="${keep('projects.html')}"${curP('projects')}>Projects</a>
-        ${PROJECTS.map(p => `<a class="nav-item" href="${keep(pHref(p.id))}"${curP(p.id)} aria-label="${p.id}${n(p.waiting) && `, ${p.waiting} waiting`}, lead ${p.lead ? 'on' : 'off'}">${dot(p.lead ? 'active' : '', p.lead ? 'Lead on' : 'Lead off')}${p.id}<span class="count">${n(p.waiting)}</span></a>`).join('')}
+        ${PROJECTS.map(p => `<a class="nav-item" href="${keep(pHref(p.id))}"${curP(p.id)} aria-label="${p.id}${n(pw(p)) && `, ${pw(p)} waiting`}, lead ${p.lead ? 'on' : 'off'}">${dot(p.lead ? 'active' : '', p.lead ? 'Lead on' : 'Lead off')}${p.id}<span class="count">${n(pw(p))}</span></a>`).join('')}
         <a class="nav-item" href="${keep('new.html')}"${curP('new')}>${I('plus')}New project</a>
       </nav>
       <div class="sidebar-foot">
@@ -57,7 +62,7 @@ window.HF = (() => {
       <a href="${keep('office.html')}" aria-label="Office, ${N.working} working"${curP('office')}>${I('office')}${n(N.working) && `<span class="rc is-active" data-count="working">${N.working}</span>`}</a>
       <a href="${keep('activity.html')}" aria-label="Activity"${curP('activity')}>${I('activity')}</a>
       <hr>
-      ${PROJECTS.map(p => `<a href="${keep(pHref(p.id))}" aria-label="${p.id}, ${p.waiting} waiting, lead ${p.lead ? 'on' : 'off'}"${curP(p.id)}><span class="ini">${p.id.slice(0, 2)}</span>${dot(p.lead ? 'active' : '', '')}</a>`).join('')}
+      ${PROJECTS.map(p => `<a href="${keep(pHref(p.id))}" aria-label="${p.id}, ${pw(p)} waiting, lead ${p.lead ? 'on' : 'off'}"${curP(p.id)}><span class="ini">${p.id.slice(0, 2)}</span>${dot(p.lead ? 'active' : '', '')}</a>`).join('')}
       <a href="${keep('new.html')}" aria-label="New project"${curP('new')}>${I('plus')}</a>
       <a class="push" href="${keep('settings.html')}" aria-label="Settings, plan ${N.plan}% used, ${N.today} spent today"${curP('settings')}>${I('settings')}</a>
     </nav>`;
@@ -109,5 +114,5 @@ window.HF = (() => {
   const tick = (el, text) => { if (!el || el.textContent === String(text)) return; el.textContent = text; el.classList.remove('is-tick'); void el.offsetWidth; el.classList.add('is-tick'); };
   const setCount = (key, value) => document.querySelectorAll(`[data-count="${key}"]`).forEach(el => tick(el, value));
 
-  return { M, q, state, known, esc, I, dot, lockup, keep, pHref, live, loadError, mount, tick, setCount };
+  return { M, q, state, known, esc, I, dot, lockup, keep, pHref, live, loadError, mount, tick, setCount, chrome };
 })();

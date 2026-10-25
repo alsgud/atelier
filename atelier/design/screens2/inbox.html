@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Inbox · Atelier</title>
+<!-- D6 high-fi, PROVISIONAL on the recommended UX answers (UX-1 A, UX-10 A, UX-2 A, UX-7 A, UX-9 A).
+     The Flow Inbox engine (feel/shared/inbox.js) in the D6 shell (hf.js) with the one data model (ux/wf/wf.js).
+     Query: open=<id> · kind=outcome|outcomes|plan|screen|charter|github|trust · state=zero|empty|loading|error|stale ·
+     fail=1 · theme=light · motion=reduce · shot · demo -->
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="../feel/shared/feel.css">
+<link rel="stylesheet" href="hf.css">
+<link rel="stylesheet" href="inbox.css">
+</head>
+<body>
+<a class="skip btn btn-secondary" href="#ttl">Skip to the decision</a>
+<div class="hf" id="app-shell"><div class="hf-slot" id="side"></div><main class="hf-main" id="main"></main><div class="hf-slot" id="tabs"></div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="../icons.js"></script>
+<script src="../brand/r2/marks.js"></script>
+<script src="../ux/wf/wf.js"></script>
+<script src="hf.js"></script>
+<script src="inbox.js"></script>
+<script src="../feel/shared/inbox.js"></script>
+</body>
+</html>

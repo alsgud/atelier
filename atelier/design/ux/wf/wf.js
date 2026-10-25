@@ -53,7 +53,7 @@ window.ATELIER_MODEL = (() => {
       now: 'Today’s $40 is used, so new work waits.',
       nowMore: 'The builder finishes its current try first. Raise today’s limit, or work starts again at midnight.',
       act: ['Review the budget', 'inbox.html'],
-      needs: [['needs', 'replay used today’s $40, so new work is paused', 'Budget', '12 min'], ['', 'Does trimming keep the sound in sync?', 'Your judgement', '1 h'], ['', 'The trim handles can’t be reached by keyboard', 'Auditor finding', '3 h']],
+      needs: [['needs', 'replay used today’s $40, so new work is paused', 'Budget', '12 min'], ['', 'Does a trim land on the exact frame you picked?', 'Your judgement', '1 h'], ['', 'The trim handles can’t be reached by keyboard', 'Auditor finding', '3 h']],
       work: [
         { id: 't-trim', k: 'active', title: 'Trim clips on the timeline', who: 'Builder', stage: 1, step: 'Wiring the trim handles into the timeline', prog: 'Try 2 of 5', ago: '1 min ago', href: 'task.html' },
         { id: 't-share', k: '', title: 'Share a clip as a link', who: 'Next', stage: 0, step: 'Starts when the budget allows', prog: '', ago: '', href: 'task.html' }],
@@ -270,8 +270,8 @@ window.ATELIER_MODEL = (() => {
           </div></section>
         <section class="wf-stack"><h2 class="queue-section-title wf-h">When you have a minute <span class="n">5</span></h2>
           <div class="wf-rows">
-            ${row(dot('', 'Waiting'), 'Should the toast say the time, or “just now”?', 'atelier-ui · Question from the designer', '25 min')}
-            ${row(dot('', 'Waiting'), 'Does trimming keep the sound in sync?', 'replay · Your judgement', '1 h')}
+            ${row(dot('', 'Waiting'), 'Should the toast say the time, or “just now”?', 'atelier-ui · Question from the lead', '25 min')}
+            ${row(dot('', 'Waiting'), 'Does a trim land on the exact frame you picked?', 'replay · Your judgement', '1 h')}
             ${row(dot('', 'Waiting'), 'The trim handles can’t be reached by keyboard', 'replay · Auditor finding', '3 h')}
             ${row(dot('', 'Waiting'), 'The charter changed after you approved it', 'dodge · Charter', 'Mon')}
             ${row(dot('', 'Waiting'), 'Atelier closed a window an agent opened', 'atelier-ui · Notice', 'Mon')}
@@ -323,7 +323,7 @@ window.ATELIER_MODEL = (() => {
         </section>
         <section class="wf-stack"><h2 class="wf-h">Needs you here <span class="n is-needs">3</span></h2><div class="wf-rows">
           ${row(dot('needs', 'Needs you now'), 'replay used today’s $40, so new work is paused', '', '12 min', { href: 'inbox.html' })}
-          ${row(dot('', 'Waiting'), 'Does trimming keep the sound in sync?', '', '1 h', { href: 'inbox.html' })}
+          ${row(dot('', 'Waiting'), 'Does a trim land on the exact frame you picked?', '', '1 h', { href: 'inbox.html' })}
           ${row(dot('', 'Waiting'), 'The trim handles can’t be reached by keyboard', '', '3 h', { href: 'inbox.html' })}
         </div></section>
         <section class="wf-stack"><h2 class="wf-h">In progress <span class="n">2</span></h2><div class="wf-rows">
