@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Atelier · How the dashboard works, before it gets drawn</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="ux.css">
+</head>
+<body>
+<a class="skip btn btn-secondary" href="#main">Skip to the walkthrough</a>
+<div class="ux">
+  <nav class="toc" aria-label="Contents">
+    <span id="lockup-toc"></span>
+    <ol>
+      <li><a href="#read">How to answer</a></li>
+      <li><a href="#research">1 · Research</a></li>
+      <li><a href="#ia">2 · Site map and navigation</a></li>
+      <li><a href="#flows">3 · Journeys</a></li>
+      <li><a href="#layout">4 · Layout system</a></li>
+      <li><a href="#info">5 · Information design</a></li>
+      <li><a href="#patterns">6 · Interaction patterns</a></li>
+      <li><a href="#wireframes">7 · Wireframes</a></li>
+      <li><a href="#decisions">8 · Your decisions</a></li>
+    </ol>
+  </nav>
+
+  <main id="main">
+    <header class="hero">
+      <span id="lockup-hero"></span>
+      <h1>How the dashboard works, before it gets drawn</h1>
+      <p class="lede">You picked the look: the window and its light, North light at night, the sidebar, dark by default. Before any more screens, this page walks through how the whole dashboard behaves: who it’s for, where everything lives, how each journey goes, and how every screen is laid out. It ends with numbered decisions. Read it top to bottom and answer them in one reply.</p>
+      <p class="meta-line">Design task D5 · 26 Oct 2026 · low-fi on purpose: structure first, high-fi after your answers</p>
+    </header>
+
+    <section class="sec" id="read" aria-labelledby="read-h">
+      <div class="sec-head"><h2 id="read-h">How to answer</h2></div>
+      <div class="prose">
+        <p>Every place where your taste or priorities matter is marked with a code like <a class="dref" href="#ux-1">UX-1</a>. They are collected in <a href="#decisions">section 8</a>, each with two or three options and my recommendation. Reply with one line per decision, for example <strong>“UX-1 A, UX-2 B, UX-5 A but call it steps”</strong>. Anything you don’t mention, I take as my recommendation.</p>
+        <p>Nothing here changes what the dashboard can do: every function today is kept (95 of 95 lines of the inventory are placed in <a href="#ia-map">the site map</a>), and the actions behind the buttons stay the same.</p>
+      </div>
+      <ol class="toc-inline" aria-label="Contents">
+        <li><a href="#research"><span class="n">1</span>Research: who it’s for and what others do</a></li>
+        <li><a href="#ia"><span class="n">2</span>Site map and navigation</a></li>
+        <li><a href="#flows"><span class="n">3</span>Seven journeys, step by step</a></li>
+        <li><a href="#layout"><span class="n">4</span>Layout system</a></li>
+        <li><a href="#info"><span class="n">5</span>Information design</a></li>
+        <li><a href="#patterns"><span class="n">6</span>Interaction patterns</a></li>
+        <li><a href="#wireframes"><span class="n">7</span>Wireframes of every screen</a></li>
+        <li><a href="#decisions"><span class="n">8</span>Your decisions</a></li>
+      </ol>
+    </section>
+
+    <!-- ───────────────────────── 1 RESEARCH ───────────────────────── -->
+    <section class="sec" id="research" aria-labelledby="research-h">
+      <div class="sec-head"><span class="sec-num">1</span><h2 id="research-h">Who it’s for, and what the best tools already do</h2></div>
+      <div class="prose">
+        <p><strong>You</strong> run a team of AI agents across several projects the way a senior manager runs a team: you set direction, read plain summaries, make the few calls only you can make, and rarely debug. You look in for a minute between other things, at your desk and on your phone. The dashboard is worth it only if managing the team costs you less time than doing the work yourself.</p>
+      </div>
+      <div class="panel">
+        <h3 style="margin:0">The jobs you hire the dashboard for</h3>
+        <ul class="jobs">
+          <li><span class="code">J1</span><div><b>Check in and decide.</b> <span>Does anything need me? If so, see it and decide in one or two taps. Most visits are this.</span></div></li>
+          <li><span class="code">J2</span><div><b>See what the team is doing.</b> <span>Who is working on what, is anyone stuck, is the work real.</span></div></li>
+          <li><span class="code">J3</span><div><b>Start a project.</b> <span>Name it, give the lead a brief, choose how much you want to approve, go.</span></div></li>
+          <li><span class="code">J4</span><div><b>Watch a task and its proof.</b> <span>What is it doing now, how far along, and show me it works.</span></div></li>
+          <li><span class="code">J5</span><div><b>Control spend.</b> <span>What did today cost, how close to the limit, how much of my own Claude plan is left.</span></div></li>
+          <li><span class="code">J6</span><div><b>Review a design or a milestone.</b> <span>Look at the thing itself, approve in my words or send it back.</span></div></li>
+          <li><span class="code">J7</span><div><b>Recover when something fails.</b> <span>What broke, what it costs me, the one thing to do about it.</span></div></li>
+          <li><span class="code">J8</span><div><b>Correct the lead.</b> <span>Answer, overrule, write a ruling, restart it when it drifts.</span></div></li>
+        </ul>
+      </div>
+
+      <h3 id="research-refs">References board</h3>
+      <div class="prose"><p>Captured headless from each product’s public pages and docs (Mobbin still needs a paid plan, ruling R-2). Each card says what to take, what to avoid, and which job it informs. The D2 board (Linear inbox, Vercel Geist, GitHub PR, Cursor, Devin, Superhuman) still stands; these add consoles, run history, approvals and phones.</p></div>
+      <div class="refs" id="refs"></div>
+
+      <h3 id="research-synthesis">What the research says</h3>
+      <div class="panel">
+        <ol class="insights">
+          <li><b>One queue, triaged by urgency, that you can empty.</b><p>Linear’s inbox splits “Priority” from “Other”; GitHub and Superhuman sell zero as the goal. Filters and rule builders (GitHub’s notification filters, Linear’s triage rules) are for teams with thousands of items; you have tens.</p><p class="so">So: one Inbox, two groups (Needs you now · When you have a minute), no filters, a calm zero. <span class="from">J1</span></p></li>
+          <li><b>Status is a dot and a word, from a short fixed list.</b><p>Vercel uses five (Ready, Error, Building, Queued, Canceled), GitHub four. Nobody explains a status in a paragraph.</p><p class="so">So: four meanings everywhere: <em>Working</em> (lilac), <em>Needs you</em> (red), <em>Done</em> (green), and neutral for <em>Waiting</em>, <em>Stopped</em>, <em>Off</em>. Each task, desk and project uses the same words. <span class="from">J2 J4</span></p></li>
+          <li><b>Progress is a shape you can see, not a counter.</b><p>GitHub’s run graph shows jobs as boxes with durations; Devin’s progress tab lists steps with a replay timeline. “Iteration 0 of 6” says nothing (your pain point 3).</p><p class="so">So: a task shows its <em>stage</em> (Planning, Building, Checking, Review, Done), the latest step in a sentence, and “last active 2 min ago”. <a class="dref" href="#ux-5">UX-5</a> <span class="from">J4</span></p></li>
+          <li><b>Failures open at the failure, everything else folded.</b><p>GitHub Actions opens the failed step’s log and folds the green ones.</p><p class="so">So: a failed task opens on what went wrong, in one sentence, with Retry and the log tail under Details. <span class="from">J7</span></p></li>
+          <li><b>Approving shows the thing, and asks for words only when you say no.</b><p>GitHub’s PR review puts the state beside the title and the verdict in one place; a comment is optional to approve and expected to request changes.</p><p class="so">So: the Inbox item shows the design, proof or question itself; rejecting asks for a note, approving a gate asks for a few words (as today, they go to the designer). <span class="from">J6</span></p></li>
+          <li><b>Confirm only what can’t be undone; undo the rest.</b><p>Vercel’s redeploy dialog names exactly what will happen and where. Linear never confirms a triage action: it offers undo.</p><p class="so">So: decisions are instant with Undo in the toast; stopping a lead, cancelling a task and running an audit (it spends money) ask first, in one sentence. <a class="dref" href="#ux-10">UX-10</a> <span class="from">J1 J7</span></p></li>
+          <li><b>The phone is a companion, not the desktop squeezed.</b><p>Linear calls its app “the portable companion”: inbox, quick actions, swipes. GitHub Mobile shows agent sessions as a list with a status line.</p><p class="so">So: on the phone, Inbox, Office, project Now and the task page are first-class; Settings and Docs work but are laid out for the desk. <a class="dref" href="#ux-2">UX-2</a> <span class="from">J1 J2</span></p></li>
+          <li><b>Agents are teammates with a place, not log streams.</b><p>Linear shows an agent as an assignee in the issue’s properties, with its updates in the activity. Devin’s session is a page you can come back to.</p><p class="so">So: every agent has a desk in the Office and every task has a page; you never read raw logs unless you open Details. <a class="dref" href="#ux-8">UX-8</a> <span class="from">J2</span></p></li>
+          <li><b>History is a list: status, one line, time.</b><p>Zapier’s Zap history, n8n executions and Vercel deployments all read the same way, filterable by status.</p><p class="so">So: Activity is one feed by day with a project filter and “Only problems”. <a class="dref" href="#ux-13">UX-13</a> <span class="from">J2 J7</span></p></li>
+          <li><b>Keyboard first on the desk.</b><p>Raycast and Linear: one palette (⌘K) to go anywhere or do anything, single keys for the common moves.</p><p class="so">So: ⌘K to jump to any project, task or setting; J/K, Enter, Z (undo), G then I/O/P/A to move. <span class="from">J1</span></p></li>
+        </ol>
+      </div>
+      <div class="prose"><p><strong>What to avoid, all together:</strong> filter builders, avatars on every row, IDs and branch names in the first line, three-pane log views, status pills in five colours, marketing gradients and glass, and settings pages that are walls of toggles.</p></div>
+    </section>
+
+    <!-- ───────────────────────── 2 SITE MAP ───────────────────────── -->
+    <section class="sec" id="ia" aria-labelledby="ia-h">
+      <div class="sec-head"><span class="sec-num">2</span><h2 id="ia-h">Where everything lives</h2></div>
+      <div class="prose">
+        <p>Two levels, like Linear and Vercel: <strong>global</strong> screens across all projects (Inbox, Office, Projects, Activity, Settings) and <strong>per project</strong> pages, each with its tasks. The Inbox is home: it opens first, every time. <a class="dref" href="#ux-1">UX-1</a></p>
+      </div>
+
+      <div class="map" id="sitemap">
+        <div class="map-col">
+          <h4>Global <small>every project</small></h4>
+          <ul>
+            <li><b>Inbox</b><span>Home. Everything waiting on you, the top item open, decide in place.</span><code>#/inbox · #/inbox/&lt;item&gt;</code></li>
+            <li><b>Office</b><span>Who is working on what, one floor per project, busiest first.</span><code>#/office</code></li>
+            <li><b>Projects</b><span>Every project in one sentence; New project.</span><code>#/projects</code></li>
+            <li><b>Activity</b><span>What happened, by day, all projects; filter by project or problems.</span><code>#/activity</code></li>
+            <li><b>New project</b><span>One short form.</span><code>#/new</code></li>
+            <li><b>Settings</b><span>Your Claude plan limits, appearance, this device, about. <a class="dref" href="#ux-3">UX-3</a></span><code>#/settings</code></li>
+          </ul>
+        </div>
+        <div class="map-col">
+          <h4>A project <small>#/p/&lt;project&gt;</small></h4>
+          <ul>
+            <li><b>Header</b><span>Name, lead on or off with its menu (Start, Restart, Stop), GitHub only when it’s wrong.</span></li>
+            <li><b>Now</b><span>Needs you here, working now, the phase track, the next step. <a class="dref" href="#ux-6">UX-6</a></span></li>
+            <li><b>Money</b><span>Spent today of the daily budget, total so far.</span></li>
+            <li><b>Tabs</b><span>Overview · Tasks · Outcomes · Audits · Docs · Activity · Settings</span>
+              <ul>
+                <li><b>Docs</b><span>Charter, Rulings, Brief, Spec, Plan, Ledger, Design, Contracts, Team messages</span></li>
+                <li><b>Settings</b><span>Approvals, Reading, Gating, Reporting, Shipping, Budgets, Team, Lead, Numbers</span></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div class="map-col">
+          <h4>A task <small>#/t/&lt;task&gt;</small></h4>
+          <ul>
+            <li><b>Status</b><span>Dot, word, reason in one sentence.</span></li>
+            <li><b>Now</b><span>Latest step, stage, last active, spend of its budget.</span></li>
+            <li><b>Proof</b><span>Screenshots large, recording, run log tail.</span></li>
+            <li><b>Dock</b><span>Only when it needs you: answer, approve the plan.</span></li>
+            <li><b>History, Notes, Facts</b><span>Folded: timeline, review, progress notes, decisions, brief, last check, files, PR.</span></li>
+          </ul>
+        </div>
+        <div class="map-col">
+          <h4>Around every screen</h4>
+          <ul>
+            <li><b>Sign in</b><span>Paste the token once per device.</span><code>#/login</code></li>
+            <li><b>⌘K palette</b><span>Jump to any project, task, doc or setting.</span></li>
+            <li><b>Toasts</b><span>What happened, with Undo where possible.</span></li>
+            <li><b>View port</b><span>Agent-made pages and proof open in a new tab, never on the dashboard’s own origin.</span></li>
+            <li><b>Stale, offline, error</b><span>One quiet line in the page; the chrome stays.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Navigation</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <h4>Desk: the Y1 sidebar (≥ 1280 px)</h4>
+          <div class="nav-model" id="nav-desk"></div>
+          <p class="cap">240 px. Top: the lockup. Then the three global places with their counts, then your projects (lead dot and waiting count), then New project. The foot holds the only money on the screen: your plan and today’s spend, and the Settings gear. <a class="dref" href="#ux-9">UX-9</a></p>
+        </div>
+        <div class="panel">
+          <h4>Phone: top bar and tab bar (&lt; 768 px)</h4>
+          <div class="nav-model" id="nav-phone"></div>
+          <p class="cap">Four tabs under the thumb: Inbox, Office, Projects, Activity (as today). The top bar keeps the mark, today’s spend as plain text (tap for plan and spend) and Settings. Between the two, 768–1279 px, the sidebar folds to a 64 px rail. <a class="dref" href="#ux-2">UX-2</a> <a class="dref" href="#ux-7">UX-7</a></p>
+        </div>
+      </div>
+
+      <h3>Global or per project</h3>
+      <div class="tbl-wrap" role="region" aria-label="Global or per project, table" tabindex="0">
+        <table class="tbl">
+          <thead><tr><th scope="col">Thing</th><th scope="col">Lives</th><th scope="col">Why</th></tr></thead>
+          <tbody>
+            <tr><td>Inbox, Office, Activity</td><td>Global, with the project named on every row</td><td>You check in once, not once per project</td></tr>
+            <tr><td>Your Claude plan (usage, reset, pause limits)</td><td>Global: sidebar foot; limits in Settings › Plan</td><td>One plan covers every project</td></tr>
+            <tr><td>Spend today</td><td>Global in the sidebar foot; per project on its page</td><td>Same figure, from one summary (R2): the project share adds up to the total</td></tr>
+            <tr><td>Daily and per-task budget</td><td>Per project: Settings › Budgets</td><td>Each project has its own budget today</td></tr>
+            <tr><td>Approvals, gating, reporting, shipping, team</td><td>Per project: Settings</td><td>They are per project today</td></tr>
+            <tr><td>Appearance (dark, light, follow the device)</td><td>Global: Settings › Appearance</td><td>It is about you and the device, not a project</td></tr>
+            <tr><td>Lead start, restart, stop</td><td>Per project: header menu (and Settings › Lead)</td><td>One lead per project</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="ia-map">Every function today, and where it lives now</h3>
+      <p class="check-line" id="ia-count"></p>
+      <details class="fold" id="ia-fold">
+      <summary>Show all 95 lines, with what changes</summary>
+      <div class="tbl-wrap" role="region" aria-label="Inventory map, table" tabindex="0">
+        <table class="tbl tbl-stack" id="ia-table">
+          <thead><tr><th scope="col">Today (inventory)</th><th scope="col">In the redesign</th><th scope="col">What changes</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      </details>
+    </section>
+
+    <section class="sec" id="flows" aria-labelledby="flows-h"><div class="sec-head"><span class="sec-num">3</span><h2 id="flows-h">Seven journeys, step by step</h2></div></section>
+    <section class="sec" id="layout" aria-labelledby="layout-h"><div class="sec-head"><span class="sec-num">4</span><h2 id="layout-h">Layout system</h2></div></section>
+    <section class="sec" id="info" aria-labelledby="info-h"><div class="sec-head"><span class="sec-num">5</span><h2 id="info-h">Information design</h2></div></section>
+    <section class="sec" id="patterns" aria-labelledby="patterns-h"><div class="sec-head"><span class="sec-num">6</span><h2 id="patterns-h">Interaction patterns</h2></div></section>
+    <section class="sec" id="wireframes" aria-labelledby="wireframes-h"><div class="sec-head"><span class="sec-num">7</span><h2 id="wireframes-h">Wireframes</h2></div></section>
+    <section class="sec" id="decisions" aria-labelledby="decisions-h"><div class="sec-head"><span class="sec-num">8</span><h2 id="decisions-h">Your decisions</h2></div></section>
+  </main>
+</div>
+
+<script src="../icons.js"></script>
+<script src="../brand/r2/marks.js"></script>
+<script src="ia.js"></script>
+<script src="refs.js"></script>
+<script src="ux.js"></script>
+</body>
+</html>

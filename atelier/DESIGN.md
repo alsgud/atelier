@@ -692,6 +692,48 @@ Rationale, options and every render: `design/brand/r2/index.html` (the pick page
 
 Still to do in the high-fi task (from the round-2 hand-off): export N1 and its small cut as `brand/mark.svg` / `mark-16.svg`, favicon and a 512 px app icon (N3 on the tile), outline the wordmark; fold Y1's rules into `components.css`; trademark search before public use (Open questions).
 
+## UX (D5)
+
+Ruling R-8: before any more screens, walk the owner through the whole UX, research first. **Open `design/ux/index.html`** (dark, N1 + K1, phone friendly). The owner reads it top to bottom and answers with one reply of numbered decisions (UX-1 … UX-15). Low-fi on purpose: high-fi screens come after the answers.
+
+| File | What it is |
+|---|---|
+| `design/ux/index.html` | The walkthrough: research, site map, journeys, layout, information design, patterns, wireframes, decisions. `?open` opens every fold (for screenshots) |
+| `design/ux/ux.css`, `ux.js` | Page styles (tokens and components only) and the renderer for the repeated parts |
+| `design/ux/ia.js` | The site map's inventory table: every `inventory.md` line → its new home and what changes |
+| `design/ux/refs.js` | The references board (16 cards) |
+| `design/references/ux/` | The board's captures (public docs and product pages, headless) |
+
+### Research
+
+**Who**: a senior manager running a team of AI agents from desk and phone; reads plain summaries, decides, rarely debugs. **Jobs** (J1–J8): check in and decide; see what the team is doing; start a project; watch a task and its proof; control spend; review a design or milestone; recover when something fails; correct the lead.
+
+**References** (captured headless from public pages, R-2; Mobbin is still paid): Linear inbox, triage, snooze, mobile and agents; GitHub Actions run graph and failed step, PR header, deployment reviews, GitHub Mobile agent sessions; Vercel status set, redeploy confirm, deployment summary; Devin progress and replay; Zapier run history; Raycast palette. Take / avoid / job per card on the page (`ux/refs.js`).
+
+**Synthesis** (ten findings, each with what it means for us):
+1. One queue, triaged by urgency, that you can empty → one Inbox, two groups, no filters, calm zero (J1).
+2. Status is a dot and a word from a short fixed list → four meanings everywhere: Working (lilac), Needs you (red), Done (green), neutral for Waiting, Stopped, Off (J2, J4).
+3. Progress is a shape, not a counter → a task shows its stage, the latest step and when it was last active (UX-5, J4).
+4. Failures open at the failure → a failed task opens on what went wrong in one sentence, Retry, log under Details (J7).
+5. Approving shows the thing and asks for words only to say no → as D2 (J6).
+6. Confirm only what can't be undone; undo the rest (UX-10).
+7. The phone is a companion → Inbox, Office, project Now and task page first-class (UX-2).
+8. Agents are teammates with a place → a desk per agent, a page per task; logs only under Details (UX-8).
+9. History is a list: status, one line, time → Activity as one feed, project filter and Only problems (UX-13).
+10. Keyboard first on the desk → ⌘K palette, J/K, Enter, Z, G then I/O/P/A.
+
+### Information architecture
+
+Two levels. **Global** (all projects): Inbox (home, UX-1), Office, Projects, Activity, New project, Settings (plan limits, appearance, this device; UX-3). **Per project** `#/p/<project>`: header (name, lead menu, GitHub only when wrong), Now (needs you here, working now, phase track, next step; UX-6), Money, then tabs Overview · Tasks · Outcomes (was Criteria, UX-14) · Audits · Docs · Activity · Settings. **Task** `#/t/<task>`: status, Now, Proof, dock only when it needs you, History/Notes/Facts folded. **Around every screen**: sign in, ⌘K palette, toasts, view port, stale/offline/error.
+
+Navigation: Y1 sidebar ≥ 1280 (240 px: lockup, Inbox/Office/Activity with counts, projects with lead dot and waiting count, New project; foot: plan, spend today, Settings), 64 px rail 768–1279 (UX-7), phone top bar (mark, today's spend as text, Settings) + tab bar Inbox · Office · Projects · Activity (UX-2).
+
+**Coverage (R1, AC-9)**: all 95 lines of `inventory.md` are mapped in `ux/ia.js` and shown in the page's site map; `runs/6umt/tools/ia-check.mjs <worktree>` checks it line by line (95 of 95, none missing, none invented). 31 lines change where they sit or how they work; each names the decision behind it.
+
+### Decisions (numbering fixed; options and recommendations are on the page)
+
+UX-1 what opens first · UX-2 phone tabs · UX-3 where global settings live · UX-4 opening a task (full page or a peek) · UX-5 how task progress reads · UX-6 the top of a project page · UX-7 navigation between 768 and 1279 px · UX-8 the Office layout · UX-9 where spend and plan sit · UX-10 confirm or undo · UX-11 an early budget warning · UX-12 new project: form or brief · UX-13 Activity filters · UX-14 "Criteria" becomes "Outcomes" · UX-15 notifications when the app isn't open.
+
 ## Open questions
 
 - **D4: trademark search** for the logo the owner picks (USPTO / EUIPO image search, or a lawyer). Outward-facing, so not done by an agent.
