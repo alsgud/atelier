@@ -16,7 +16,7 @@
         <label class="field-label" for="token">Access token</label>
         <input class="input" id="token" name="token" type="password" autocomplete="current-password" spellcheck="false" required
           ${v === 'wrong' ? 'value="at_9f2c41e07b" aria-invalid="true" aria-describedby="t-err"' : 'aria-describedby="t-help"'} autofocus>
-        ${v === 'wrong' ? `<span class="field-error" id="t-err" role="alert">${I('alert')}<span>That token didn’t match. Copy it again from <code>atelier open</code>; it changes when Atelier is reinstalled.</span></span>`
+        ${v === 'wrong' ? `<span class="field-error" id="t-err" role="alert">${I('alert')}<span>That token didn’t match. Copy it again from <code>atelier open</code>.</span></span>`
           : '<span class="field-help" id="t-help">It stays signed in on this device until you clear its data.</span>'}
       </div>
       <button class="btn btn-primary l-go" type="submit"${v === 'busy' ? ' aria-busy="true" disabled' : ''}>${v === 'busy' ? 'Signing in…' : 'Sign in'}</button>

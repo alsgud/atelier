@@ -255,7 +255,7 @@
   .p-more { min-height: 44px; }
   .p-split summary { min-height: 44px; }
   .p-feed li { grid-template-columns: 64px minmax(0, 1fr); }
-  .p-act .btn { height: var(--size-control-lg); }
+  .p-act .btn, .p-dialog-act .btn { height: var(--size-control-lg); }
   .p-act .btn-primary, .p-act .btn-secondary { flex: 1 1 auto; }
   .p-task-m .num { margin-left: 0; }
   /* Figures as a 2-up grid on the phone: a wrapped line would start with a stray dot */
