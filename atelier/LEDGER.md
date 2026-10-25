@@ -5,6 +5,9 @@
 ## Running
 - pjv7 designer D6 high-fi every screen, PROVISIONAL on the recommended UX answers ($35, 12 it, base atelier/6umt). Core first: Office (push it playful, R12), project, task, Inbox, then the rest. Demos per R-3.
 
+## Tell the owner (morning)
+- 02:36:59 window-closed during 6umt review: Atelier closed a chrome.exe window whose title was the owner's own video tab. That is probably the owner's own browser, closed by Atelier's window guard (a false positive in Atelier core, owner's code), not an agent opening it. Tell the owner, and that it may be worth fixing the guard.
+
 ## Waiting on the owner (morning)
 - UX-1..UX-15 answers: 6umt APPROVED; page worktrees/6umt/atelier/design/ux/index.html. Lead ruled the D5 open questions: no Retry action, UX-11 C, long description = brief draft, no push. Lead looked at wf-office-1440: clean but plain, so D6 pushes Office.
 - Check-ins resumed 2026-10-26 (cron 8f412b2d).
