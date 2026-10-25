@@ -57,7 +57,8 @@
     { id: 'office', name: 'Office', ready: true, ux: ['UX-8', 'UX-9', 'UX-7', 'UX-2'], what: 'A floor per project, a desk per agent: a lit window while it works, a raised hand when it needs you. Live changes in place.', states: ',loading,empty,error,stale' },
     { id: 'project', name: 'Project page', ready: true, ux: ['UX-6', 'UX-14', 'UX-3', 'UX-11'], what: 'Now first: one sentence on what is going on and its button, the phase track with its outcomes, the figures in one line. Then what needs you here, what is in progress, recent events; money, plan and team beside it. Live refresh in place.', states: ',loading,error,stale',
       also: [['dodge, lead off', 'project.html?p=dodge'], ['tidepool, created a minute ago (empty)', 'project.html?p=tidepool'], ['Lead menu', 'project.html?ui=menu'], ['Stop the lead: confirm', 'project.html?ui=stop'], ['Tasks', 'project.html?tab=tasks'], ['Outcomes', 'project.html?tab=outcomes'], ['Audits', 'project.html?tab=audits'], ['Docs', 'project.html?tab=docs']] },
-    { id: 'task', name: 'Task page', ux: ['UX-4', 'UX-5'], what: 'Stage track, latest step, last active, the proof (screenshots and recordings), history.' },
+    { id: 'task', name: 'Task page', ready: true, ux: ['UX-4', 'UX-5', 'UX-10'], what: 'The latest step as the headline, why and what next under it, last active (or the quiet signal), the stage track filling to its progress. Then the proof large (screenshots, the recording with its length, the run log), latest steps, review, and history and notes folded; status, tries, spend, outcomes and the work beside it. A dock only when it needs you.', states: ',loading,error,stale',
+      also: [['Auditor: quiet longer than usual, no proof yet', 'task.html?t=audit'], ['Designer', 'task.html?t=draw'], ['It asked you a question (dock)', 'task.html?v=needs'], ['Waits for your OK on its plan (dock)', 'task.html?v=plan'], ['Done: review passed', 'task.html?v=done'], ['Proof viewer', 'task.html?ui=proof'], ['Stop: confirm', 'task.html?ui=stop'], ['Answer sent, toast up', 'task.html?v=needs&ui=toast']] },
     { id: 'inbox', name: 'Inbox', ux: ['UX-1', 'UX-10'], what: 'The D2 Inbox in N1 + K1 dark, every behaviour kept: decide, Undo in the toast, zero.' },
     { id: 'projects', name: 'Projects', ux: ['UX-14'], what: 'One sentence per project.' },
     { id: 'activity', name: 'Activity', ux: ['UX-13'], what: 'One feed by day; a project picker and Only problems.' },
@@ -71,6 +72,8 @@
     ['office-phone-dark', 'Office as agents start and finish · phone', true],
     ['project-desktop-dark', 'A project page while a task finishes (live refresh, R7) · desktop'],
     ['project-phone-dark', 'A project page while a task finishes · phone', true],
+    ['task-desktop-dark', 'Open a task from the Office and read its proof · desktop'],
+    ['task-phone-dark', 'Open a task from the Office and read its proof · phone', true],
   ];
   document.getElementById('ix').innerHTML = `
     <header>

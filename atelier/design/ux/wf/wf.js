@@ -35,8 +35,8 @@ window.ATELIER_MODEL = (() => {
      'active' Working (lilac), 'needs' Needs you (red), '' Waiting (neutral), 'off' Off. quiet = the stuck signal, neutral text. */
   const OFFICE = [
     { p: 'atelier-ui', working: 2, today: '$12.60', desks: [
-      { id: 'd-ui-designer', role: 'Designer', k: 'active', st: 'Working', what: 'High-fi Inbox and Office screens', step: 'Drawing the Office floor at 390', prog: [4, 6, 'step'], ago: '4 min ago', href: 'task.html' },
-      { id: 'd-ui-auditor', role: 'Auditor', k: 'active', st: 'Working', what: 'Checking contrast in light and dark', step: 'Measuring text on every surface', prog: [12, 14, 'checks'], ago: '38 min ago', quiet: 'Quiet for 38 min, longer than usual', href: 'task.html' },
+      { id: 'd-ui-designer', role: 'Designer', k: 'active', st: 'Working', what: 'High-fi Inbox and Office screens', step: 'Drawing the Office floor at 390', prog: [4, 6, 'step'], ago: '4 min ago', href: 'task.html?t=draw' },
+      { id: 'd-ui-auditor', role: 'Auditor', k: 'active', st: 'Working', what: 'Checking contrast in light and dark', step: 'Measuring text on every surface', prog: [12, 14, 'checks'], ago: '38 min ago', quiet: 'Quiet for 38 min, longer than usual', href: 'task.html?t=audit' },
       { id: 'd-ui-lead', role: 'Lead', k: '', st: 'Waiting', what: 'Asked you how the toast should read', step: 'In your Inbox', ago: '25 min ago', href: 'inbox.html' }] },
     { p: 'replay', working: 1, today: '$40.00', atLimit: true, desks: [
       { id: 'd-re-builder', role: 'Builder', k: 'active', st: 'Working', what: 'Trim clips on the timeline', step: 'Finishing its second try', prog: [2, 5, 'try'], ago: '1 min ago', href: 'task.html' },
@@ -85,7 +85,66 @@ window.ATELIER_MODEL = (() => {
       team: [['Lead', 'active', 'Working']],
     },
   };
-  return { UX, NOW, PROJECTS, OFFICE, PHASES, PAGES };
+  /* Task pages (UX-4 A: a full page; UX-5 A: stage, latest step, last active). Same figures as OFFICE and PAGES.
+     stage: 0 Planning … 4 Done; prog: [done, of, unit] inside the stage when known; tries: one letter per try,
+     f failed the check · n now · p passed · '' not used yet; steps: [time, words] newest first (the latest steps);
+     proof: [img, caption, kind, extra] from the view port (kind 'rec' = recording with its length); outs: [met, words, status]. */
+  const TASKS = {
+    trim: {
+      p: 'replay', title: 'Trim clips on the timeline', role: 'Builder', k: 'active', word: 'Working', stage: 1, prog: null,
+      step: 'Wiring the trim handles into the timeline',
+      why: 'Its first try let the sound drift by 40 ms after a trim, so the check sent it back. It finishes this try before today’s pause.',
+      ago: '1 min ago', into: '14 min into this try', started: 'Today 13:08',
+      tries: ['f', 'n', '', '', ''], spend: ['$6.20', '$10', 62], files: 7, pr: 'Draft #14', tests: false,
+      steps: [['14:01', 'Wiring the trim handles into the timeline'], ['13:56', 'Moved each cut to the nearest audio frame'], ['13:48', 'Started its second try'], ['13:31', 'First try failed the check: the sound drifts by 40 ms']],
+      proofAt: 'From the first try · 13:22',
+      proofNote: 'The handles trim a clip to the exact frame. The recording shows the sound slipping after the cut, which is what the check caught.',
+      proof: [['replay-trim.png', 'Trim handles on a clip', 'img'], ['replay-player.png', 'The trimmed clip playing', 'rec', '0:48'], ['replay-feed.png', 'The clip list on a phone', 'phone']],
+      log: ['✓ 37 tests passed', '✗ trim.spec.ts › keeps the sound in sync after a trim', '  expected drift ≤ 5 ms, got 40 ms', 'npm test exited with 1'],
+      outs: [[true, 'Dragging a handle trims the clip to the exact frame', 'Met by the first try’s check'], [false, 'Trimming a clip keeps the sound in sync', 'Being built: the second try']],
+      check: ['npm test -- trim', 'Last run 13:31: 37 of 38 passed'],
+      review: 'Not reviewed yet. The reviewer watches the recording once the check passes.',
+      decisions: [['Cuts snap to the nearest audio frame, not the video frame', 'The sound can’t drift; a cut moves by at most 20 ms. Reversible: one setting.'], ['Kept the old trim code behind a switch', 'So the second try can be compared with the first. Removed before review.']],
+      brief: 'Let the owner trim a clip by dragging handles on the timeline. Done when a trim lands on the exact frame, the sound stays in sync (drift ≤ 5 ms), and the handles are 44 px on a phone.',
+      notes: [['13:48', 'Second try: snapping cuts to audio frames. Next, the handles’ keyboard steps.'], ['13:20', 'First try done; recording and screenshots sent to the view port.']],
+      history: [['13:08', 'Started · the lead planned it as part of Build'], ['13:09', 'First try started'], ['13:22', 'Showed its work: 2 screenshots and a recording'], ['13:31', 'The check failed: the sound drifts by 40 ms'], ['13:40', 'replay reached today’s $40; this try finishes first'], ['13:48', 'Second try started']],
+    },
+    audit: {
+      p: 'atelier-ui', title: 'Checking contrast in light and dark', role: 'Auditor', k: 'active', word: 'Working', stage: 2, prog: [12, 14, 'checks'],
+      step: 'Measuring text on every surface',
+      why: 'It measures every text colour against the surface under it, in both modes.',
+      ago: '38 min ago', into: '52 min in', started: 'Today 13:10', quiet: 'Quiet for 38 min, longer than usual. It usually reports every few minutes.',
+      tries: ['n'], spend: ['$2.10', '$4', 52], files: 0, pr: '', tests: false,
+      steps: [['13:24', 'Measuring text on every surface'], ['13:19', 'Light mode: 12 of 12 pairs pass'], ['13:12', 'Read the colour tokens']],
+      proofAt: '', proofNote: '', proof: [], log: [],
+      outs: [[false, 'Every text pair passes WCAG AA in light and dark', '12 of 14 checks done']],
+      check: ['node contrast.mjs tokens.css', 'Not run yet'],
+      review: 'Audits aren’t reviewed: what it finds comes to your Inbox.',
+      decisions: [], brief: 'Measure every text and surface pair in light and dark against WCAG AA (4.5:1, 3:1 for large text). Report each failure as a finding.',
+      notes: [['13:19', 'Light mode done, no failures. Dark mode next.']],
+      history: [['13:10', 'Started · scheduled audit'], ['13:12', 'Read the colour tokens'], ['13:19', 'Light mode: 12 of 12 pairs pass']],
+    },
+    draw: {
+      p: 'atelier-ui', title: 'High-fi Inbox and Office screens', role: 'Designer', k: 'active', word: 'Working', stage: 1, prog: [4, 6, 'steps'],
+      step: 'Drawing the Office floor at 390',
+      why: 'The Office is done on the desk; this step fits each desk into a phone row.',
+      ago: '4 min ago', into: '1 h 12 min in', started: 'Today 12:58',
+      tries: ['n', '', ''], spend: ['$9.80', '$16', 61], files: 5, pr: 'Draft #31', tests: false,
+      steps: [['13:58', 'Drawing the Office floor at 390'], ['13:41', 'Office at 1440 in dark and light'], ['13:20', 'The shell: sidebar, rail and tab bar']],
+      proofAt: 'Shown working · 13:41',
+      proofNote: 'The Office on the desk in both modes. Each desk has a lit window while its agent works.',
+      proof: [['../screens2/img/office-1440-dark.png', 'The Office at 1440, dark', 'img'], ['../screens2/img/office-390-darkv.png', 'The Office on a phone', 'phone']],
+      log: ['30 renders, 0 console errors', 'contrast: 0 pairs under AA'],
+      outs: [[true, 'Every screen in the chosen brand, dark first', 'Office done'], [false, 'Every screen at 390, 768 and 1440', 'Office at 390 in progress']],
+      check: ['atelier verify design', 'Last run 13:41: passed'],
+      review: 'Not reviewed yet.',
+      decisions: [['A floor per project, a desk per agent', 'Your recommended answer UX-8 A; a list is one file away.']],
+      brief: 'Turn the wireframes into high-fi screens in the chosen brand, dark first, with every state.',
+      notes: [['13:41', 'Office desk done. Phone next.']],
+      history: [['12:58', 'Started'], ['13:20', 'The shell drawn'], ['13:41', 'Showed its work: 2 screenshots']],
+    },
+  };
+  return { UX, NOW, PROJECTS, OFFICE, PHASES, PAGES, TASKS };
 })();
 
 (() => {

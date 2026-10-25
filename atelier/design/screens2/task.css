@@ -1,0 +1,135 @@
+/* Task page (UX-4 A, UX-5 A). Built on the project page's parts (project.css: grid, Now, phase track, facts, rows,
+   dialog); only what the task adds lives here. Colour keeps its meanings: lilac working, red needs you, green passed.
+   The stuck signal is neutral words. Only transform and opacity animate (Flow). */
+
+/* Head: the status word sits after the title, in its colour */
+.t-status[data-k="needs"] { color: var(--needs); }
+.t-status[data-k="done"] { color: var(--done); }
+.t-status[data-k=""] { color: var(--text-2); }
+.t-status[data-k=""] .dot { background: transparent; box-shadow: inset 0 0 0 1.5px var(--text-3); }
+.hf-head h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Now: the latest step is the headline (serif, max 28ch), why under it, then last active, stage, figures */
+.t-now .p-now-t { max-width: 28ch; }
+.t-pulse { margin: 0; display: flex; align-items: center; gap: var(--space-2); color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.t-pulse b { color: var(--text); font-weight: var(--weight-medium); }
+.t-pulse.is-quiet { color: var(--text); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--surface-sunken); border: var(--border-width) solid var(--border); }
+.t-pulse.is-quiet .icon { width: 16px; height: 16px; color: var(--text-2); flex: none; }
+
+/* Stage track: the project's phase bars with stage names; the current stage fills to its progress */
+.t-stages li.now { flex: 1.8; }
+.t-stages .fill { display: block; height: 100%; width: var(--f); border-radius: inherit; background: var(--text-2); transform-origin: left; }
+.t-stages[data-k="active"] .fill { background: var(--active); }
+.t-stages[data-k="needs"] .fill { background: var(--needs); }
+.t-stages[data-k="done"] li.past .bar { background: var(--done); }
+.is-stale .t-stages .fill { opacity: 0.5; }
+
+/* It needs you: the question and its answers, then the dock (sticky, like the Inbox's) */
+.t-ask .p-h .dot { align-self: center; }
+.t-ask .quote { margin: 0; }
+.t-ask .choices { max-width: var(--measure); }
+.t-ask legend { margin-bottom: var(--space-2); }
+.t-dock { position: sticky; bottom: var(--space-5); z-index: 5; max-width: var(--size-focus-max); }
+.t-dock .dock-msg .icon { width: 16px; height: 16px; }
+
+/* Proof: pictures large; two side by side, three as the hero layout; the log is monospace under a fold */
+.t-note { margin: 0; max-width: var(--measure); color: var(--text); }
+.t-proof .frames.t-two, .t-proof .frames.is-hero { --cols: 2; }
+.t-proof .frame { padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: zoom-in; }
+.t-proof .frame-img { transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy); }
+.t-proof .frame:hover .frame-img { transform: translateY(-1px); }
+.t-proof .frame:active .frame-img { transform: scale(0.99); transition-duration: var(--dur-instant); }
+.t-proof .frame:focus-visible { outline: none; }
+.t-log { max-width: none; }
+.t-log summary .icon:first-child { width: 16px; height: 16px; }
+.t-log summary .icon:last-child { margin-left: auto; }
+.t-log pre { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface-sunken); font: var(--text-xs)/var(--leading-sm) var(--font-mono); color: var(--text-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.t-log .ok { color: var(--done); }
+.t-log .bad { color: var(--text); }
+
+/* Review result */
+.t-review { display: grid; gap: var(--space-2); }
+.t-review > p { margin: 0; display: flex; align-items: baseline; gap: var(--space-3); }
+.t-verdict { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--done); font-weight: var(--weight-semibold); }
+.t-verdict .icon { width: 16px; height: 16px; stroke-width: 2.5; }
+
+/* History and notes: folds in one group */
+.t-folds { gap: 0; }
+.t-folds .details { max-width: none; }
+.t-folds .details:last-child { border-bottom: var(--border-width) solid var(--border); }
+.t-folds summary { min-height: 44px; }
+.t-folds summary .icon { margin-left: auto; }
+.t-folds .details-body { padding-bottom: var(--space-4); }
+.t-folds .details-body p { margin: 0; max-width: var(--measure); color: var(--text); }
+.t-folds code, .p-dl code { font-family: var(--font-mono); font-size: 0.92em; }
+
+/* Facts: status, tries as dots, spend meter, outcomes, the work */
+.t-st { margin: 0; display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); line-height: var(--leading-md); }
+.t-st b { font-weight: var(--weight-semibold); }
+.t-st[data-k="active"] b { color: var(--active); }
+.t-st[data-k="needs"] b { color: var(--needs); }
+.t-st[data-k="done"] b { color: var(--done); }
+.t-tryrow { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-sm); color: var(--text-2); }
+.t-tries { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-1-5); }
+.t-tries li { width: 10px; height: 10px; border-radius: var(--radius-full); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+.t-tries li[data-t="f"] { background: var(--text-3); box-shadow: none; }
+.t-tries li[data-t="p"] { background: var(--done); box-shadow: none; }
+.t-tries li[data-t="n"] { background: var(--active); box-shadow: 0 0 0 3px var(--active-soft); }
+.t-outs li:first-child { border-top: 0; padding-top: 0; }
+.t-outs b { font-size: var(--text-sm); line-height: var(--leading-sm); }
+.p-dl .is-needs { color: var(--needs); }
+.p-dl .link .icon { width: 12px; height: 12px; margin-left: 2px; vertical-align: -1px; }
+
+/* Proof viewer: the picture as large as the screen allows, on the scrim */
+.t-lb { width: min(1200px, calc(100% - 2 * var(--space-6))); max-height: calc(100% - 2 * var(--space-6)); padding: 0; border: var(--border-width) solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow-3); overflow: hidden; }
+.t-lb[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); animation: t-zoom var(--dur-base) var(--ease-enter); }
+.t-lb::backdrop { background: var(--scrim); }
+.t-lb-bar { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-bottom: var(--border-width) solid var(--border); }
+.t-lb-cap { font-weight: var(--weight-medium); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-lb-n { color: var(--text-3); font-size: var(--text-sm); }
+.t-lb-bar .btn { height: 44px; }
+.t-lb-bar .btn-icon { width: 44px; }
+.t-lb-fig { position: relative; margin: 0; display: grid; place-items: center; background: var(--surface-sunken); min-height: 0; overflow: hidden; }
+.t-lb-media { position: relative; display: block; max-width: 100%; }
+.t-lb-fig img { display: block; max-width: 100%; max-height: calc(100vh - 2 * var(--space-6) - 64px); object-fit: contain; }
+.t-lb.is-phone .t-lb-fig img { padding: var(--space-4) 0; }
+.t-lb-fig .play { position: absolute; left: var(--space-3); bottom: var(--space-3); display: inline-flex; align-items: center; gap: var(--space-1-5); height: 36px; padding: 0 var(--space-3) 0 var(--space-2-5); border-radius: var(--radius-full); background: var(--overlay-media); color: var(--text-on-media); font-size: var(--text-sm); font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
+.t-lb-fig .play[hidden] { display: none; }
+.t-lb-fig .play .icon { width: 16px; height: 16px; fill: currentColor; }
+.t-lb-prev, .t-lb-next { position: absolute; top: 50%; width: 44px; height: 44px; background: var(--surface); }
+.t-lb-prev { left: var(--space-3); }
+.t-lb-next { right: var(--space-3); }
+.t-lb-prev[hidden], .t-lb-next[hidden] { display: none; }
+@keyframes t-zoom { from { opacity: 0; transform: scale(0.97); } }
+
+/* Live: a new step rises in (R7) */
+.t-now .is-entering, .p-feed .is-entering { animation: p-in var(--dur-slow) var(--ease-enter); }
+
+@media (max-width: 1279px) {
+  .t-grid .p-facts-in { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* ── Phone: title on its own line, status and Stop under it; dock above the tab bar; proof one per row ── */
+@media (max-width: 767px) {
+  .hf-head h1 { white-space: normal; }
+  .hf-head .t-status { order: 3; }
+  .hf-head [data-stop] { order: 4; margin-left: auto; }
+  .t-grid .p-facts-in { grid-template-columns: minmax(0, 1fr); }
+  .t-dock { bottom: calc(var(--size-tabbar) + var(--space-3)); }
+  .t-dock .btn { height: var(--size-control-lg); }
+  .t-proof .frames.t-two, .t-proof .frames.is-hero { --cols: 2; }
+  .t-proof .frames.t-two > .frame:not(.is-phone):first-child, .t-proof .frames.is-hero > :first-child { grid-column: 1 / -1; }
+  .t-proof .frames.t-two > .frame:only-child { grid-column: auto; }
+  .t-log summary, .t-folds summary { min-height: 44px; }
+  .p-dl .link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+  .p-dl dt { align-self: center; }
+  .t-lb { width: 100%; max-width: 100%; max-height: 100%; height: 100%; border-radius: 0; border: 0; }
+  .t-lb-fig img { max-height: calc(100vh - 64px); }
+}
+
+/* When it needs you, the question comes before the facts below the desk width: the decision first */
+@media (max-width: 1279px) { .t-grid.has-dock { grid-template-areas: "now" "rest" "facts"; } }
+/* Full-page shots: the dock sits in flow so it doesn't land mid-image */
+.is-shot .t-dock { position: relative; bottom: auto; }
+/* The review's checks read as a quiet list under the verdict, quieter than the outcomes they serve */
+.t-review .p-outs b { font-weight: var(--weight-regular); }
+.t-review .p-outs li { padding: var(--space-1-5) 0; }

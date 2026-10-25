@@ -246,7 +246,7 @@
     T(1600 + 2400, () => { dropWork('t-trim'); addFeed(['14:03', 'Trim clips on the timeline is ready for review', 'done']); });
     T(5400, () => { setWork('t-review', { id: 't-review', k: 'active', title: 'Review: Trim clips on the timeline', who: 'Reviewer', stage: 3, step: 'Watching the recording of a trim', prog: '1 of 3 checks', ago: 'just now', href: 'task.html' }); setTeam('Reviewer', 'active', 'Working'); });
     T(8600, () => { setWork('t-review', { step: 'Checked the sound stays in sync after a trim', prog: '3 of 3 checks' }); });
-    T(10200, () => { setWork('t-review', { k: 'done', step: 'Passed: trimming keeps the sound in sync', prog: 'Merged', ago: 'just now' }); setTeam('Reviewer', '', 'Waiting'); addFeed(['14:05', 'Review passed: trimming keeps the sound in sync', 'done']); meet(); });
+    T(10200, () => { setWork('t-review', { k: 'done', step: 'Passed: trimming keeps the sound in sync', prog: 'Ready to merge', ago: 'just now' }); setTeam('Reviewer', '', 'Waiting'); addFeed(['14:05', 'Review passed: trimming keeps the sound in sync', 'done']); meet(); });
     if (loop) T(13500, () => { location.reload(); });
   }
 })();
