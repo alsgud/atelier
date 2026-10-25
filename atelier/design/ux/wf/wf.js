@@ -147,12 +147,12 @@
       ${[
         { p: 'atelier-ui', sum: '2 working · $12.60 today', desks: [
           ['Designer', 'active', 'Working', 'High-fi Inbox and Office screens', 'Drawing the Office floor at 390 · 4 min ago'],
-          ['Auditor', 'active', 'Auditing', 'Checking contrast in light and dark', '12 of 14 checks so far · 6 min ago'],
-          ['Lead', '', 'On duty', 'Waiting for your answer on the toast', 'Asked 25 min ago']] },
+          ['Auditor', 'active', 'Working', 'Checking contrast in light and dark', '12 of 14 checks so far · 6 min ago'],
+          ['Lead', '', 'Waiting', 'Asked you how the toast should read', '25 min ago · in your Inbox']] },
         { p: 'replay', sum: '1 working · $40.00 today, at its limit', desks: [
           ['Builder', 'active', 'Working', 'Trim clips on the timeline', 'Finishing its second try · 1 min ago', 'task.html'],
           ['Lead', 'needs', 'Needs you', 'Paused: today’s budget is used', 'Raise it or wait for midnight'],
-          ['Reviewer', '', 'Idle', 'Nothing to review', 'Last review 40 min ago']] },
+          ['Reviewer', '', 'Waiting', 'Nothing to review yet', 'Last review 40 min ago']] },
       ].map(f => `<section class="wf-floor"><h2 class="wf-h">${f.p} <span class="n">${esc(f.sum)}</span></h2><div class="wf-desks">${f.desks.map(([role, k, st, what, sub, href]) => `
         <${href ? `a href="${href}"` : 'div'} class="wf-desk"><span class="who">${dot(k, st)}<b>${role}</b><span class="st${k ? ' is-' + k : ''}">${st}</span></span><span class="what">${esc(what)}</span><span class="wf-meta">${esc(sub)}</span></${href ? 'a' : 'div'}>`).join('')}</div></section>`).join('')}
       <p class="wf-quiet">dodge · quiet · lead off · $0.00 today</p>
@@ -205,8 +205,10 @@
         </div><a class="link" href="activity.html">All activity</a></section>
       </div>
       <aside class="wf-facts" aria-label="Facts">
-        ${note('Facts 280 · middle: one line under the header')}
+        ${note('Facts 280 · middle: one line under the header · phone: a Facts fold')}
+        <details class="details wf-factsfold" data-desk-open><summary>Facts · today’s spend, so far, shipping, gating${I('chevron-down')}</summary>
         <dl><dt>Today</dt><dd class="is-needs">$40.00 of $40</dd><dt>So far</dt><dd>$286.40</dd><dt>Shipping</dt><dd>Draft PRs</dd><dt>Gating</dt><dd>Standard</dd></dl>
+        </details>
       </aside>
     </div></div>`,
   });

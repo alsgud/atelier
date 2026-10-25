@@ -809,6 +809,40 @@ Each card: the question, why it matters, 2–3 options (schematic picture where 
 | UX-14 | Criteria → Outcomes | A: Outcomes |
 | UX-15 | Outside the app | A: nothing for now (B push is new scope) |
 
+### Critique log (UX)
+
+Before / after pairs in `design/review/ux/before/` and `after/` (same file names). Renders: `runs/6umt/tools/wf-shots.mjs` (27 renders) and `el.mjs` on `index.html?open`, dark, 390 and 1440, reduced motion.
+
+**Round U1 (design-critique on the walkthrough and the eight wireframes)**
+
+| Found | Changed | Why |
+|---|---|---|
+| The walkthrough is 66 000 px tall on the phone and its first screen gives no sense of what changes or how long it takes | An "In short" box under the lede: the five biggest changes, "about 25 minutes", "all as recommended is a full answer", and **Go to the 15 decisions** (44 px on the phone). `ux-390-top.png` | The owner reads this on the phone between other things; they should be able to answer without reading it all |
+| Stage and phase tracks were drawn as five outlined pills in the wireframes (the task's wrapped, "Done" alone on a second line), while §5 defines them as segments | `.wf-track` now uses the §5 specimen's segments exactly (3 px, 2 px gaps, done `--text-3`, now `--active`, ahead `--surface-selected`, labels `--text-xs`). `wf-task-390v.png`, `wf-project-390v.png` | One look per thing (R2, §5); AC-7 "no clutter of pills" |
+| Office desks used words outside the fixed list: "Auditing", "On duty", "Idle" | Working, Waiting, Waiting; the lead's line says what it is waiting on ("Asked you how the toast should read · 25 min ago · in your Inbox"). `wf-office-1440.png` | §5: a status is a dot and one of four words, everywhere |
+| On the phone the project's facts table (four rows) sat above "Now", against UX-6 A | Project facts are a closed **Facts** fold on the phone, as on the task page; open beside the column on the desk, one line under the header at 768–1279 | "Now" is the first thing on a project page at every width |
+| Queue titles cut after one line at 344 px ("Should the toast say the time, or "j…") | Two lines before they cut, `text-wrap: pretty`; the dot and the time align with the first line. `wf-inbox-1440.png` | Queue items are questions; half a question doesn't help triage |
+
+**Round U2 (accessibility-review, measured with `runs/6umt/tools/a11y.mjs`: names, tap targets at 390, Tab order and focus ring, alt text)**
+
+| Found | Changed | After |
+|---|---|---|
+| Phone targets under 44: back links 65×20, header and Now buttons 36 tall (Lead, Review the budget, New project), the task menu 42×36, the Docs tab 31 wide, "All activity" 20 tall, inputs and the dock note 38 | Phone rules in `wf.css`: back links, `btn-sm`, section links, inputs and textareas are `--size-control-lg` (44); icon buttons 44 wide; tabs at least 44 wide and never shrink (the first try let them overlap; caught in the render, fixed with `flex-shrink: 0`) | 0 small targets on office, projects, project, task, activity |
+| Journey index links in §3 were 35 tall on the phone | `#flows-index td > a` 44 tall on the phone | none left outside running text |
+| Remaining small ones | Kept, on purpose: links inside sentences (UX-n references, "section 8", "Sign out") use the WCAG 2.5.8 inline exception; the Inbox eyebrow's project link (37×18) has no other target within 24 px (spacing exception); checkboxes are 18 px but their whole label is the target (≥ 44 tall) | — |
+| Unnamed: the tool flagged `#n-name`, `#s-5h`, `#s-wk` | False positives: each has a `<label for>` | — |
+| Focus | Every Tab stop shows the ring on all eight wireframes and the walkthrough (first 30 stops each) | 0 without a ring |
+| Contrast of the region notes (`.wf-note`, `--brand-accent` 11 px mono) | Measured: 9.21 on `--bg`, 8.41 on `--surface`, 6.91 on `--surface-selected` | passes AA |
+| Images | 0 without alt; 0 broken; 0 console errors on 27 renders and the walkthrough at 390 / 1440; no sideways scroll except the project tab row (scrolls by itself, by design) | — |
+
+### Hand-off: what the high-fi task needs once the owner answers
+
+1. The owner's reply (UX-1 … UX-15). Anything not mentioned = the recommendation. Only `ux/wf/wf.js` changes for a different pick; redraw the affected wireframe first, then go high-fi.
+2. The lead's rulings on the D5 open questions below (no Retry action; early budget warning; long description at New project; push notifications), because UX-11 B, UX-12 B and UX-15 B depend on them.
+3. Build on: `tokens.css` (K1 dark default), `components.css` (D2), Flow motion unchanged, the N1 mark from `brand/r2/marks.js`. Screens in the order of the journeys: Inbox (with zero, stale, offline, error, sent, undo), task page, project page, Office, Projects, Activity, New project, Settings; then palette, sign in and toasts.
+4. Keep the layout system's numbers (§4) and the one-look rules (§5): status words, track, money line, time format. Every number from the D3 summary figures (F1–F6, P1–P4, T1).
+5. Per screen: 390 / 768 / 1440 in dark and light, every state from the §5 table, `a11y.mjs` in every open state, toast-hit at 5 viewports, two critique rounds with before/after.
+
 ## Open questions
 
 - **D4: trademark search** for the logo the owner picks (USPTO / EUIPO image search, or a lawyer). Outward-facing, so not done by an agent.

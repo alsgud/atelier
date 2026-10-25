@@ -74,13 +74,19 @@ a.wf-row:hover, a.wf-desk:hover { background: var(--surface-hover); }
 .wf-row .m { color: var(--text-3); font-size: var(--text-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .wf-row .s.is-needs, .wf-row .m.is-needs { color: var(--needs); }
 .wf-queue .wf-row { border-top: 0; border-radius: var(--radius-sm); }
+/* Queue titles are questions: two lines before they cut, so "Should the toast say the time, or …" keeps its meaning (critique U1) */
+.wf-queue .wf-row b { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; text-wrap: pretty; }
+.wf-queue .wf-row { align-items: start; }
+.wf-queue .wf-row > .dot { margin-top: 8px; }
+.wf-queue .wf-row .m { line-height: var(--leading-md); }
 .wf-day { font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-3); font-weight: var(--weight-medium); padding: var(--space-4) var(--space-3) var(--space-1); }
 
 /* Stage / phase track */
-.wf-track { display: flex; flex-wrap: wrap; gap: var(--space-1); font-size: var(--text-sm); line-height: var(--leading-sm); }
-.wf-track span { padding: 2px var(--space-2); border-radius: var(--radius-full); color: var(--text-3); border: var(--border-width) solid var(--border); }
-.wf-track .past { color: var(--text-2); }
-.wf-track .now { color: var(--text); border-color: var(--text-2); font-weight: var(--weight-medium); }
+/* A shape, not pills (critique U1): the same segments as the §5 specimen (.sp-track): done = text-3, now = lilac, ahead = surface-selected */
+.wf-track { display: flex; gap: 2px; }
+.wf-track span { flex: 1; min-width: 0; padding-top: var(--space-1-5); border-top: 3px solid var(--surface-selected); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-track .past { border-top-color: var(--text-3); }
+.wf-track .now { border-top-color: var(--active); color: var(--text); font-weight: var(--weight-medium); }
 
 /* Proof: pictures large, 16:10, captioned */
 .wf-proof { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
@@ -186,6 +192,13 @@ a.wf-row:hover, a.wf-desk:hover { background: var(--surface-hover); }
   .wf-setnav .nav-item, .wf-filters .btn, .wf-filters select { min-height: 44px; }
   .wf-actions .btn { height: var(--size-control-lg); flex: 1; }
   .wf-zero { padding-top: var(--space-6); }
+  /* Every control the thumb uses is 44 tall (critique U2); links inside a sentence keep the WCAG 2.5.8 inline exception */
+  .wf-head .back, .wf-head .btn-sm, .wf-head .end .btn, .wf-col .btn-sm, .wf-stack > .link { min-height: var(--size-control-lg); }
+  .wf-head .btn-sm, .wf-col .btn-sm { height: var(--size-control-lg); }
+  .wf-head .back, .wf-stack > .link { display: inline-flex; align-items: center; }
+  .wf-head .end .btn { min-width: var(--size-control-lg); justify-content: center; }
+  .wf-tabsrow .tab { min-width: var(--size-control-lg); flex-shrink: 0; justify-content: center; }
+  #wf .input, #wf textarea { min-height: var(--size-control-lg); }
 }
 /* Full-page screenshots (?shot): bars that stick sit in flow so they don't land mid-image */
 .is-shot .wf-top, .is-shot .wf-tabs, .is-shot .wf-dock, .is-shot .wf-side, .is-shot .wf-rail { position: relative; top: auto; bottom: auto; height: auto; }
