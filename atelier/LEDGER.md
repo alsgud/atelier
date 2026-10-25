@@ -16,7 +16,7 @@
 - Charter: draft in atelier/CHARTER-draft.md; owner to adopt in the dashboard — since 2026-10-24
 
 ## Open issues
-- Tasks left in review on purpose (autonomy `branch`, `atelier land` refuses): 6dug waits for the owner's merge; 68h6 -> 57cv -> hspr is the design chain (Flow picked; hspr waits for the owner's brand pick, and D5 will base on it). All of them reach main in one owner merge at the design gate.
+- Tasks left in review on purpose (autonomy `branch`, `atelier land` refuses): 6dug waits for the owner's merge; 68h6 -> 57cv -> hspr -> ysk4 is the design chain (Flow picked; ysk4 waits for the owner's brand pick, and D5 will base on it). All of them reach main in one owner merge at the design gate.
 - 6dug round 2: tab switch paint 838 ms median / 4.5 s max -> 2 ms / under 40 ms; warm API 4 ms. Must-fix: after being unwatched it shows old data for 15 s. Lead answered with the fix (stale flag + quick re-fetch). $5.90 of $10.
 - Atelier core bug (owner's code): a task fails when its end-of-iteration leftovers commit finds nothing to commit (ysk4, 2026-10-25). Lead used `atelier retry` with an answer note. Mention to owner.
 - Follow-ups outside the frontend's files (Atelier core, owner's call): memoize cards.all() by board mtime (lib/card.mjs:67), tail-read audit logs in budget.auditRuns (lib/budget.mjs:66), tick log grows ~15 KB/day. Mention to owner with the hotfix.
