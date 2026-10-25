@@ -25,3 +25,6 @@ _2026-10-25 · owner chat 2026-10-26: continue with N1K1, colour scheming and lo
 
 ## R-8: Before any more screens, the designer leads the owner through the whole UX, research first: layout, navigation, workflows and journeys, information design and interaction patterns, with numbered decisions the owner can answer in one reply.
 _2026-10-25 · owner chat 2026-10-26: work us through layout, design, workflow, basically everything UX; this will require lots of research_
+
+## R-9: Spend is not a constraint for this project: the only limit is the owner's weekly Claude plan window. The lead still spends with care (right-sized tasks, cheapest capable model) but does not hold back owner-requested work or quality to save money.
+_2026-10-25 · owner chat 2026-10-26: don't worry about credit usage, you're limited only to the weekly limit reset, you have full access to credits_
