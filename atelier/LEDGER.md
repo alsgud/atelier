@@ -2,6 +2,9 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## Check-ins paused
+- Owner, 2026-10-25 evening: stop check-ins until their next message. Cron 5b41ddc3 deleted. On their next message, re-create the 2-hourly Check-in cron.
+
 ## Waiting on the owner (phone viewing)
 - Owner wants to view round 2 on the phone. The Artifact upload is denied in this session (don't-ask mode), and sources outside the repo are refused. When home, the owner runs `/permissions` to allow Artifact plus `/add-dir C:\Users\oiyew\.atelier\worktrees\ysk4`, then the lead publishes atelier/share/brand-r2.html (the root page, untracked) with the files mapped under design/... (a helper already reviewed all 77 files: no external URLs or secrets). Meanwhile, the dashboard view-port route works: Design > Open the clickable screens, then change the end of the URL to atelier/design/brand/r2/index.html.
 
