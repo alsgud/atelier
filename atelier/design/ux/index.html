@@ -275,10 +275,226 @@
         </div>
       </div>
     </section>
-    <section class="sec" id="info" aria-labelledby="info-h"><div class="sec-head"><span class="sec-num">5</span><h2 id="info-h">Information design</h2></div></section>
-    <section class="sec" id="patterns" aria-labelledby="patterns-h"><div class="sec-head"><span class="sec-num">6</span><h2 id="patterns-h">Interaction patterns</h2></div></section>
+    <!-- ───────────────────────── 5 INFORMATION DESIGN ───────────────────────── -->
+    <section class="sec" id="info" aria-labelledby="info-h">
+      <div class="sec-head"><span class="sec-num">5</span><h2 id="info-h">Information design: one way to show each thing</h2></div>
+      <div class="prose">
+        <p>Six things appear all over the dashboard: a project, a task, a decision, proof, money and progress. Each has <strong>one look</strong>, used on every screen, so you learn it once. Every number comes from the one summary the server sends (R2): the Inbox count, the sidebar, the Office and the project page show the same figure because they read the same field, never because each screen adds it up.</p>
+      </div>
+
+      <div class="specs" id="specs">
+        <article class="panel spec">
+          <h3>A project</h3>
+          <div class="specimen">
+            <div class="sp-row"><span class="dot dot-active" role="img" aria-label="Lead on"></span><div><b>replay</b><span class="sp-sent">Building · 4 of 9 outcomes met · 1 needs you</span></div></div>
+          </div>
+          <ul class="plain">
+            <li><b>Name</b> as you typed it, then <b>one sentence</b>: phase, outcomes met, what needs you. Lead dot: lilac when on, hollow when off.</li>
+            <li>The same row in Projects, the sidebar (name + waiting count) and the Office floor’s heading.</li>
+            <li>The GitHub repo shows only when something is wrong with it.</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>A task</h3>
+          <div class="specimen">
+            <div class="sp-row"><span class="dot dot-active" role="img" aria-label="Working"></span><div><b>Trim clips on the timeline</b><span class="sp-sent">replay · Building · last active 1 min ago</span></div></div>
+          </div>
+          <ul class="plain">
+            <li><b>What it delivers</b>, in your words (its title), never its ID or branch. Then project · stage · last active.</li>
+            <li>Status is a dot and one word from four: <em>Working</em>, <em>Needs you</em>, <em>Done</em>, and neutral for <em>Waiting</em>, <em>Stopped</em>, <em>Off</em>.</li>
+            <li>ID, branch, files and PR live under Details on its page.</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>A decision</h3>
+          <div class="specimen">
+            <span class="sp-eyebrow">replay · Budget</span>
+            <b class="sp-title">replay has used today’s $40, so new work is paused</b>
+            <span class="sp-dock"><span class="btn btn-primary btn-sm">Raise today to $60</span><span class="btn btn-secondary btn-sm">Leave it paused</span></span>
+          </div>
+          <ul class="plain">
+            <li><b>Eyebrow</b>: project · kind. <b>Title</b>: what is being asked, as a sentence. <b>Body</b>: the thing itself. <b>Dock</b>: verbs that say what happens.</li>
+            <li>Buttons are named for their result (“Raise today to $60”), never OK / Cancel / Submit.</li>
+            <li>Two groups only: <em>Needs you now</em> (red count) and <em>When you have a minute</em> (neutral).</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>Proof</h3>
+          <div class="specimen">
+            <span class="sp-proof"><img src="../screens/img/replay-trim.png" alt="replay’s trim screen, as the task showed it working" decoding="async"><span class="sp-proof-cap">Shown working · 14:02 · recording 0:48</span></span>
+          </div>
+          <ul class="plain">
+            <li><b>Pictures first, large</b> (16:10, captioned with what they show), then the recording with its length, then the run log’s last lines under Details.</li>
+            <li>Always served from the view port; opens in a new tab to click around.</li>
+            <li>No proof yet says so: “Proof appears when the task shows its work.”</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>Money</h3>
+          <div class="specimen">
+            <div class="meter"><div class="meter-head"><span>replay today</span><b>$40.00 of $40</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div><span class="meter-foot">Paused until you raise it or midnight</span></div>
+          </div>
+          <ul class="plain">
+            <li><b>Dollars with cents, tabular figures</b>, “of” the limit when there is one. A meter only against a limit; without one, just the figure.</li>
+            <li>Red only at the limit, because only then it needs you. “API-equivalent, not a bill” is said once, in the spend breakdown.</li>
+            <li>One spend figure per screen (<a class="dref" href="#ux-9">UX-9</a>); the per-task split opens under it, from the summary.</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>Progress</h3>
+          <div class="specimen">
+            <span class="sp-track" aria-label="Stage: Building"><span class="past">Planning</span><span class="now">Building</span><span>Checking</span><span>Review</span><span>Done</span></span>
+            <span class="sp-sent">Wiring the trim handles into the timeline</span>
+          </div>
+          <ul class="plain">
+            <li><b>A task</b>: its stage, the latest step in a sentence, last active (<a class="dref" href="#ux-5">UX-5</a>). <b>A project</b>: the phase track (Brief · Spec · Design · Contracts · Build) and outcomes met.</li>
+            <li>Quiet for longer than usual is neutral text (“Quiet for 25 min, longer than usual”), never red; it becomes red only when the lead says it’s stuck.</li>
+          </ul>
+        </article>
+      </div>
+
+      <h3>Time</h3>
+      <div class="prose"><p>Under an hour: “1 min ago”, “40 min ago”. Today: “14:02”. This week: “Mon 14:02”. Older: “12 Oct”. The exact time is always in the tooltip and to screen readers. Durations: “48 s”, “12 min”, “1 h 20 min”.</p></div>
+
+      <h3 id="info-states">Empty, loading, error and stale</h3>
+      <div class="prose"><p>Every screen has all four, written down so frontend never invents one. Four rules first, then each screen.</p></div>
+      <ol class="rules">
+        <li><b>Loading shows the shape, once.</b> A skeleton of the real layout on the first load of a screen only; counts are hidden until they are known. Refreshes never show a skeleton again (R7).</li>
+        <li><b>Empty says what will be here, and the one thing to do.</b> One sentence, at most one button. Never an illustration, never “No data”.</li>
+        <li><b>An error says what happened and what happens next</b>, in one line, inside the page; the sidebar and tabs stay. Neutral when it fixes itself (it retries), red only when you have to act.</li>
+        <li><b>Stale is a time, not a warning.</b> “Last updated 08:12 · Retrying” in the page’s head; decide buttons are disabled with the reason while the server can’t be reached.</li>
+      </ol>
+      <div class="tbl-wrap" role="region" aria-label="States per screen, table" tabindex="0">
+        <table class="tbl tbl-stack" id="states-table">
+          <thead><tr><th scope="col">Screen</th><th scope="col">Empty</th><th scope="col">Loading</th><th scope="col">Error</th></tr></thead>
+          <tbody>
+            <tr><td>Inbox</td><td data-k="Empty:">“Nothing needs you.” Who is working, and the last three things you decided (R8, R11)</td><td data-k="Loading:">Item and queue skeleton; no count in the tab</td><td data-k="Error:">“Couldn’t load the Inbox. Trying again in 15 s.” · Try now</td></tr>
+            <tr><td>Inbox item</td><td data-k="Empty:">n/a: an item always has its thing</td><td data-k="Loading:">Pictures load in their frames at final size, nothing jumps</td><td data-k="Error:">Action failed: the dock keeps your choice and text, says why, Try again</td></tr>
+            <tr><td>Office</td><td data-k="Empty:">“Nobody is working right now.” Each project’s next step in a line</td><td data-k="Loading:">Floor headings and desk outlines</td><td data-k="Error:">Last floors stay, with the stale line</td></tr>
+            <tr><td>Projects</td><td data-k="Empty:">“No projects yet.” · New project</td><td data-k="Loading:">Three row skeletons</td><td data-k="Error:">One line and Try now</td></tr>
+            <tr><td>Project page</td><td data-k="Empty:">Fresh project: “The lead is writing the brief. It comes to your Inbox.”</td><td data-k="Loading:">Now block skeleton; tabs ready</td><td data-k="Error:">“This project couldn’t be read.” and what the server said, under Details</td></tr>
+            <tr><td>Tasks · Outcomes · Audits</td><td data-k="Empty:">“No tasks yet: the lead plans them after the contracts.” · “No outcomes yet” · “No audits yet.” · Run audit now</td><td data-k="Loading:">Row skeletons</td><td data-k="Error:">One line in the tab</td></tr>
+            <tr><td>Task page</td><td data-k="Empty:">Proof: “Proof appears when the task shows its work.” History: “Nothing yet.”</td><td data-k="Loading:">Header and Now skeleton</td><td data-k="Error:">Failed task opens on what went wrong, in one sentence, and what the lead is doing (journey 5)</td></tr>
+            <tr><td>Activity</td><td data-k="Empty:">“Nothing happened today yet.” With Only problems on: “No problems today.”</td><td data-k="Loading:">Day heading and rows</td><td data-k="Error:">One line and Try now</td></tr>
+            <tr><td>Docs</td><td data-k="Empty:">“The lead hasn’t written the Spec yet.” (per document)</td><td data-k="Loading:">Text lines</td><td data-k="Error:">One line</td></tr>
+            <tr><td>Settings</td><td data-k="Empty:">n/a</td><td data-k="Loading:">Fields disabled, current values shown when known</td><td data-k="Error:">Save failed: your change stays in the field, the reason under it</td></tr>
+            <tr><td>New project</td><td data-k="Empty:">The form, with sensible defaults chosen</td><td data-k="Loading:">Create shows “Creating…”</td><td data-k="Error:">“That name is taken” under the field; nothing you typed is lost</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="info-words">Plain words (R3)</h3>
+      <div class="prose"><p>Eight rules, each with a line from today’s dashboard and what it becomes.</p></div>
+      <div class="tbl-wrap" role="region" aria-label="Plain words, before and after, table" tabindex="0">
+        <table class="tbl tbl-stack" id="words-table">
+          <thead><tr><th scope="col">Rule</th><th scope="col">Today</th><th scope="col">Becomes</th></tr></thead>
+          <tbody>
+            <tr><td>Every list item is one sentence about the work, not the machinery</td><td data-k="Today:"><code>6umt · atelier/6umt · iteration 2/8</code></td><td data-k="Becomes:">UX walkthrough · Building · last active 3 min ago</td></tr>
+            <tr><td>Say what it means for you</td><td data-k="Today:">BLOCKED</td><td data-k="Becomes:">Waiting for your answer</td></tr>
+            <tr><td>Buttons say what happens</td><td data-k="Today:">Approve</td><td data-k="Becomes:">Approve the design</td></tr>
+            <tr><td>IDs, files, commands and branches only under Details</td><td data-k="Today:"><code>gate-approve design</code></td><td data-k="Becomes:">The design for replay is ready for you</td></tr>
+            <tr><td>Your words, not the agents’</td><td data-k="Today:">Criteria met 4/9</td><td data-k="Becomes:">4 of 9 outcomes met <a class="dref" href="#ux-14">UX-14</a></td></tr>
+            <tr><td>Numbers as you’d say them</td><td data-k="Today:">$52.6034 · 1,284,551 tokens</td><td data-k="Becomes:">$52.60 today (tokens under Details)</td></tr>
+            <tr><td>Name the project, always</td><td data-k="Today:">Task stopped</td><td data-k="Becomes:">replay · Trim clips stopped: it was over its budget</td></tr>
+            <tr><td>Sentence case, no exclamation marks, no “please”</td><td data-k="Today:">Lead Restarted Successfully!</td><td data-k="Becomes:">Restarted the lead for replay</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── 6 PATTERNS ───────────────────────── -->
+    <section class="sec" id="patterns" aria-labelledby="patterns-h">
+      <div class="sec-head"><span class="sec-num">6</span><h2 id="patterns-h">Interaction patterns</h2></div>
+      <div class="prose">
+        <p>How things move, respond and confirm. Motion is <strong>Flow</strong>, unchanged (R-5): it moves only what carries meaning, and the thing you are reading never moves while you read it.</p>
+      </div>
+
+      <h3>Motion, per pattern</h3>
+      <div class="tbl-wrap" role="region" aria-label="Motion per pattern, table" tabindex="0">
+        <table class="tbl tbl-stack" id="motion-table">
+          <thead><tr><th scope="col">Pattern</th><th scope="col">Flow</th><th scope="col">Reduced motion</th></tr></thead>
+          <tbody>
+            <tr><td>Deciding an item</td><td data-k="Flow:">Shown done in place (<code>--dur-hold</code>), then the title flies into Decided today and the next item rises in place (<code>--spring-glide</code>)</td><td data-k="Reduced:">Hold, then one cross-fade (120 ms)</td></tr>
+            <tr><td>Undo</td><td data-k="Flow:">The same, in reverse: the title flies home, the body unfolds under it</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Next / previous item (J / K)</td><td data-k="Flow:">The item slides <code>--shift-lg</code> from the side you’re going; on the phone, like a card</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Opening a project or task page</td><td data-k="Flow:">The page slides the way you went (forward in, back out), the chrome stays still</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Tabs on a project page</td><td data-k="Flow:">Slides the way you went</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Live figures and progress</td><td data-k="Flow:">Counts change in place; a progress bar springs (<code>--spring-soft</code>); the live dot pulses (<code>--dur-pulse</code>)</td><td data-k="Reduced:">Change in place, no pulse</td></tr>
+            <tr><td>Toast</td><td data-k="Flow:">Rises 24 px out of the dock (<code>--spring-snappy</code>)</td><td data-k="Reduced:">Fades in</td></tr>
+            <tr><td>Folds (Details, History)</td><td data-k="Flow:">Open in <code>--dur-base</code>, <code>--ease-enter</code></td><td data-k="Reduced:">Open at once</td></tr>
+            <tr><td>A note that’s needed and empty</td><td data-k="Flow:">One 4 px nudge, and the reason under the field</td><td data-k="Reduced:">The reason only</td></tr>
+            <tr><td>Inbox zero</td><td data-k="Flow:">The last title lands, then the quiet line rises 48 px</td><td data-k="Reduced:">Fades in</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Keyboard (desk)</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <dl class="keys">
+            <dt><span class="kbd">⌘</span><span class="kbd">K</span></dt><dd>Go anywhere: a project, task, document or setting (Ctrl K on Windows)</dd>
+            <dt><span class="kbd">J</span> <span class="kbd">K</span></dt><dd>Next and previous item in the Inbox or any list</dd>
+            <dt><span class="kbd">Enter</span></dt><dd>Open the selected row; in the Inbox, move to the dock</dd>
+            <dt><span class="kbd">⌘</span><span class="kbd">Enter</span></dt><dd>Send the dock’s main action (with your note)</dd>
+            <dt><span class="kbd">Z</span></dt><dd>Undo, while the toast is up</dd>
+          </dl>
+        </div>
+        <div class="panel">
+          <dl class="keys">
+            <dt><span class="kbd">G</span> then <span class="kbd">I</span> <span class="kbd">O</span> <span class="kbd">P</span> <span class="kbd">A</span></dt><dd>Inbox, Office, Projects, Activity</dd>
+            <dt><span class="kbd">Esc</span></dt><dd>Close the palette or a fold; leave a note field</dd>
+            <dt><span class="kbd">?</span></dt><dd>Show these keys</dd>
+          </dl>
+          <p class="cap" style="margin:0">Single keys never act while you type. No key decides on its own: a decision always goes through the dock, so a stray key can’t approve anything. Every control is reachable with Tab in reading order, with the focus ring in the brand blue.</p>
+        </div>
+      </div>
+
+      <h3>Undo and confirm <a class="dref" href="#ux-10">UX-10</a></h3>
+      <div class="tbl-wrap" role="region" aria-label="Undo or confirm per action, table" tabindex="0">
+        <table class="tbl tbl-stack" id="confirm-table">
+          <thead><tr><th scope="col">Action</th><th scope="col">What protects it</th><th scope="col">The words</th></tr></thead>
+          <tbody>
+            <tr><td>Approve a gate or a plan, answer, judge an outcome, a finding, raise a budget, allow screen use</td><td data-k="Protect:">Instant. Undo in the toast, 6 s, paused while hovered or focused</td><td data-k="Words:">“Approved the design for replay” · Undo</td></tr>
+            <tr><td>Skip a phase</td><td data-k="Protect:">A reason is required in the dock; no dialog</td><td data-k="Words:">“Skip the design phase? Say why, for the record.”</td></tr>
+            <tr><td>Stop a task</td><td data-k="Protect:">Confirm</td><td data-k="Words:">“Stop Trim clips? Its work so far is kept on its branch.” · Stop the task · Keep it running</td></tr>
+            <tr><td>Stop or restart the lead</td><td data-k="Protect:">Confirm</td><td data-k="Words:">“Stop the lead for replay? Running tasks finish; nothing new starts.” · Stop the lead · Keep it on</td></tr>
+            <tr><td>Run an audit now</td><td data-k="Protect:">Confirm, because it spends money</td><td data-k="Words:">“Run an audit of replay now? It spends from replay’s budget for today.” · Run the audit · Not now</td></tr>
+            <tr><td>Change a setting</td><td data-k="Protect:">Saved on change, toast “Saved” with Undo</td><td data-k="Words:">“Daily budget for replay is now $60” · Undo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>A confirm is one short dialog: a question naming the thing, what happens, and two buttons named for their result. The safe one has the focus; Esc is the safe one. Never a checkbox to type “I understand”.</p></div>
+
+      <h3>Live refresh (R7)</h3>
+      <ul class="rules">
+        <li><b>Every 15 s and when you come back to the tab</b>, as today. Changes apply in place: no reload, no jump.</li>
+        <li><b>What you are reading stays.</b> Your scroll, open folds and the text you are typing are never touched. The open Inbox item is never swapped for a newer one; a new urgent item appears in the queue, in its place, and the count changes.</li>
+        <li><b>Decided somewhere else</b> (your phone, while the desk is open): the item says “You decided this on another device” and leaves when you move on.</li>
+        <li><b>Lists never reorder under your cursor or finger.</b> A row that should move waits until the pointer leaves the list.</li>
+      </ul>
+
+      <h3>Notifications <a class="dref" href="#ux-15">UX-15</a></h3>
+      <ul class="rules">
+        <li><b>Inside the app</b>: the Inbox count in the sidebar and tab bar (red only for “Needs you now”, neutral otherwise), the tab title “(2) Atelier”, and a dot on the browser tab’s icon.</li>
+        <li><b>Toasts</b> only answer something you did; the dashboard never toasts on its own.</li>
+        <li><b>Outside the app</b>: nothing today; push for “Needs you now” is UX-15.</li>
+      </ul>
+    </section>
     <section class="sec" id="wireframes" aria-labelledby="wireframes-h"><div class="sec-head"><span class="sec-num">7</span><h2 id="wireframes-h">Wireframes</h2></div></section>
-    <section class="sec" id="decisions" aria-labelledby="decisions-h"><div class="sec-head"><span class="sec-num">8</span><h2 id="decisions-h">Your decisions</h2></div></section>
+    <!-- ───────────────────────── 8 DECISIONS ───────────────────────── -->
+    <section class="sec" id="decisions" aria-labelledby="decisions-h">
+      <div class="sec-head"><span class="sec-num">8</span><h2 id="decisions-h">Your decisions</h2></div>
+      <div class="prose">
+        <p>Fifteen places where your taste or priorities decide. Each has two or three options and my recommendation, with the reason. Pictures are structure only, not the final look. Options marked <em>New scope</em> need the server to do something new, so the lead confirms them before they are built.</p>
+      </div>
+      <div class="decs" id="decisions-list"></div>
+      <div class="panel answer" id="answer">
+        <h3 style="margin:0">Your reply</h3>
+        <p class="cap" style="margin:0">My recommendations, in one line. Copy it, change any letter you disagree with, add a few words where you want something different, and send it back.</p>
+        <pre id="answer-text"></pre>
+        <div class="answer-row"><button type="button" class="btn btn-secondary" id="answer-copy">Copy my recommendations</button><span class="cap" id="answer-status" role="status" aria-live="polite" style="margin:0"></span></div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -287,6 +503,7 @@
 <script src="ia.js"></script>
 <script src="refs.js"></script>
 <script src="flows.js"></script>
+<script src="decisions.js"></script>
 <script src="ux.js"></script>
 </body>
 </html>

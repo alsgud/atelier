@@ -126,6 +126,63 @@
       <dl><dt>1440</dt><dd>${esc(t.desk)}</dd><dt>768</dt><dd>${esc(t.mid)}</dd><dt>390</dt><dd>${esc(t.phone)}</dd></dl>
     </div>`).join('');
 
+  /* §8 Decisions: schematic pictures (structure only, low-fi on purpose), then one card per decision */
+  const B = (w, c = '') => `<i class="mf-b${c ? ' ' + c : ''}" style="--w:${w}%"></i>`;
+  const L = t => `<span class="mf-l">${esc(t)}</span>`;
+  const box = (inner, c = '') => `<span class="mf-box${c ? ' ' + c : ''}">${inner}</span>`;
+  const side = (inner = '') => `<span class="mf-side">${B(70, 't')}${B(80)}${B(60)}${B(70)}${inner}</span>`;
+  const desk = (inner, c = '') => `<span class="mf mf-desk${c ? ' ' + c : ''}">${inner}</span>`;
+  const main = (inner, c = '') => `<span class="mf-main${c ? ' ' + c : ''}">${inner}</span>`;
+  const tabs = names => `<span class="mf-tabbar">${names.map((n, i) => `<span${i === 0 ? ' class="on"' : ''}>${esc(n)}</span>`).join('')}</span>`;
+  const stages = (cur, names = ['Planning', 'Building', 'Checking', 'Review', 'Done']) => `<span class="mf-stages">${names.map((n, i) => `<span class="${i < cur ? 'past' : i === cur ? 'now' : ''}">${esc(n)}</span>`).join('')}</span>`;
+  const FIGS = {
+    'first-inbox': desk(side() + main(L('Inbox') + B(80, 't') + box(B(90) + B(70) + B(80)) + box(L('Dock'), 'dock')) + `<span class="mf-col">${L('Queue')}${B(90, 'n')}${B(80)}${B(85)}${B(70)}</span>`),
+    'first-office': desk(side() + main(L('Office') + `<span class="mf-grid">${box(B(70, 'a') + B(90))}${box(B(70, 'a') + B(80))}${box(B(60) + B(90))}${box(B(70, 'a') + B(70))}${box(B(60) + B(80))}${box(B(60) + B(60))}</span>`)),
+    'tabs-a': tabs(['Inbox', 'Office', 'Projects', 'Activity']),
+    'tabs-b': tabs(['Inbox', 'Office', 'Projects', 'You']),
+    'tabs-c': tabs(['Inbox', 'Team', 'Projects']),
+    'task-page': desk(side() + main(L('Task page') + B(70, 't') + `<span class="mf-row2">${box(L('Proof, full width'), 'tall')}<span class="mf-col mf-facts">${L('Facts')}${B(80)}${B(60)}${B(70)}</span></span>`)),
+    'task-peek': desk(side() + main(L('Office') + box(B(70, 'a') + B(90)) + box(B(60) + B(80)) + box(B(60) + B(70)), 'mf-narrow') + `<span class="mf-peek">${L('Peek')}${B(80, 't')}${box(L('Proof'), 'tall')}</span>`),
+    'prog-stage': `<span class="mf-comp">${stages(1)}<span class="mf-sent">Wiring the trim handles into the timeline</span><span class="mf-meta">last active 1 min ago</span></span>`,
+    'prog-bar': `<span class="mf-comp"><span class="mf-meter"><i style="--w:62%"></i></span><span class="mf-sent">62 % · 5 of 8 steps</span><span class="mf-meta">re-planned: was 5 of 6</span></span>`,
+    'prog-time': `<span class="mf-comp"><span class="mf-sent">40 min so far</span><span class="mf-meta">these usually take about an hour</span></span>`,
+    'proj-now': desk(main(L('replay') + box(L('Needs you here · 1'), 'needs') + box(B(70, 'a') + B(60, 'a')) + stages(4, ['Brief', 'Spec', 'Design', 'Contracts', 'Build']) + L('4 of 9 outcomes · $40.00 of $40'))),
+    'proj-figs': desk(main(L('replay') + `<span class="mf-figs">${box(L('2'))}${box(L('1'))}${box(L('4/9'))}${box(L('$40'))}</span>` + box(L('Now')) + B(80) + B(60))),
+    'proj-phase': desk(main(L('replay') + stages(4, ['Brief', 'Spec', 'Design', 'Contracts', 'Build']).replace('mf-stages', 'mf-stages is-big') + box(L('Now')) + B(80) + B(60))),
+    'nav-rail': desk(`<span class="mf-rail">${B(80, 't')}${B(80)}${B(80)}${B(80)}</span>` + main(B(70, 't') + box(B(90) + B(70)) + B(80) + B(60))),
+    'nav-tabs': desk(`<span class="mf-stack">${main(B(70, 't') + box(B(90) + B(70)) + B(80))}${tabs(['Inbox', 'Office', 'Projects', 'Activity'])}</span>`),
+    'nav-fold': desk(side(`<span class="mf-fold" aria-hidden="true">«</span>`) + main(B(70, 't') + box(B(90) + B(70)) + B(80))),
+    'office-floors': desk(main(L('replay · 3 working') + `<span class="mf-grid">${box(B(70, 'a') + B(90))}${box(B(70, 'a') + B(80))}${box(B(60, 'a') + B(90))}</span>` + L('atelier-ui · 2 working') + `<span class="mf-grid">${box(B(70, 'a') + B(80))}${box(B(60) + B(70))}</span>` + L('dodge · quiet'))),
+    'office-list': desk(main(L('Working · 3') + B(90, 'a') + B(85, 'a') + B(80, 'a') + L('Waiting · 2') + B(80) + B(70) + L('Stuck · 0'))),
+    'money-foot': desk(side(`<span class="mf-foot">${L('Plan 41 %')}<span class="mf-meter"><i style="--w:41%"></i></span>${L('Today $52.60')}</span>`) + main(B(70, 't') + box(B(90) + B(70)) + B(80))),
+    'money-none': desk(side() + main(B(70, 't') + box(B(90) + B(70)) + B(80) + B(60))),
+    'money-strip': desk(side() + `<span class="mf-stack">${`<span class="mf-strip">${L('Plan 41 % · Today $52.60')}</span>`}${main(B(70, 't') + box(B(90) + B(70)) + B(80))}</span>`),
+  };
+  if ($('decisions-list') && window.DECISIONS) {
+    $('decisions-list').innerHTML = DECISIONS.map(d => `
+      <article class="dec panel" id="ux-${d.id}" aria-labelledby="ux-${d.id}-h">
+        <header class="dec-head"><span class="dec-code">UX-${d.id}</span><h3 id="ux-${d.id}-h">${esc(d.title)}</h3></header>
+        <p class="dec-why">${esc(d.why)} <span class="from">${esc(d.jobs)}</span></p>
+        <ol class="opts">${d.options.map(o => `
+          <li class="opt${o.rec ? ' is-rec' : ''}">
+            ${o.fig ? `<div class="opt-fig" aria-hidden="true">${FIGS[o.fig]}</div>` : ''}
+            <div class="opt-body">
+              <b><span class="opt-k">${o.k}</span>${esc(o.name)}</b>
+              ${o.rec ? '<span class="rec">Recommended</span>' : ''}${o.scope ? '<span class="scope">New scope: the lead’s call</span>' : ''}
+              <p>${esc(o.text)}</p>
+            </div>
+          </li>`).join('')}
+        </ol>
+        <p class="dec-because"><b>Why I recommend ${d.options.find(o => o.rec).k}:</b> ${esc(d.because)}</p>
+      </article>`).join('');
+    $('answer-text').textContent = DECISIONS.map(d => `UX-${d.id} ${d.options.find(o => o.rec).k}`).join(', ');
+    $('answer-copy').addEventListener('click', async () => {
+      const t = $('answer-text').textContent, st = $('answer-status');
+      try { await navigator.clipboard.writeText(t); st.textContent = 'Copied. Change any letter you disagree with.'; }
+      catch { getSelection().selectAllChildren($('answer-text')); st.textContent = 'Selected: copy it with your device’s Copy.'; }
+    });
+  }
+
   /* ?open: every fold open (for screenshots) */
   if (new URLSearchParams(location.search).has('open')) document.querySelectorAll('details').forEach(d => d.open = true);
 

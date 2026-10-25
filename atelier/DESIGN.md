@@ -702,6 +702,7 @@ Ruling R-8: before any more screens, walk the owner through the whole UX, resear
 | `design/ux/ux.css`, `ux.js` | Page styles (tokens and components only) and the renderer for the repeated parts |
 | `design/ux/ia.js` | The site map's inventory table: every `inventory.md` line → its new home and what changes |
 | `design/ux/refs.js` | The references board (16 cards) |
+| `design/ux/flows.js`, `decisions.js` | The seven journeys (§3) and the fifteen decisions (§8) |
 | `design/references/ux/` | The board's captures (public docs and product pages, headless) |
 
 ### Research
@@ -756,9 +757,48 @@ One fluid reading column (content ≤ 760 `--size-focus-max`, text ≤ 62ch `--m
 - List + detail only for the Inbox; everything else is a page with its own address and a back link (task peek is UX-4).
 - Dock: foot of the reading column (desk, sticky 20 from the panel edge), 8 above the tab bar (phone); on a task page only while it needs you; never two. Toasts: rise out of the dock and cover only it; with no dock, bottom centre of the content column (phone: 8 above the tabs); one at a time, 6 s, paused on hover or focus.
 
-### Decisions (numbering fixed; options and recommendations are on the page)
+### Information design (page §5)
 
-UX-1 what opens first · UX-2 phone tabs · UX-3 where global settings live · UX-4 opening a task (full page or a peek) · UX-5 how task progress reads · UX-6 the top of a project page · UX-7 navigation between 768 and 1279 px · UX-8 the Office layout · UX-9 where spend and plan sit · UX-10 confirm or undo · UX-11 an early budget warning · UX-12 new project: form or brief · UX-13 Activity filters · UX-14 "Criteria" becomes "Outcomes" · UX-15 notifications when the app isn't open.
+One look per thing, on every screen; every figure from the one summary (R2).
+- **Project**: name, then one sentence (phase · outcomes met · what needs you); lead dot lilac when on, hollow when off. Same row in Projects, sidebar (name + waiting count), Office floor heading. Repo only when wrong.
+- **Task**: its title in the owner's words, then project · stage · last active. Status = dot + one word: Working (lilac), Needs you (red), Done (green), neutral Waiting / Stopped / Off. ID, branch, files, PR under Details.
+- **Decision**: eyebrow (project · kind), serif title as the question in a sentence, the thing itself, dock with result-named verbs ("Raise today to $60"). Two groups: Needs you now (red count), When you have a minute (neutral).
+- **Proof**: pictures first, 16:10, captioned; recording with length; run-log tail under Details; always from the view port.
+- **Money**: dollars and cents, tabular, "of" the limit; a meter only against a limit; red only at the limit; "API-equivalent, not a bill" once, in the breakdown.
+- **Progress**: task = stage track (Planning · Building · Checking · Review · Done) + latest step + last active (UX-5); project = phase track + outcomes met. Quiet-too-long is neutral text.
+- **Time**: "1 min ago" under an hour, "14:02" today, "Mon 14:02" this week, "12 Oct" older; exact time in the tooltip.
+- **States**: four rules (skeleton on first load only, counts hidden until known; empty = one sentence + at most one action; error = what happened + what next, inside the page, neutral if it retries, red only if the owner must act; stale = "Last updated 08:12 · Retrying", decide buttons disabled with the reason) and a table of empty / loading / error for all 11 screens and regions.
+- **Plain words (R3)**: eight rules with today → becomes examples (no IDs in the first line, say what it means for you, buttons say what happens, the owner's words, numbers as said, name the project, sentence case).
+
+### Interaction patterns (page §6)
+
+- **Motion**: Flow, unchanged; a table per pattern (decide, undo, J/K, page open, tabs, live figures, toast, folds, invalid note, inbox zero) with its token and the reduced-motion version (cross-fade or fade, hold kept).
+- **Keys**: ⌘/Ctrl K palette · J/K · Enter (open; in the Inbox, to the dock) · ⌘ Enter sends the dock's main action · Z undo while the toast is up · G then I/O/P/A · Esc · ?. Single keys never act while typing; no key decides on its own.
+- **Undo vs confirm** (UX-10): decisions instant with Undo (6 s, paused on hover/focus); skip a phase needs a reason in the dock; stop task, stop/restart lead, run audit confirm in one sentence with result-named buttons, the safe one focused, Esc = safe; settings save on change with Undo.
+- **Live (R7)**: every 15 s and on tab return, in place; scroll, folds and typing untouched; the open Inbox item is never swapped; "You decided this on another device"; rows never reorder under the pointer.
+- **Notifications**: in-app count (red only for Needs you now), tab title "(2) Atelier", favicon dot; toasts only answer the owner's own action; outside the app is UX-15.
+
+### Decisions (page §8, `ux/decisions.js`)
+
+Each card: the question, why it matters, 2–3 options (schematic picture where it helps), the recommendation marked in words and with the accent border, and why. A "Your reply" block prefills the recommendations as one line with a copy button.
+
+| # | Decision | Recommended |
+|---|---|---|
+| UX-1 | What opens first | A: the Inbox, always |
+| UX-2 | Phone tabs | A: Inbox · Office · Projects · Activity (Settings and spend in the top bar) |
+| UX-3 | Settings that cover every project | A: one global Settings + a Settings tab per project |
+| UX-4 | Opening a task | A: full page with its own address (B: desk peek) |
+| UX-5 | Task progress | A: stage, latest step, last active |
+| UX-6 | Top of a project page | A: Now first, figures in one line |
+| UX-7 | Nav at 768–1279 | A: 64 px rail |
+| UX-8 | Office | A: a floor per project, a desk per agent |
+| UX-9 | Spend and plan | A: quietly in the chrome (sidebar foot / phone top bar) |
+| UX-10 | Confirm or undo | A: instant with Undo; confirm only the irreversible and the costly |
+| UX-11 | Early budget warning | C: words on the money line at 80 %, no new Inbox item (B is new scope) |
+| UX-12 | New project | B: same form, the description can grow into a brief (same field and action) |
+| UX-13 | Activity filters | A: project picker + Only problems |
+| UX-14 | Criteria → Outcomes | A: Outcomes |
+| UX-15 | Outside the app | A: nothing for now (B push is new scope) |
 
 ## Open questions
 
@@ -779,4 +819,6 @@ These are for the lead. They touch what the server sends, or they add scope.
 - **D3: the Undo window pauses while the toast is hovered or focused.** Needs the server's grace period (above) to allow a little longer than 6 s, or the client holds the request until the toast closes.
 - **D5: no Retry on a failed task.** Today's dashboard has no retry, resume or extend action (only approve plan, answer, stop). Journey 5 shows the lead re-planning. A Retry button would be a new action: the lead's call.
 - **D5: early budget warning** (UX-11) at 80 % of a project's daily budget needs the server to raise a new, low-urgency Inbox item. New behaviour: the lead's call if the owner picks it.
+- **D5: a long description at New project** (UX-12 B): the same `project-create` field, longer. The lead confirms it reads a paragraph or pasted brief in full when drafting the brief.
+- **D5: push notifications** (UX-15 B) would need a service worker and a server-side push sender: new scope, only if the owner picks it.
 - **Two groups** ("Needs you now" / "When you have a minute") assume the server marks urgency (`priority ≤ 1` or a high-severity finding, as today's red rule does). That is the same rule; it is now shown as a group.
