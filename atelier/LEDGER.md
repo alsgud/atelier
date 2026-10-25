@@ -5,6 +5,9 @@
 ## Running
 - pjv7 designer D6 high-fi every screen, PROVISIONAL on the recommended UX answers ($35, 12 it, base atelier/6umt). Core first: Office (push it playful, R12), project, task, Inbox, then the rest. Demos per R-3.
 
+## Lead lesson
+- `atelier answer` on a needs-you task already requeues and starts it. Do not also run `retry` or `tick`: pjv7 started twice and failed with EPERM on the board file rename (2026-10-26). One retry after that.
+
 ## Tell the owner (morning)
 - 02:36:59 window-closed during 6umt review: Atelier closed a chrome.exe window whose title was the owner's own video tab. That is probably the owner's own browser, closed by Atelier's window guard (a false positive in Atelier core, owner's code), not an agent opening it. Tell the owner, and that it may be worth fixing the guard.
 
