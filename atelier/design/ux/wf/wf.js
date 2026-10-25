@@ -71,7 +71,7 @@ window.ATELIER_MODEL = (() => {
       { id: 'd-re-builder', role: 'Builder', k: 'active', st: 'Working', what: 'Trim clips on the timeline', step: 'Finishing its second try', prog: [2, 5, 'try'], ago: '1 min ago', href: 'task.html' },
       { id: 'd-re-lead', role: 'Lead', k: 'needs', st: 'Needs you', what: 'Paused: today’s budget is used', step: 'Raise it or wait for midnight', ago: '12 min ago', href: 'inbox.html' },
       { id: 'd-re-reviewer', role: 'Reviewer', k: '', st: 'Waiting', what: 'Nothing to review yet', step: 'Last review 40 min ago', ago: '40 min ago', href: 'project.html' }] },
-    { p: 'dodge', working: 0, today: '$0.00', quiet: true, lead: false, note: 'Lead off · nothing running · the design waits for your OK in the Inbox', desks: [] },
+    { p: 'dodge', working: 0, today: '$0.00', quiet: true, lead: false, needs: 1, note: 'Lead off · nothing running · the design waits for your OK in the Inbox', desks: [] },
   ];
   /* Project pages (UX-6 A: Now first). Every figure agrees with NOW, PROJECTS and OFFICE above.
      needs: [k, title, kind, age] (the project's Inbox items); work: tasks in progress or next; recent: [time, words, k]. */

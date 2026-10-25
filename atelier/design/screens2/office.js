@@ -62,7 +62,7 @@
         <header class="floor-head"><h2 id="fl-${f.p}"><a href="${keep(HF.pHref(f.p))}">${f.p}</a></h2>${strip(f)}<span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
         <div class="desks">${f.desks.map(deskHTML).join('')}</div>
       </section>`).join('')}
-      ${quiet.map(f => `<a class="floor-quiet" href="${keep(HF.pHref(f.p))}" aria-label="${esc(`${f.p}, quiet. ${f.note}. ${f.today} today`)}">${strip(f)}<b>${f.p}</b><span>${esc(f.note)}</span><span class="num">${f.today} today</span></a>`).join('')}
+      ${quiet.map(f => `<a class="floor-quiet" href="${keep(HF.pHref(f.p))}" aria-label="${esc(`${f.p}, quiet.${f.needs ? ` ${f.needs} needs you now.` : ''} ${f.note}. ${f.today} today`)}">${strip(f)}<b>${f.p}</b>${f.needs ? `<span class="fq-needs">${dot('needs', 'Needs you now')}${f.needs} needs you now</span>` : ''}<span>${esc(f.note)}</span><span class="num">${f.today} today</span></a>`).join('')}
       <ul class="legend" aria-label="How to read a desk">
         <li><span class="strip"><i data-k="active"></i></span>Light on: working</li>
         <li><span class="strip"><i data-k="needs"></i></span>Hand up: needs you</li>

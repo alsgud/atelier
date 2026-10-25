@@ -56,7 +56,7 @@
   const SCREENS = [
     { id: 'office', name: 'Office', ready: true, ux: ['UX-8', 'UX-9', 'UX-7', 'UX-2'], what: 'A floor per project, a desk per agent: a lit window while it works, a raised hand when it needs you. Live changes in place.', states: ',loading,empty,error,stale' },
     { id: 'project', name: 'Project page', ready: true, ux: ['UX-6', 'UX-14', 'UX-3', 'UX-11'], what: 'Now first: one sentence on what is going on and its button, the phase track with its outcomes, the figures in one line. Then what needs you here, what is in progress, recent events; money, plan and team beside it. Live refresh in place.', states: ',loading,error,stale',
-      also: [['atelier-ui, two agents working, one quiet', 'project.html?p=atelier-ui'], ['dodge, lead off', 'project.html?p=dodge'], ['tidepool, created a minute ago (empty)', 'project.html?p=tidepool'], ['Lead menu', 'project.html?ui=menu'], ['Stop the lead: confirm', 'project.html?ui=stop'], ['Tasks', 'project.html?tab=tasks'], ['Outcomes', 'project.html?tab=outcomes'], ['Audits', 'project.html?tab=audits'], ['Docs', 'project.html?tab=docs']] },
+      also: [['atelier-ui, two agents working, one quiet', 'project.html?p=atelier-ui'], ['dodge, lead off', 'project.html?p=dodge'], ['tidepool, created a minute ago (empty)', 'project.html?p=tidepool'], ['Lead menu', 'project.html?ui=menu'], ['Stop the lead: confirm', 'project.html?ui=stop'], ['Not on GitHub (atelier-ui)', 'project.html?p=atelier-ui&gh=off'], ['Tasks, grouped by status', 'project.html?tab=tasks'], ['Outcomes and team checks', 'project.html?tab=outcomes&open=checks'], ['Audits: findings grouped', 'project.html?tab=audits&open=finding'], ['Audit running', 'project.html?tab=audits&audit=running'], ['Run an audit: confirm', 'project.html?tab=audits&ui=audit'], ['Docs', 'project.html?tab=docs'], ['Charter: edited, approve again', 'project.html?tab=docs&doc=charter&v=edited'], ['Rulings: read and add', 'project.html?tab=docs&doc=rulings'], ['Team messages', 'project.html?tab=docs&doc=messages'], ['Empty tabs (tidepool tasks)', 'project.html?p=tidepool&tab=tasks']] },
     { id: 'task', name: 'Task page', ready: true, ux: ['UX-4', 'UX-5', 'UX-10'], what: 'The latest step as the headline, why and what next under it, last active (or the quiet signal), the stage track filling to its progress. Then the proof large (screenshots, the recording with its length, the run log), latest steps, review, and history and notes folded; status, tries, spend, outcomes and the work beside it. A dock only when it needs you.', states: ',loading,error,stale',
       also: [['Auditor: quiet longer than usual, no proof yet', 'task.html?t=audit'], ['Designer', 'task.html?t=draw'], ['It asked you a question (dock)', 'task.html?v=needs'], ['Waits for your OK on its plan (dock)', 'task.html?v=plan'], ['Done: review passed', 'task.html?v=done'], ['Proof viewer', 'task.html?ui=proof'], ['Stop: confirm', 'task.html?ui=stop'], ['Answer sent, toast up', 'task.html?v=needs&ui=toast']] },
     { id: 'inbox', name: 'Inbox', ready: true, ux: ['UX-1', 'UX-10', 'UX-2', 'UX-7', 'UX-9'], what: 'The chosen Flow Inbox in the D6 shell, every behaviour kept: the top item large with the thing itself, the dock, decide → the next arrives → toast with Undo above the dock, J / K, Ctrl + Enter, Z. Seven items, the same counts as every other screen; every item kind has its look.', states: ',zero,empty,loading,error,stale',
@@ -68,6 +68,8 @@
       also: [['A whole brief pasted', 'new.html?v=brief'], ['Name already in use', 'new.html?v=taken'], ['Creating…', 'new.html?v=busy'], ['Create failed once', 'new.html?v=fail']] },
     { id: 'settings', name: 'Settings', ready: true, ux: ['UX-3', 'UX-10'], what: 'Every project: the Claude plan and its pacing, appearance, this device, each project, about. One project (?p=): lead, approvals, gating, money, shipping, reporting, reading, team, numbers. Changes save at once with Undo; stopping the lead confirms.', states: ',loading,error',
       also: [['replay', 'settings.html?p=replay'], ['atelier-ui: earned trust, a bad amount', 'settings.html?p=atelier-ui&v=invalid'], ['dodge, lead off', 'settings.html?p=dodge'], ['Pacing holds work', 'settings.html?v=holding'], ['Stop the lead: confirm', 'settings.html?p=replay&ui=stop'], ['Saved, toast with Undo', 'settings.html?p=replay&ui=toast']] },
+    { id: 'login', name: 'Sign in', ready: true, ux: [], what: 'The one screen without the shell: the mark, one sentence on where the token comes from, one field, one button. A wrong token says so under the field and keeps what you pasted.',
+      also: [['Wrong token', 'login.html?v=wrong'], ['Signing in…', 'login.html?v=busy']] },
   ];
   const used = k => SCREENS.filter(s => s.ux.includes(k)).map(s => s.name).join(', ');
   const views = s => ['1440', '768', '390'].map(w => ['dark', 'light'].map(t => `<a href="frame.html?src=${s.id}.html&w=${w}&theme=${t}${s.states ? '&states=' + s.states : ''}">${w} ${t}</a>`).join('')).join('');
@@ -85,7 +87,7 @@
     <header>
       <span class="lockup">${window.mark2('N1', 24)}<span class="wm">Atelier</span></span>
       <h1>Every screen, high-fi</h1>
-      <p>N1 + K1 North light, dark first, Y1 sidebar, Flow motion. Each screen at 1440, 768 and 390, dark and light, with its loading, empty, error and stale states. Real content: the same figures on every screen (7 waiting, 2 need you, 3 working, $52.60 today, plan 41 %).</p>
+      <p>N1 + K1 North light, dark first, Y1 sidebar, Flow motion. Each screen at 1440, 768 and 390, dark and light, with its loading, empty, error and stale states. Real content: the same figures on every screen (7 waiting, 2 need you, 3 working, $52.60 today, plan 41 %). Nothing today’s dashboard does is missing: each of the 95 lines of <code>inventory.md</code> has its home in these screens, listed with its proof in <a class="link" href="coverage.js">coverage.js</a>.</p>
     </header>
     <section class="prov" aria-labelledby="prov-h">
       <b class="tag" id="prov-h">PROVISIONAL</b>
@@ -99,7 +101,7 @@
         <a class="wide" href="${s.id}.html"><img src="img/${s.id}-1440-dark.png" alt="${s.name} at 1440, dark" loading="lazy"></a>
         <a href="${s.id}.html"><img src="img/${s.id}-390-darkv.png" alt="${s.name} on a phone, dark" loading="lazy"></a>
         <div class="info">
-          <h3><a class="link" href="${s.id}.html">${s.name}</a><small>${s.ux.map(k => `${k} ${M.UX[k][0]}`).join(' · ')}</small></h3>
+          <h3><a class="link" href="${s.id}.html">${s.name}</a><small>${s.ux.length ? s.ux.map(k => `${k} ${M.UX[k][0]}`).join(' · ') : 'no open UX question'}</small></h3>
           <p>${s.what}</p>
           <div class="grid-links">Open at ${views(s)}</div>
           ${s.also ? `<div class="grid-links">Also ${s.also.map(([t, u]) => `<a href="frame.html?src=${encodeURIComponent(u)}${s.states ? '&states=' + s.states : ''}">${t}</a>`).join('')}</div>` : ''}

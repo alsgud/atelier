@@ -139,7 +139,7 @@
           <section class="p-fact" aria-labelledby="f-st">
             <h3 class="section-label" id="f-st">Status</h3>
             <p class="t-st" data-k="${T.k}">${dot(T.k === 'active' || T.k === 'needs' || T.k === 'done' ? T.k : '', T.word, true)}<b>${esc(T.word)}</b></p>
-            <dl class="p-dl"><dt>Who</dt><dd>${esc(T.role)}</dd>${T.started ? `<dt>Started</dt><dd>${esc(T.started)}</dd>` : ''}<dt>Project</dt><dd><a class="link" href="${keep(pHref(T.p))}">${esc(T.p)}</a></dd></dl>
+            <dl class="p-dl"><dt>ID</dt><dd class="num">${{ trim: 'r4k2', audit: 'u7m1', draw: 'pjv7' }[tid] || 'r4k2'}</dd><dt>Who</dt><dd>${esc(T.role)}</dd>${T.started ? `<dt>Started</dt><dd>${esc(T.started)}</dd>` : ''}<dt>Project</dt><dd><a class="link" href="${keep(pHref(T.p))}">${esc(T.p)}</a></dd></dl>
           </section>
           <section class="p-fact" aria-labelledby="f-try">
             <h3 class="section-label" id="f-try">${T.tries.length > 1 ? 'Tries' : 'Run'}</h3>
@@ -187,7 +187,7 @@
   /* The proof viewer: one picture large, its caption, previous / next, open full size from the view port */
   const viewer = `<dialog class="t-lb" aria-labelledby="lb-cap">
       <div class="t-lb-bar"><span id="lb-cap" class="t-lb-cap"></span><span class="t-lb-n num" data-n></span>
-        <a class="btn btn-ghost btn-sm" href="#" data-full>${I('external')}Full size</a>
+        <a class="btn btn-ghost btn-sm" href="#" target="_blank" rel="noopener" data-full>${I('external')}Full size</a>
         <button class="btn btn-ghost btn-icon" type="button" data-close aria-label="Close" autofocus>${I('x')}</button></div>
       <figure class="t-lb-fig"><span class="t-lb-media"><span class="play" data-play hidden>${I('play')}<span></span></span></span></figure>
       <button class="btn btn-secondary btn-icon t-lb-prev" type="button" data-prev aria-label="Previous picture">${I('chevron-left')}</button>
@@ -254,6 +254,7 @@
       const [file, cap, kind, len] = shots[at];
       if (!lb.querySelector("img")) lb.querySelector(".t-lb-media").insertAdjacentHTML("afterbegin", "<img alt=\"\">"); /* made on first open: an empty img would count as broken */
       lb.querySelector("img").src = img(file); lb.querySelector("img").alt = cap;
+      lb.querySelector('[data-full]').href = img(file); /* the real page links to the view port (/evidence/…, port + 1), in a new tab */
       lb.querySelector('.t-lb-cap').textContent = cap;
       lb.querySelector('[data-n]').textContent = `${at + 1} of ${shots.length}`;
       lb.classList.toggle('is-phone', kind === 'phone');

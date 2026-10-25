@@ -11,6 +11,8 @@
   const tab = ['tasks', 'outcomes', 'audits', 'docs'].includes(q.get('tab')) ? q.get('tab') : 'overview';
   const STAGES = ['Planning', 'Building', 'Checking', 'Review', 'Done'];
   const here = (t, more = '') => keep(`project.html?${id === 'replay' ? '' : `p=${id}&`}tab=${t}${more}`).replace('?tab=overview', '').replace('&tab=overview', '');
+  /* GitHub status (inventory: header). Quiet when fine (a fact); ?gh=off draws the problem in the head, with its reason in the facts */
+  const GH = q.get('gh') === 'off' ? 'the sign-in on this PC expired, so pushes fail. Atelier tries again every 10 minutes.' : '';
   const working = () => P.work.filter(w => w.k === 'active').length;
 
   /* ── The small parts ── */
@@ -107,7 +109,7 @@
           </section>
           <section class="p-fact" aria-labelledby="f-how">
             <h3 class="section-label" id="f-how">How it runs</h3>
-            <dl class="p-dl is-stack">${P.facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}<dt>In the Claude app</dt><dd>“${esc(P.app)}”</dd></dl>
+            <dl class="p-dl is-stack">${P.facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}<dt>In the Claude app</dt><dd>“${esc(P.app)}”</dd><dt>GitHub</dt><dd>${GH ? `<span class="is-needs">Not on GitHub</span>: ${GH}` : 'On GitHub'}</dd></dl>
             <a class="link p-more" href="${keep(`settings.html?p=${id}`)}">Change in Settings</a>
           </section>
         </div>
@@ -116,15 +118,21 @@
   };
   const teamRow = ([r, k, w]) => `<li data-role="${r}">${dot(k === 'off' ? '' : k, w, true)}<b>${r}</b><span class="w${k && k !== 'off' ? ' is-' + k : ''}">${w}</span></li>`;
 
-  /* ── The other sections (R15), each a plain list ── */
-  const TASKS = [
-    ['active', 'Trim clips on the timeline', 'Working · Builder · Building · try 2 of 5', '1 min ago'],
-    ['', 'Share a clip as a link', 'Next · starts when the budget allows', ''],
-    ['done', 'The clip list scrolls smoothly', 'Done · reviewed and merged', '11:05'],
-    ['done', 'Import from the phone’s camera roll', 'Done · reviewed and merged', 'Mon'],
-    ['done', 'Play, pause and seek from the keyboard', 'Done · reviewed and merged', 'Mon'],
-    ['', 'A waveform under the timeline', 'Stopped by you: “not for the first version”', 'Sun'],
+  /* ── The other sections (R15), each a plain list. Every inventory line of today's Tasks, Criteria, Audits and Docs
+     tabs has its place here (review, iteration 7). ── */
+  /* Tasks: grouped by status in the inventory's order; a group with nothing in it is left out, and the line under the
+     heading says so, so an absent group never reads as a missing feature */
+  const TASK_GROUPS = [
+    ['Working', 'active', [['Trim clips on the timeline', 'Builder · Building · 12 of 14 checks', 'f n', 'about 20 min left', '1 min ago', 'r4k2']]],
+    ['Queued', '', [['Share a clip as a link', 'Starts when today’s budget allows', '', '', '', 'r5w8']]],
+    ['Done', 'done', [
+      ['The clip list scrolls smoothly', 'Reviewed · Draft #12 ready to merge', 'p', '', '11:05', 'r3n6'],
+      ['Import from the phone’s camera roll', 'Reviewed · merged', 'f f p', '', 'Mon', 'r2c9'],
+      ['Play, pause and seek from the keyboard', 'Reviewed · merged', 'p', '', 'Mon', 'r2h4']]],
+    ['Cancelled', '', [['A waveform under the timeline', 'Stopped by you: “not for the first version”', 'f', '', 'Sun', 'r3x1']]],
   ];
+  const TRY_WORD = { f: 'failed the check', p: 'passed', n: 'now' };
+  const triesDots = s => { const t = s ? s.split(' ') : []; return !t.length ? '' : `<ol class="t-tries" aria-label="${t.filter(x => x !== 'n').length} ${t.length === 1 ? 'try' : 'tries'} so far">${t.map((x, i) => `<li data-t="${x}" title="Try ${i + 1}: ${TRY_WORD[x]}"></li>`).join('')}</ol>`; };
   const OUTCOMES = [
     [false, 'Trimming a clip keeps the sound in sync', 'Being built: Trim clips on the timeline'],
     [true, 'The clip list scrolls smoothly with 500 clips', 'Met 11:05 · review passed'],
@@ -136,20 +144,108 @@
     [false, 'A one-minute clip exports at 1080p in under a minute', 'Not started'],
     [false, 'Nothing leaves the device unless you share it', 'Not started'],
   ];
+  /* Team checks: the agents' own tests behind the outcomes; folded, because the owner judges by outcomes (inventory: "folded away") */
+  const CHECKS = [
+    [false, 'Audio and video stay within one frame after a trim', 'Failing on try 1 · the builder is on it'],
+    [false, 'Trim handles take focus with Tab', 'Failing · from Monday’s audit'],
+    [false, 'Share link opens in a browser with no app', 'Not written yet'],
+    [true, 'Scrolling 500 clips keeps 60 fps on a mid phone', 'Passing since 11:05'],
+    [true, 'Every page fits 390 px with no sideways scroll', 'Passing since Sun'],
+  ];
+  const AUD = q.get('audit') === 'running';
+  const FINDINGS = [
+    ['call', 'The trim handles can’t be reached by keyboard', 'Accessibility · important · costly to change later',
+      'Someone who can’t use a mouse can play a clip but can’t trim it, so the main job of the app is out of reach for them.', '',
+      'The handles are <code>div</code>s with pointer listeners only; no <code>tabindex</code>, no key handling. WCAG 2.1.1.'],
+    ['fixing', 'The seek bar’s thumb is 28 px on a phone', 'Accessibility · found Mon',
+      'Easy to miss with a thumb, so people scrub to the wrong moment.', 'Yes, fix it: “make it 44 like the trim handles”',
+      'Thumb 28 × 28 at 390 px; WCAG 2.5.8 asks 24 minimum, our own rule 44.'],
+    ['settled', 'The export button’s text is 4.1 : 1 in light mode', 'Accessibility · fixed Mon',
+      'Hard to read in sunlight.', 'Yes, fix it', 'Now 5.2 : 1 (#5b5b66 on #f7f7f8).'],
+    ['settled', 'Long clip names are cut off at 320 px', 'Layout · settled Sun',
+      'A name longer than 30 letters ends in “…” on the smallest phones.', 'No, it’s fine: “names from the camera roll are short”', 'Ellipsis at 320 px; full name in the clip’s title.'],
+  ];
+  const FIND_GROUP = [['call', 'Your call'], ['fixing', 'Being fixed'], ['settled', 'Settled']];
+  const findingFold = ([k, t, s, impact, note, tech], i) => `
+    <details class="details p-doc p-find" data-k="${k}"${k === 'call' && q.get('open') === 'finding' ? ' open' : ''}><summary><span class="t"><b>${esc(t)}</b><span class="s">${esc(s)}</span></span>${I('chevron-down')}</summary>
+      <div class="details-body">
+        <p><span class="p-lbl">If nobody fixes it</span>${esc(impact)}</p>
+        ${note ? `<p><span class="p-lbl">Your call</span>${esc(note)}</p>` : ''}
+        <details class="details p-tech"><summary>${I('chevron-down')}Technical details</summary><div class="details-body"><span>${tech}</span></div></details>
+        ${k === 'call' ? `<div class="field"><label class="field-label" for="fn-${i}">Note <span class="faint">(optional)</span></label><textarea class="input" id="fn-${i}" rows="2" placeholder="Why, in a few words"></textarea></div>
+          <div class="p-act"><button class="btn btn-primary" type="button" data-find="confirm">Yes, fix it</button><button class="btn btn-secondary" type="button" data-find="dismiss">No, it’s fine</button></div>` : ''}
+      </div></details>`;
+  const auditRun = () => `<div class="p-audit" role="status" aria-label="Audit running"${AUD ? '' : ' hidden'} data-audit-run>
+      <span class="p-win" data-k="active" aria-hidden="true"><svg viewBox="0 0 12 16"><path d="M1 15V6a5 5 0 0 1 10 0v9z"/></svg></span>
+      <span class="t"><b>Audit running · <span data-audit-min>${AUD ? '6 min' : 'just started'}</span></b><span class="s" data-audit-stage>${AUD ? 'Checking: 2 of 3 checkers done · accessibility, performance, layout' : 'Reading what’s been built · 3 checkers'}</span></span>
+      <span class="p-stages" role="img" aria-label="${AUD ? 'Stage 2 of 3' : 'Stage 1 of 3'}"><i class="past"></i><i class="${AUD ? 'past' : 'now'}"></i><i class="${AUD ? 'now' : ''}"></i></span>
+    </div>`;
+  /* Docs: every document today's Docs tab has, in one list of folds; ?doc=charter|rulings|messages|… opens one */
+  const CHARTER = 'A small video editor for clips from your phone: trim, keep the sound in sync, share as a link.\n\nFor people who film on their phone and want one good clip out of it in a minute, not an editing project.\n\nTaste: calm and quick, like a camera app. Dark, one accent. Nothing leaves the device unless you share it.\n\nOut of bounds: accounts, effects, music libraries.';
+  const RULINGS = [
+    ['R-1', 'Sharing is a link, never an upload to a feed.', '18 Oct · from the charter review'],
+    ['R-2', 'The waveform waits until after the first version.', 'Sun · when you stopped the waveform task'],
+  ];
+  const MESSAGES = [
+    ['Lead', 'Builder', 'question', 'Trim on the exact frame, or the nearest keyframe? The owner’s judgement item says exact.', '13:41'],
+    ['Builder', 'Lead', 'discovery', 'The player reports time in seconds as a float; frames need the clip’s rate (30 or 60).', '13:44'],
+    ['Auditor', 'Lead', 'discovery', 'Trim handles have no keyboard path; filed as a finding for the owner.', 'Mon'],
+  ];
+  const doc = (key, t, s, body) => `<details class="details p-doc" data-doc="${key}"${q.get('doc') === key ? ' open' : ''}><summary><span class="t"><b>${t}</b><span class="s"${key === 'charter' ? ' data-charter-s' : ''}>${s}</span></span>${I('chevron-down')}</summary><div class="details-body">${body}</div></details>`;
+  const read = p => p.map(x => `<p>${esc(x)}</p>`).join('');
+  const open = (href, t, more) => `<p class="p-meta">${more} · <a class="link" href="${href}" target="_blank" rel="noopener">${t}${I('external')}</a></p>`;
   const sectionBody = {
-    tasks: () => `<section class="p-sec"><h2 class="p-h">Tasks <span class="n">${TASKS.length}</span></h2><div class="p-rows">${TASKS.map(([k, t, s, a]) => `
-      <a class="p-row" href="${keep('task.html')}" aria-label="${esc(`${t}. ${s}${a ? ', ' + a : ''}`)}">${dot(k, k === 'active' ? 'Working' : k === 'done' ? 'Done' : 'Waiting', true)}<span class="t"><b>${esc(t)}</b><span class="s">${esc(s)}</span></span><span class="m num">${a}</span></a>`).join('')}</div></section>`,
+    tasks: () => `<section class="p-sec"><h2 class="p-h">Tasks <span class="n">${TASK_GROUPS.reduce((a, g) => a + g[2].length, 0)}</span></h2>
+      <p class="p-quiet">Grouped by status. Nothing needs you, is in review, waits for your OK, is stalled, paused or failed right now, so those groups are hidden.</p></section>
+      ${TASK_GROUPS.map(([g, k, rows]) => `<section class="p-sec"><h3 class="p-h3">${g} <span class="n">${rows.length}</span></h3><div class="p-rows">${rows.map(([t, s, tr, eta, a, tid]) => `
+      <a class="p-row p-trow" href="${keep('task.html')}" aria-label="${esc(`${t}. ${g}. ${s}${eta ? ', ' + eta : ''}${a ? ', ' + a : ''}`)}">${dot(k, g, true)}<span class="t"><b>${esc(t)}</b><span class="s">${esc(s)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${triesDots(tr)}<span class="p-id">${tid}</span>${a}</span></a>`).join('')}</div></section>`).join('')}`,
     outcomes: () => `<section class="p-sec"><h2 class="p-h">Outcomes <span class="n">${P.met} of ${P.of} met</span></h2><p class="p-quiet">What the project must do to be finished, in the charter’s words.</p><ul class="p-outs">${OUTCOMES.map(([m, t, s]) => `
-      <li data-met="${m}">${m ? `<span class="p-ok" role="img" aria-label="Met">${I('check')}</span>` : '<span class="p-ok" role="img" aria-label="Not met yet"></span>'}<span class="t"><b>${esc(t)}</b><span class="s">${esc(s)}</span></span></li>`).join('')}</ul></section>`,
-    audits: () => `<section class="p-sec"><h2 class="p-h">Open findings <span class="n">1</span></h2><div class="p-rows">
-      <a class="p-row" href="${keep('inbox.html')}" aria-label="The trim handles can’t be reached by keyboard. Accessibility finding, waiting for your call in the Inbox">${dot('', 'Waiting')}<span class="t"><b>The trim handles can’t be reached by keyboard</b><span class="s">Accessibility · found Mon · waiting for your call in the Inbox</span></span><span class="m num">3 h</span></a></div></section>
-      <section class="p-sec"><h2 class="p-h">Past audits</h2><ol class="p-feed"><li><time class="num">Mon 15:10</time><span>Accessibility: 12 checks, 1 finding · $3.20</span></li><li><time class="num">Sun 10:02</time><span>Performance: 8 checks, nothing found · $3.20</span></li></ol></section>`,
-    docs: () => `<section class="p-sec"><h2 class="p-h">Documents</h2><div class="p-docs">${[
-      ['Charter', 'Approved by you 18 Oct · 1 min read', 'A small video editor for clips from your phone: trim, keep the sound in sync, share as a link. Fast on a phone, nothing leaves the device unless you share it.'],
-      ['Spec', 'Approved by you yesterday 17:20 · 6 min read', '9 outcomes, from trimming to export. Each one is checked by a test or a review before it counts as met.'],
-      ['Design', 'Approved by you 20 Oct · 4 min read', 'The timeline, the clip list and the player, in the dark editor look. Trim handles are 44 px on a phone.'],
-      ['Contracts', 'Approved by you 21 Oct · 3 min read', 'How the clip list, the player and the share link talk to each other.'],
-    ].map(([t, s, b]) => `<details class="details p-doc"><summary><span class="t"><b>${t}</b><span class="s">${s}</span></span>${I('chevron-down')}</summary><div class="details-body"><p>${b}</p></div></details>`).join('')}</div></section>`,
+      <li data-met="${m}">${m ? `<span class="p-ok" role="img" aria-label="Met">${I('check')}</span>` : '<span class="p-ok" role="img" aria-label="Not met yet"></span>'}<span class="t"><b>${esc(t)}</b><span class="s">${esc(s)}</span></span></li>`).join('')}</ul>
+      <details class="details p-doc"${q.get('open') === 'checks' ? ' open' : ''}><summary><span class="t"><b>Team checks</b><span class="s num">41 of 44 passing · the tests behind the outcomes</span></span>${I('chevron-down')}</summary><div class="details-body">
+        <ul class="p-outs">${CHECKS.map(([m, t, s]) => `<li data-met="${m}">${m ? `<span class="p-ok" role="img" aria-label="Passing">${I('check')}</span>` : '<span class="p-ok" role="img" aria-label="Not passing"></span>'}<span class="t"><b>${esc(t)}</b><span class="s">${esc(s)}</span></span></li>`).join('')}</ul>
+        <p class="p-quiet">And 39 more passing.</p></div></details></section>`,
+    audits: () => `<section class="p-sec"><h2 class="p-h">Audits</h2>
+      ${auditRun()}
+      <p class="p-quiet" data-audit-last>Last audit Mon 15:10, on what was built by then. Audits start on their own after 3 more finished tasks (1 so far), or when you run one.</p>
+      <div class="p-act"><button class="btn btn-secondary" type="button" data-audit${AUD ? ' disabled' : ''}>${I('finding')}Run an audit now…</button></div></section>
+      ${FIND_GROUP.map(([k, g]) => { const f = FINDINGS.map((x, i) => [x, i]).filter(([x]) => x[0] === k); return `<section class="p-sec" data-group="${k}"><h3 class="p-h3">${g} <span class="n">${f.length}</span></h3><div class="p-docs">${f.map(([x, i]) => findingFold(x, i)).join('')}</div></section>`; }).join('')}
+      <section class="p-sec"><h3 class="p-h3">Past audits</h3><ol class="p-feed"><li><time class="num">Mon 15:10</time><span>Accessibility: 12 checks, 3 findings · $3.20</span></li><li><time class="num">Sun 10:02</time><span>Layout and performance: 8 checks, 1 finding · $3.20</span></li></ol></section>`,
+    docs: () => `<section class="p-sec"><h2 class="p-h">Documents</h2><div class="p-docs">
+      ${doc('charter', 'Charter', 'Approved by you 18 Oct · unchanged since', `
+        <form class="p-charter" data-charter>
+          <div class="field"><label class="field-label" for="ch-text">The charter, in your words</label>
+            <textarea class="input p-chtext" id="ch-text" rows="9" aria-describedby="ch-h">${esc(CHARTER)}</textarea>
+            <span class="field-help" id="ch-h">The team works from this. A change after you approved it asks you to approve again.</span></div>
+          <div class="p-act"><button class="btn btn-secondary" type="submit" data-ch-save disabled>Save changes</button></div>
+        </form>
+        <div class="p-approved" data-ch-ok><span class="p-lbl">You approved it 18 Oct</span><p>“Calm and quick is right. Ship the trim first.”</p></div>
+        <form class="p-chapprove" data-ch-approve hidden>
+          <div class="field"><label class="field-label" for="ch-q">Approve in your own words</label><textarea class="input" id="ch-q" rows="2" placeholder="Say in a few words what you approve" aria-describedby="ch-qe"></textarea><span class="field-error" id="ch-qe" hidden>Say in a few words what you approve, so the team knows what you read.</span></div>
+          <div class="p-act"><button class="btn btn-primary" type="submit">Approve the charter</button></div>
+        </form>`)}
+      ${doc('rulings', `Rulings <span class="n num" data-rul-n>${RULINGS.length}</span>`, 'Your decisions the team follows, newest last', `
+        <ol class="p-rulings" data-rulings>${RULINGS.map(([n, t, s]) => `<li><b class="num">${n}</b><span class="t"><span>${esc(t)}</span><span class="s">${esc(s)}</span></span></li>`).join('')}</ol>
+        <form class="p-ruling" data-ruling>
+          <div class="field"><label class="field-label" for="r-new">Add a ruling</label><textarea class="input" id="r-new" rows="2" placeholder="For example: exports never add a watermark" aria-describedby="r-h"></textarea><span class="field-help" id="r-h">Every agent on replay follows it from their next step.</span></div>
+          <div class="p-act"><button class="btn btn-secondary" type="submit" data-r-add disabled>Add the ruling</button></div>
+        </form>`)}
+      ${doc('brief', 'Brief', 'Written by the lead from your description · 2 min read', read(['You film on your phone and want one good clip out of it fast. replay opens a clip, trims it on the exact frame, keeps the sound in sync, and shares it as a link anyone can play.', 'First version: trim, the clip list, keyboard control, share. Later: the waveform, export presets.']))}
+      ${doc('spec', 'Spec', 'Approved by you yesterday 17:20 · 6 min read', read(['9 outcomes, from trimming to export. Each one is checked by a test or a review before it counts as met.']))}
+      ${doc('design', 'Design', 'Approved by you 20 Oct · merged · 14 files', open('../index.html', 'Open the clickable screens', 'Merged into the project, 14 files') + read(['The timeline, the clip list and the player, in the dark editor look. Trim handles are 44 px on a phone.']))}
+      ${doc('contracts', 'Contracts', 'Approved by you 21 Oct · merged · 3 files', open('../index.html', 'Open the contracts', 'Merged into the project, 3 files') + read(['How the clip list, the player and the share link talk to each other.']))}
+      ${doc('plan', 'Lead’s plan', 'Updated 13:40 by the lead', read(['Now: Trim clips on the timeline (try 2). Next: Share a clip as a link, once today’s budget allows. After that: the keyboard finding, if you say fix it.']))}
+      ${doc('ledger', 'Lead’s ledger', 'What the lead decided without you · 6 entries', `<ol class="p-feed">${[['13:38', 'Kept the share task queued until midnight instead of raising the budget: that is your call.'], ['11:06', 'Merged nothing itself: replay ships draft pull requests you merge.'], ['Mon', 'Split “Trim” from “Export” so each can be checked on its own.']].map(([t, w]) => `<li><time class="num">${t}</time><span>${esc(w)}</span></li>`).join('')}</ol>`)}
+      ${doc('messages', 'Team messages', `${MESSAGES.length} today and Monday`, `<ol class="p-msgs">${MESSAGES.map(([f, to, k, t, a]) => `<li><span class="p-msg-h"><b>${f}</b> to <b>${to}</b> · ${k}<time class="num">${a}</time></span><span>${esc(t)}</span></li>`).join('')}</ol>`)}
+    </div></section>`,
+  };
+
+  /* Each tab's empty state, on the project created a minute ago (?p=tidepool&tab=…): what fills it, and when */
+  const none = (h, t, m) => `<section class="p-sec"><h2 class="p-h">${h}</h2><p class="p-empty"><b>${t}</b><span>${m}</span></p></section>`;
+  const emptyBody = {
+    tasks: () => none('Tasks', 'No tasks yet', 'The lead plans tasks after you approve the spec. They appear here, grouped by status.'),
+    outcomes: () => none('Outcomes', 'No outcomes yet', 'The lead drafts them with the spec. You approve each one in the Inbox.'),
+    audits: () => none('Audits', 'Nothing from the auditor yet', 'Audits start once there is something built to check.'),
+    docs: () => `<section class="p-sec"><h2 class="p-h">Documents</h2><div class="p-docs">${doc('brief', 'Brief', 'Your description, as the brief draft · the lead is reading it', read(['A tide-times app for the three beaches near home, readable at a glance on a phone.']))}</div><p class="p-quiet">The charter, spec, design and contracts appear here as the lead drafts them.</p></section>`,
   };
 
   /* ── States ── */
@@ -159,14 +255,14 @@
       <div class="p-col">${[3, 2].map(n => `<section class="p-sec"><span class="skeleton" style="width:120px;height:16px"></span>${Array.from({ length: n }, () => '<span class="skeleton" style="width:100%;height:44px"></span>').join('')}</section>`).join('')}</div></div>`;
 
   const tabs = () => `<nav class="tabs p-tabs" aria-label="${id}" data-scrolls>${[
-    ['overview', 'Overview'], ['tasks', 'Tasks', id === 'replay' ? TASKS.filter(t => t[0] !== 'done' && !t[2].startsWith('Stopped')).length : P.tasks], ['outcomes', 'Outcomes', P.of ? `${P.met}/${P.of}` : ''], ['audits', 'Audits', P.audits || ''], ['docs', 'Docs'],
+    ['overview', 'Overview'], ['tasks', 'Tasks', id === 'replay' ? TASK_GROUPS.filter(g => ['Working', 'Queued'].includes(g[0])).reduce((a, g) => a + g[2].length, 0) : P.tasks], ['outcomes', 'Outcomes', P.of ? `${P.met}/${P.of}` : ''], ['audits', 'Audits', P.audits || ''], ['docs', 'Docs'],
   ].map(([k, t, c]) => `<a class="tab" href="${here(k)}"${tab === k ? ' aria-current="page"' : ''}>${t}${known && c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}
     <a class="tab" href="${keep(`activity.html?p=${id}`)}">Activity</a><a class="tab" href="${keep(`settings.html?p=${id}`)}">Settings</a></nav>`;
 
   /* Desk: Now and the rest in the reading column, facts beside them; middle and phone: facts right under Now */
   const overview = () => `<div class="p-grid${state === 'stale' ? ' is-stale' : ''}">${now()}${facts()}<div class="p-col">${needs()}${work()}${recent()}</div></div>`;
   const body = state === 'loading' ? skeleton() : state === 'error' ? loadError(`The ${id} page`)
-    : tab === 'overview' || id !== 'replay' ? overview() : `<div class="p-col p-list">${sectionBody[tab]()}</div>`;
+    : tab === 'overview' || !['replay', 'tidepool'].includes(id) ? overview() : `<div class="p-col p-list">${(id === 'tidepool' ? emptyBody : sectionBody)[tab]()}</div>`;
 
   /* Lead control (R16): one place, in the head. On: a menu with Restart and Stop (Stop asks first). Off: Start. */
   const leadCtl = () => P.lead
@@ -179,11 +275,16 @@
       <h2 id="dlg-t">Stop the lead for ${id}?</h2>
       <p id="dlg-d">Nothing new starts until you start it again. The builder finishes the try it is on.</p>
       <div class="p-dialog-act"><button class="btn btn-secondary" type="button" value="keep" autofocus>Keep it running</button><button class="btn btn-danger" type="button" value="stop">Stop the lead</button></div>
+    </dialog>
+    <dialog class="p-dialog" data-audit-dlg aria-labelledby="adl-t" aria-describedby="adl-d">
+      <h2 id="adl-t">Run an audit of ${id} now?</h2>
+      <p id="adl-d">Three checkers look over what’s built so far, about 20 minutes. The last two cost $3.20 each, from today’s spend. Anything they find comes to your Inbox.</p>
+      <div class="p-dialog-act"><button class="btn btn-secondary" type="button" value="keep" autofocus>Not now</button><button class="btn btn-primary" type="button" value="run">Run the audit</button></div>
     </dialog>`;
 
   mount({
     cur: id, title: id, ux: ['UX-6', 'UX-14', 'UX-3', 'UX-11'],
-    head: `<a class="back" href="${keep('projects.html')}">${I('chevron-left')}<span>Projects</span></a><h1>${id}</h1>${state === 'loading' || state === 'error' ? '' : leadCtl()}<span class="end">${live()}</span>`,
+    head: `<a class="back" href="${keep('projects.html')}">${I('chevron-left')}<span>Projects</span></a><h1>${id}</h1>${GH && known ? `<span class="p-gh">${I('blocked')}Not on GitHub</span>` : ''}${state === 'loading' || state === 'error' ? '' : leadCtl()}<span class="end">${live()}</span>`,
     tabs: tabs(),
     body: `<div class="hf-body">${body}</div>${dialog}`,
     after,
@@ -208,9 +309,63 @@
     document.querySelector('[data-stop]')?.addEventListener('click', () => { close(); dlg.showModal(); });
     dlg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { dlg.close(); if (b.value === 'stop') toast('Stopped the lead for ' + id); btn.focus(); }));
     document.querySelector('[data-start]')?.addEventListener('click', e => { e.currentTarget.setAttribute('aria-busy', 'true'); e.currentTarget.innerHTML = `${I('refresh')}Starting…`; });
+    wireTabs();
     if (q.get('ui') === 'menu') btn?.click();
     if (q.get('ui') === 'stop') dlg.showModal();
+    if (q.get('ui') === 'audit') document.querySelector('[data-audit-dlg]')?.showModal();
     if (q.has('demo') && tab === 'overview' && id === 'replay') demo(q.get('demo') === 'loop');
+  }
+
+  /* ── Audits, findings, charter and rulings: each acts in place with a toast, like the Inbox ── */
+  function wireTabs() {
+    const ab = document.querySelector('[data-audit]'), adl = document.querySelector('[data-audit-dlg]');
+    ab?.addEventListener('click', () => adl.showModal());
+    adl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      adl.close();
+      if (b.value !== 'run') return ab?.focus();
+      ab.disabled = true; document.querySelector('[data-audit-run]').hidden = false;
+      toast(`Started an audit of ${id}`); document.querySelector('[data-audit-run]').classList.add('is-entering');
+    }));
+    document.querySelectorAll('[data-find]').forEach(b => b.addEventListener('click', () => {
+      const d = b.closest('.p-find'), yes = b.dataset.find === 'confirm';
+      const to = document.querySelector(`[data-group="${yes ? 'fixing' : 'settled'}"] .p-docs`);
+      d.dataset.k = yes ? 'fixing' : 'settled'; d.open = false; d.querySelector('.field')?.remove(); d.querySelector('.p-act')?.remove();
+      d.querySelector('.s').textContent = yes ? 'Accessibility · the lead plans the fix' : 'Accessibility · settled just now';
+      to.prepend(d); d.classList.add('is-entering');
+      document.querySelectorAll('[data-group]').forEach(g => { g.querySelector('.n').textContent = g.querySelectorAll('.p-find').length; });
+      toast(yes ? 'Asked the team to fix it' : 'Marked it fine'); d.querySelector('summary').focus();
+    }));
+    const cf = document.querySelector('[data-charter]');
+    if (cf) {
+      const ta = cf.querySelector('textarea'), save = cf.querySelector('[data-ch-save]'), first = ta.value;
+      const ok = document.querySelector('[data-ch-ok]'), ap = document.querySelector('[data-ch-approve]'), st = document.querySelector('[data-charter-s]');
+      ta.addEventListener('input', () => { save.disabled = ta.value === first && !cf.dataset.saved; });
+      cf.addEventListener('submit', e => {
+        e.preventDefault(); save.disabled = true; cf.dataset.saved = '1';
+        st.textContent = 'Changed just now, after you approved it · approve it again'; st.classList.add('is-needs');
+        ok.hidden = true; ap.hidden = false; toast('Saved the charter'); ap.querySelector('textarea').focus();
+      });
+      ap.addEventListener('submit', e => {
+        e.preventDefault(); const qt = ap.querySelector('textarea'), err = ap.querySelector('.field-error');
+        if (!qt.value.trim()) { err.hidden = false; qt.setAttribute('aria-invalid', 'true'); qt.focus(); return; }
+        err.hidden = true; qt.removeAttribute('aria-invalid');
+        ok.querySelector('.p-lbl').textContent = 'You approved it just now'; ok.querySelector('p').textContent = `“${qt.value.trim()}”`;
+        ok.hidden = false; ap.hidden = true; st.textContent = 'Approved by you just now · unchanged since'; st.classList.remove('is-needs');
+        toast('Approved the charter for ' + id);
+      });
+      if (q.get('v') === 'edited') { ta.value = first.replace('Dark, one accent.', 'Dark, one accent, and the clip is always the brightest thing.'); cf.requestSubmit(); }
+    }
+    const rf = document.querySelector('[data-ruling]');
+    if (rf) {
+      const ta = rf.querySelector('textarea'), add = rf.querySelector('[data-r-add]');
+      ta.addEventListener('input', () => { add.disabled = !ta.value.trim(); });
+      rf.addEventListener('submit', e => {
+        e.preventDefault(); if (!ta.value.trim()) return;
+        const ol = document.querySelector('[data-rulings]'), n = ol.children.length + 1;
+        ol.insertAdjacentHTML('beforeend', `<li class="is-entering"><b class="num">R-${n}</b><span class="t"><span>${esc(ta.value.trim())}</span><span class="s">Just now · added by you</span></span></li>`);
+        document.querySelector('[data-rul-n]').textContent = n; ta.value = ''; add.disabled = true; toast(`Added ruling R-${n} for ${id}`);
+      });
+    }
   }
 
   /* ── Live refresh, in place (R7) ── */

@@ -82,6 +82,8 @@
 /* A quiet project: folded to one line, its windows all dark */
 .floor-quiet { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding: var(--space-4) 0 0; border-top: var(--border-width) solid var(--border); color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); min-height: var(--size-control-lg); }
 .floor-quiet b { color: var(--text); font-weight: var(--weight-semibold); font-size: var(--text-base); }
+/* A quiet floor still says when something there needs you now, so the head's "2 need you" adds up on the floors (S7) */
+.fq-needs { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--needs); font-weight: var(--weight-medium); }
 .floor-quiet .num { margin-left: auto; color: var(--text-3); }
 .floor-quiet:hover b { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
 

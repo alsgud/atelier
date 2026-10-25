@@ -16,6 +16,8 @@
 .s-hold.is-holding { align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface-sunken); border: var(--border-width) solid var(--border); color: var(--text); }
 .s-hold .icon { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--text-2); }
 .s-hold b { font-weight: var(--weight-medium); }
+.s-spent { margin: 0; color: var(--text-2); }
+.s-spent b { color: var(--text); font-weight: var(--weight-medium); }
 .s-lead { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }
 .s-app { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
 .s-sec .f-actions .btn .icon { width: 16px; height: 16px; }

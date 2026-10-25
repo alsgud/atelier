@@ -70,11 +70,6 @@
 .t-st[data-k="needs"] b { color: var(--needs); }
 .t-st[data-k="done"] b { color: var(--done); }
 .t-tryrow { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-sm); color: var(--text-2); }
-.t-tries { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-1-5); }
-.t-tries li { width: 10px; height: 10px; border-radius: var(--radius-full); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
-.t-tries li[data-t="f"] { background: var(--text-3); box-shadow: none; }
-.t-tries li[data-t="p"] { background: var(--done); box-shadow: none; }
-.t-tries li[data-t="n"] { background: var(--active); box-shadow: 0 0 0 3px var(--active-soft); }
 .t-outs li:first-child { border-top: 0; padding-top: 0; }
 .t-outs b { font-size: var(--text-sm); line-height: var(--leading-sm); }
 .p-dl .is-needs { color: var(--needs); }

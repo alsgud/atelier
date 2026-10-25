@@ -93,7 +93,7 @@ window.HF = (() => {
 
   function mount(s) {
     const c = chrome(s.cur);
-    document.title = `${s.title} · Atelier`;
+    document.title = `${known && N.waiting ? `(${N.waiting}) ` : ''}${s.title} · Atelier`; /* the waiting count in the browser tab, as today */
     const picks = (s.ux || []).map(k => `${k} ${M.UX[k][0]}`).join(' · ');
     document.getElementById('app').innerHTML = `
       <a class="skip btn btn-secondary" href="#main">Skip to content</a>

@@ -163,6 +163,7 @@
       const c = HF.chrome('inbox', { now: { waiting: n, needs: u }, pw, known: !loading });
       document.getElementById('side').innerHTML = c.side + c.rail + c.top;
       document.getElementById('tabs').innerHTML = c.tabs;
+      document.title = !loading && n ? `(${n}) Inbox · Atelier` : 'Inbox · Atelier'; /* ticks as you decide */
     },
     topBars: ['.hf-top', '.page-head'], tabBar: '.hf-tabs',
     headEnd: () => HF.live(),

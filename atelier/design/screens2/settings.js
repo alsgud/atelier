@@ -46,6 +46,7 @@
   const GLOBAL = [
     ['plan', 'Claude plan', `
       <div class="s-meters">${meter('5‑hour window', N.plan, `Resets in ${N.planReset} · updated 1 min ago`)}${meter('This week', 58, 'Resets Thu 09:00')}</div>
+      <p class="field-help s-spent">Atelier spent <b class="num">${N.today}</b> today on finished work; ${N.working} agents are still working, so it will rise. 4.2 M tokens. API-equivalent cost, not a bill.</p>
       <p class="s-hold${holding ? ' is-holding' : ''}" role="status">${holding ? `${I('refresh')}<span><b>Holding new work until midnight.</b> Today has used more than its share of the week (58 % by Monday). Running tasks finish first.</span>` : `${hd('done')}<span>Not holding: work runs as planned.</span>`}</p>
       ${amount('five', 'Pause Atelier at this much of the 5‑hour window', '85', '', '%', 'New work waits until the window resets. Running tasks finish.')}
       ${amount('week', 'Pause Atelier at this much of the week', '90', '', '%', 'Leaves the rest of the week for you.')}

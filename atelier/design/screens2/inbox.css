@@ -35,7 +35,11 @@
 /* Three frames with no "+N more" tile: the first full width, two halves under it (no hole in the third column; S3) */
 .frames.is-hero:not(:has(.frame-more)) { --cols: 2; }
 /* A dock with nothing to decide: just its sentence */
-.dock-row:not(:has(.btn)) .dock-hint { display: block; }
+.dock-row:not(:has(.btn)) .dock-hint { display: block; white-space: normal; margin-left: 0; }
+/* Two long button labels (charter: "Approve the new wording" + "Open the charter") wrap to a second row
+   instead of pushing the page sideways at 360 (review, iteration 7) */
+.dock-row { flex-wrap: wrap; }
+.dock-row > .btn { min-width: 0; }
 /* Load error and first run sit in the panel like any D6 page */
 .hf-main > .hf-body { flex: 1; }
 
