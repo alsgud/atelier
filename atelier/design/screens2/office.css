@@ -1,0 +1,125 @@
+/* Office (UX-8 A): a floor per project, a desk per agent. The desk's little scene is the N1 idea at room scale:
+   an arched window whose light is on while the agent works, and its sharp patch of light on the floor.
+   Colour keeps its meaning: the light is lilac (working), a raised hand is the agent needing you (red dot),
+   dark is waiting, an empty chair is off. Only transform and opacity animate (Flow). */
+.board { display: grid; gap: var(--space-10); max-width: 1200px; width: 100%; }
+.floor { display: grid; gap: var(--space-4); }
+.floor-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
+.floor-head h2 { margin: 0; font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-semibold); letter-spacing: -0.01em; }
+.floor-head h2 a:hover { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 4px; }
+.floor-sum { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.floor-sum .is-needs { color: var(--needs); }
+.floor-head .strip { align-self: center; }
+
+/* The floor's windows, one per desk: the glance before the desks (aria-hidden; the sentence says the same) */
+.strip { display: inline-flex; gap: 3px; align-items: flex-end; }
+.strip i { width: 9px; height: 12px; border-radius: 4.5px 4.5px 1px 1px; background: var(--surface-selected); transition: background-color var(--dur-slow) var(--ease-enter); }
+.strip i[data-k="active"] { background: var(--active); }
+.strip i[data-k="done"] { background: var(--done); }
+.strip i[data-k="needs"] { background: var(--surface-selected); box-shadow: inset 0 -3px 0 var(--needs); }
+.strip i[data-k="off"] { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+.desks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-3); }
+.desk { display: grid; grid-template-rows: auto 1fr; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; color: var(--text);
+  transition: border-color var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy), box-shadow var(--dur-base); }
+.desk:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.desk:active { transform: scale(0.985); transition-duration: var(--dur-instant); }
+.desk:focus-visible { outline-offset: 2px; border-radius: var(--radius-md); }
+
+/* The scene: a wall, a floor, a window, a desk, someone at it */
+.desk-scene { position: relative; display: grid; place-items: end center; height: 108px; background: var(--surface-sunken); border-bottom: var(--border-width) solid var(--border); overflow: hidden; }
+.desk-scene::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 18px; background: color-mix(in srgb, var(--surface-sunken) 70%, var(--bg)); border-top: var(--border-width) solid var(--border); }
+.desk-scene svg { position: relative; z-index: 1; width: 192px; height: 106px; overflow: visible; }
+.sc-prop { fill: none; stroke: var(--border-strong); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.sc-wallwin { fill: var(--surface-selected); stroke: var(--border-strong); stroke-width: 1.5; }
+.sc-bars { stroke: var(--surface-sunken); stroke-width: 2; }
+.sc-pane, .sc-done, .sc-glow, .sc-patch, .sc-screen, .sc-hand, .sc-flag, .sc-tick, .sc-lid-shut { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.sc-pane { fill: var(--active); }
+.sc-done { fill: var(--done); }
+.sc-glow { fill: url(#hf-glow); }
+.sc-patch { fill: var(--active); transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0.2); transition: opacity var(--dur-slow) var(--ease-enter), transform var(--spring-soft-dur) var(--spring-soft); }
+.sc-screen { fill: var(--active); }
+.sc-who { fill: var(--text-3); transition: opacity var(--dur-slow) var(--ease-enter); }
+.sc-lid { fill: var(--surface-hover); stroke: var(--border-strong); stroke-width: 1; transition: opacity var(--dur-fast); }
+.sc-lid-shut { fill: var(--border-strong); }
+.sc-desk { fill: var(--text-3); }
+.sc-hand { stroke: var(--text-3); stroke-width: 3.2; stroke-linecap: round; fill: none; transform-box: view-box; transform-origin: 106px 48px; transform: rotate(-30deg); transition: opacity var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy); }
+.sc-hand circle { fill: var(--text-3); stroke: none; }
+.sc-flag { fill: var(--needs); }
+.sc-tick { stroke: var(--surface); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; fill: none; transform-box: fill-box; transform-origin: center; transform: scale(0.4); transition: opacity var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy); }
+
+.desk[data-k="active"] .sc-pane { opacity: 1; }
+.desk[data-k="active"] .sc-glow { opacity: 0.6; }
+.desk[data-k="active"] .sc-patch { opacity: 0.34; transform: none; }
+.desk[data-k="active"] .sc-screen { opacity: 0.3; }
+/* Working, but quiet for longer than usual (the stuck signal): the light is on but low. Neutral words carry it. */
+.desk[data-k="active"][data-quiet] .sc-pane { opacity: 0.45; }
+.desk[data-k="active"][data-quiet] .sc-glow { opacity: 0.2; }
+.desk[data-k="active"][data-quiet] .sc-patch { opacity: 0.14; }
+.desk[data-k="needs"] .sc-hand { opacity: 1; transform: none; }
+.desk[data-k="needs"] .sc-flag { opacity: 1; }
+.desk[data-k="done"] .sc-done { opacity: 1; }
+.desk[data-k="done"] .sc-tick { opacity: 1; transform: none; }
+.desk[data-k="done"] .sc-patch { opacity: 0.2; transform: none; fill: var(--done); }
+.desk[data-k="off"] .sc-who, .desk[data-k="off"] .sc-lid { opacity: 0; }
+.desk[data-k="off"] .sc-lid-shut { opacity: 1; }
+.desk[data-k="off"] .desk-scene svg { opacity: 0.7; }
+/* Stale: we don't know if the lights are still on, so they dim and nothing pulses */
+.is-stale .desk[data-k="active"] .sc-pane { opacity: 0.4; }
+.is-stale .desk[data-k="active"] .sc-glow, .is-stale .desk[data-k="active"] .sc-patch { opacity: 0.12; }
+
+.desk-body { display: grid; gap: var(--space-1); align-content: start; padding: var(--space-3) var(--space-4) var(--space-4); }
+.desk-who { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.desk-who b { font-weight: var(--weight-semibold); }
+.desk-st { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--text-2); }
+.desk[data-k="active"] .desk-st { color: var(--active); }
+.desk[data-k="needs"] .desk-st { color: var(--needs); }
+.desk[data-k="done"] .desk-st { color: var(--done); }
+.desk-what { font-size: var(--text-md); line-height: var(--leading-md); font-weight: var(--weight-medium); text-wrap: pretty; }
+.desk-step { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.desk-prog { display: grid; gap: var(--space-1-5); margin-top: var(--space-2); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+.desk-track { height: 3px; border-radius: var(--radius-full); background: var(--active-track); overflow: hidden; }
+.desk-track i { display: block; height: 100%; background: var(--active); border-radius: inherit; transform-origin: left; transform: scaleX(var(--p, 0)); transition: transform var(--spring-soft-dur) var(--spring-soft); }
+.desk[data-k="done"] .desk-track { background: var(--done-soft); }
+.desk[data-k="done"] .desk-track i { background: var(--done); }
+.desk:not([data-k="active"]):not([data-k="done"]) .desk-track { display: none; }
+.desk[data-quiet] .desk-step { color: var(--text); }
+.desk.is-changing .desk-body > :not(.desk-who) { animation: hf-tick var(--dur-slow) var(--ease-enter); }
+
+/* A quiet project: folded to one line, its windows all dark */
+.floor-quiet { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding: var(--space-4) 0 0; border-top: var(--border-width) solid var(--border); color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); min-height: var(--size-control-lg); }
+.floor-quiet b { color: var(--text); font-weight: var(--weight-semibold); font-size: var(--text-base); }
+.floor-quiet .num { margin-left: auto; color: var(--text-3); }
+.floor-quiet:hover b { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
+
+/* How to read a desk: once, quietly, at the foot */
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); margin: 0; padding: 0; list-style: none; }
+.legend li { display: inline-flex; align-items: center; gap: var(--space-1-5); }
+
+/* Loading: the floors' shape, no figures */
+.desk.is-skeleton { pointer-events: none; }
+.desk.is-skeleton .desk-scene { background: var(--skeleton); }
+.desk.is-skeleton .desk-scene::after { display: none; }
+
+/* Empty: the building with no one in it */
+.office-empty > svg { width: 120px; height: 96px; color: var(--border-strong); margin-bottom: var(--space-2); }
+
+@media (max-width: 1279px) { .board { gap: var(--space-8); } }
+@media (max-width: 767px) {
+  .board { gap: var(--space-8); }
+  .floor { gap: var(--space-3); }
+  .floor-head h2 { font-size: var(--text-md); line-height: var(--leading-md); }
+  .floor-head h2 a { display: inline-flex; align-items: center; min-height: var(--size-control-lg); min-width: var(--size-control-lg); }
+  .floor-head { align-items: center; }
+  .desks { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  /* A desk is a row on the phone: the scene as a tile on the left, the words beside it */
+  .desk { grid-template-rows: none; grid-template-columns: 96px minmax(0, 1fr); }
+  .desk:hover { transform: none; box-shadow: none; }
+  /* The tile shows the window, the agent and a raised hand (x 4–126 of the grid); the wall prop is cropped on purpose */
+  .desk-scene { height: auto; min-height: 96px; border-bottom: 0; border-right: var(--border-width) solid var(--border); place-items: end start; }
+  .desk-scene::after { height: 12px; }
+  .desk-scene svg { width: 126px; height: 69px; margin-left: -3px; }
+  .desk-body { padding: var(--space-3); }
+  .desk-what { font-size: var(--text-base); line-height: var(--leading-base); }
+  .floor-quiet .num { margin-left: 0; }
+}

@@ -160,7 +160,7 @@ Every component is on `design/components.html` in every state, light and dark. C
   - Focus column, top to bottom with `--space-6` between blocks: eyebrow 13 ("● Needs you now" in red when so · glyph + kind 500 · project · age); title in display serif; one `.lede` sentence; the thing itself (hero frames, quote, facts, choices, meter); Details (closed) for anything technical; links (Open all screens, Read the design notes, Run log); the dock.
   - Queue column: Needs you now, When you have a minute, Working now. On inbox zero: You decided today (spend stays in the sidebar or top bar, never twice).
   - Item kinds and their docks (all from `inventory.md`): finding (Yes, fix it / No, it's fine + optional note); budget (Raise today to $60 / Budget settings; "Or do nothing: work resumes at midnight"); design gate (your words required / Approve design / Skip this phase); question (suggested answers + own answer / Send answer / Open the task); owner judgement with proof (Accept / Reject, note required to reject); outcome (Approve / Retire it); task plan (Approve plan / Read the brief). Charter, screen-use, push-failure and earned-trust items use the same parts: eyebrow, title, one sentence, the thing, the dock.
-- **Office, Projects, Project page, Task page, New project, Settings, Activity**: come in the next task, built from these tokens and components.
+- **Office, Projects, Project page, Task page, New project, Settings, Activity**: high-fi in D6, see **Screens (D6, high-fi, PROVISIONAL)** below and `design/screens2/index.html`.
 
 ## States
 
@@ -843,8 +843,82 @@ Before / after pairs in `design/review/ux/before/` and `after/` (same file names
 4. Keep the layout system's numbers (§4) and the one-look rules (§5): status words, track, money line, time format. Every number from the D3 summary figures (F1–F6, P1–P4, T1).
 5. Per screen: 390 / 768 / 1440 in dark and light, every state from the §5 table, `a11y.mjs` in every open state, toast-hit at 5 viewports, two critique rounds with before/after.
 
+## Screens (D6, high-fi, PROVISIONAL)
+
+**Open `design/screens2/index.html`.** Every screen high-fi in the chosen brand (N1 + K1, dark first, Y1, Flow), drawn on the **recommended** UX answers because the owner hasn't replied to UX-1 … UX-15 yet. The index lists each decision used and which screens use it; each screen carries a `PROVISIONAL · drawn on UX-n …` flag at its foot (hidden in `?shot` and `?demo`). Build order, core first: Office, Project page, Task page, Inbox, then Projects, Activity, New project, Settings. Status: **Office done**; the rest follow in this task.
+
+| File | What it is |
+|---|---|
+| `screens2/index.html` | Index: provisional decisions, every screen with links at 1440 / 768 / 390 × dark / light, demos |
+| `screens2/frame.html?src=<screen>.html&w=<w>&theme=<t>&state=<s>` | Viewer: one screen at a chosen width, mode and state |
+| `screens2/hf.js`, `hf.css` | The shell for every screen: Y1 sidebar ≥ 1280, 64 px rail 768–1279, top bar + tab bar < 768; live line, neutral load error, empty, figure tick |
+| `screens2/<screen>.html` + `<screen>.js` / `.css` | One screen each |
+| `ux/wf/wf.js` › `window.ATELIER_MODEL` | **The one data model**: UX picks, the one summary (NOW), projects, Office floors and desks. Wireframes and high-fi screens both read it, so a different answer changes here once |
+| `screens2/media/` | Demo webms and contact sheets |
+| `screens2/img/`, `review/screens2/` | Index thumbnails; critique before/after |
+
+Query on every screen (mockup only): `theme=light` · `motion=reduce` · `state=loading|empty|error|stale` (`empty` = first run, no projects; the Inbox's own empty is `state=zero`) · `shot` · `demo` (`demo=loop` repeats).
+
+### Shell (every screen)
+
+- Chrome from the one summary: sidebar Inbox count (red), Office "3 working" (lilac), projects with lead dot and waiting count, foot: Claude plan 41 % meter + "Spent today $52.60" (UX-9 A). Rail: icons with count badges, project initials with lead dot, Settings at the foot (its label carries plan and spend). Phone: top bar (lockup, "Today $52.60", Settings), tab bar Inbox · Office · Projects · Activity (UX-2 A).
+- Page head 52 (`--size-topbar`), sticky on desk and middle: title 14/600, summary 13 `--text-2`, live line at the right 12 `--text-3`: "Updated just now", or when stale "↻ Last updated 14:02 · Retrying".
+- Loading and error hide every count in the chrome (`–` in the money lines); first run shows no projects and $0.00.
+- Load error is **neutral** (`.hf-notice`, sunken surface, refresh icon): "The Office didn't load. Trying again in 15 s. Your agents keep working while this page is away." + **Try now** (busy: "Trying…"). Not red: the owner has nothing to do (§5).
+- Live figures change in place: the new value rises 4 px over `--dur-slow` (`.is-tick`, `--ease-enter`); reduced motion: no travel.
+
+### Office (`screens2/office.html`; UX-8 A, UX-9 A, UX-7 A, UX-2 A)
+
+*Idea*: the N1 mark at room scale. Every desk has a small night scene: an arched window whose light is on while the agent works, the light's sharp sheared patch on the floor, a desk with a laptop, the agent behind it, and one thing on the wall that says the role (designer: a framed arch; auditor: a checklist; builder: boxes on a shelf; reviewer: books; lead: a plan board). Colour keeps its four meanings: **light on (lilac) = working**, **hand up + red dot = needs you**, **light off = waiting**, **empty desk = off**; finishing turns the window **green with a tick** for a moment. A legend says this once at the foot. *Why*: R12 asks for the office's spirit, playful and clearer; one glance across the lit windows answers "who is working" before reading a word, and it is the brand's own picture, not clip art.
+
+- **Head**: "Office · 3 working · **2 need you** · 6 on duty" (red part only when > 0), live line right. Spend is not repeated (it's in the chrome, UX-9 A).
+- **Floor** per project, busiest first (`--space-10` apart desk, `--space-8` below 1280): name 20/28 600 (link to the project; 16/24 on the phone, 44 tall target), a **window strip** (one 9 × 12 arch per desk, same four colours, `aria-hidden`), then "2 working · $12.60 today" 13 `--text-2`; at the limit "…$40.00 today, **at its limit**" (red words, UX-11 C wording on the money line).
+- **Desk** card (`.desk`, a link to the task, Inbox item or project): radius `--radius-md`, hairline; scene 108 tall on `--surface-sunken` with an 18 px floor band; body padding 12 16 16: role 13/600 + status dot and word right (lilac / red / `--text-2` / green); what it's doing 16/24 500; latest step 13 `--text-2`; working desks a 3 px track (`--active` on `--active-track`) and "Step 4 of 6 · 4 min ago" 12 `--text-3`. Grid `minmax(280px, 1fr)`: 3 a row at 1440, 2 at 768. Hover: border `--border-strong`, lifts 2 px with `--shadow-2` (`--spring-snappy`); press 0.985.
+- **Stuck signal**: a working desk quiet longer than usual keeps its light on but low, and its step line reads "Quiet for 38 min, longer than usual" in `--text` (neutral, never red).
+- **Quiet project** (nobody working, lead off): one line under a hairline, its strip all dark: "dodge · Lead off · nothing running · the design waits for your OK in the Inbox · $0.00 today".
+- **Phone**: one column; a desk is a row, the scene a 96 px tile on the left (window, agent and raised hand; the wall prop is cropped), words beside it.
+- **States**: loading = two floors of skeleton desks, counts hidden; first run (`empty`) = an outline of the building with dark windows, serif "No one is working yet." + "Start a project and its team moves in here: one floor for the project, one desk for each agent." + **New project**; error = the neutral notice; stale = the live line says so, lit windows dim to 40 % and no dot pulses (we don't know the lights are still on).
+- **Motion** (Flow; only opacity and transform): agent starts → light fades in (`--dur-slow`, `--ease-enter`), the patch grows from the window sill (`scaleY` 0.2 → 1, `--spring-soft`), the dot starts its pulse, the words rise 4 px; finishes → green pane and tick pop (`--spring-snappy`), held ~2 s, then the light goes out over `--dur-slow`; the track springs (`--spring-soft`); a raised hand swings up from 30° (`--spring-snappy`). Counts in head, sidebar and rail tick in place. Nothing re-renders; scroll stays (R7). Reduced motion: fades only.
+- **Accessibility**: each desk link has one sentence as its name ("Designer, Working. High-fi Inbox and Office screens. Drawing the Office floor at 390. Step 4 of 6, 4 min ago"); scenes and strips are `aria-hidden`; the legend is a labelled list.
+- **Demo**: `media/office-{desktop,phone}-dark.webm` (12–14 s) + `contact-office-*.png`: replay's builder finishes (green tick, back to waiting), the reviewer's light comes on, the auditor's quiet spell ends, the designer moves to the next step; "3 working" → 2 → 3 everywhere.
+
+### Sheet additions (D6)
+
+New shared parts, all in `screens2/hf.css` and built from tokens: `.hf-notice` (neutral self-retrying error), `.hf-live` (fresh / stale line), `.hf-empty` (serif line + sentence + one action), `.is-tick` (figure changes in place), `.strip` (window strip, Office), `.desk` (desk card with scene). `components.css` is unchanged.
+
+### Endpoint needs (for frontend; read data only, no new actions)
+
+- **Office desk** (`/api/overview` team): per agent, besides role/status/what: the latest step in plain words, progress as `[done, of, unit]` when known, time of last activity, and a "quiet longer than usual" flag (or the expected interval, so the client can compare). On-duty count in the one summary.
+- **Finished events**: a desk that just finished must say so for one refresh (`finishedAt`), so the green tick plays once and only on a real finish.
+
+### If the owner answers differently
+
+| Decision | If not the recommendation | What reworks |
+|---|---|---|
+| UX-8 (Office) | B: one list of agents | Office body only: `office.js` floors → rows; the scene shrinks to the phone tile; `OFFICE` in the model stays |
+| UX-9 (money in chrome) | B: money on each screen | Office head gains the spend; sidebar foot loses it |
+| UX-7 (middle nav) | B: top bar + tabs at 768–1279 | `hf.css` middle block and `hf.js` rail only |
+| UX-2 (phone tabs) | other tabs | `hf.js` tab bar only |
+
+### Screens round S1 (Office: design-critique, accessibility-review, ux-copy)
+
+Renders: `runs/pjv7/tools/s2-shots.mjs` (Office × 1440 / 768 / 390 × dark / light × 5 states = 30, plus phone first screens; 0 console errors, no sideways scroll). Contrast measured on the rendered page, every text run against its real background (`pcontrast.mjs`): **0 under AA** in dark and light, every state; lowest dark 6.26 (meta on the desk), lowest light 4.86 ("3 working" lilac on the selected nav). `a11y.mjs` at 390 and 1440. Before / after in `review/screens2/s1/`.
+
+| Found | Changed | Why |
+|---|---|---|
+| (critique) The first scene was a window and a figure lost on a wide wall; every desk looked alike | A wall prop per role, the scene scaled up (108 tall, figure 192 wide) | Character within the calm brand: you tell the designer's desk from the auditor's without reading |
+| (critique) The floor's window strip floated at the far right, away from the name it belongs to | Strip sits right after the floor name | Proximity: name, glance, figures in one reading line |
+| (critique) The provisional flag was fixed over content on the phone | It sits in flow at the foot of the page | Mockup labels must never cover the product |
+| (critique) First run: the sidebar still listed three projects and "$52.60" beside "No one is working yet" | First run in the shell: no projects, no counts, $0.00, "No projects yet"; the empty building's style no longer leaks into the button's icon (`office-empty-1440-dark.png`) | Every number agrees (R2), including at zero |
+| (critique) Stale state lit the windows of waiting desks | Dimming applies only to working desks (`office-stale-390-light.png`) | Stale must never invent work |
+| (critique) Phone tile cut the window's left edge and the raised hand's red dot | Tile shows grid x 4–126 | The two signals that matter most were clipped |
+| (a11y) Desk links read "DesignerWorking High-fi…"; nav "Office3 working", "replay3" | One sentence per desk as its name; nav labels "Office, 3 working", "replay, 3 waiting, lead on" | 4.1.2 names that make sense read aloud |
+| (a11y) Phone targets under 44: brand link 67×20, floor names 63×21 | Both 44 tall | 2.5.5; after: 0 small targets on the phone |
+| (copy) "Idle", "On duty" on desks; "Auditing" | Only the four words: Working, Needs you, Waiting, Off (and Done for a moment) | §5: one short fixed list everywhere |
+
 ## Open questions
 
+- **D6: Office desk data**: latest step, progress unit, last activity, "quiet longer than usual" and a just-finished flag per agent (see Screens (D6) › Endpoint needs). Read data only; the lead confirms the server can send it.
 - **D4: trademark search** for the logo the owner picks (USPTO / EUIPO image search, or a lawyer). Outward-facing, so not done by an agent.
 - **D4: working stays lilac in every scheme** (SPEC R4 names lilac). If the owner wants a scheme whose accent replaces lilac as the working colour, R4 changes: lead's call.
 

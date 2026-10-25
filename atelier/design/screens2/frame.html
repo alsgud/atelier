@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen viewer · Atelier D6</title>
+<!-- Shows one high-fi screen at a chosen width, mode and state: frame.html?src=office.html&w=390&theme=light&state=stale -->
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>
+  html, body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: var(--text-sm); margin: 0; }
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); align-items: center; padding: var(--space-2) var(--space-4); border-bottom: var(--border-width) solid var(--border); background: var(--bg); }
+  .bar b { font-weight: var(--weight-semibold); }
+  .grp { display: inline-flex; gap: var(--space-1); align-items: center; color: var(--text-3); }
+  .grp a { padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); color: var(--text-2); min-height: 32px; display: inline-flex; align-items: center; }
+  .grp a[aria-current="true"] { background: var(--surface-selected); color: var(--text); }
+  .grp a:hover { background: var(--surface-hover); }
+  .stage { display: grid; justify-items: center; padding: var(--space-4); }
+  iframe { border: var(--border-width) solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); height: calc(100vh - 90px); }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="stage"><iframe id="f" title="Screen"></iframe></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const src = q.get('src') || 'office.html', w = +(q.get('w') || 1440), theme = q.get('theme') || 'dark', st = q.get('state') || '';
+  const states = (q.get('states') || ',loading,empty,error,stale').split(',');
+  const link = (k, v, label) => { const p = new URLSearchParams(q); v ? p.set(k, v) : p.delete(k); const cur = (q.get(k) || '') === (v || '') || (k === 'w' && !q.get('w') && v === '1440') || (k === 'theme' && !q.get('theme') && v === 'dark'); return `<a href="?${p}"${cur ? ' aria-current="true"' : ''}>${label}</a>`; };
+  document.getElementById('bar').innerHTML = `<a href="index.html" class="grp"><b>← All screens</b></a><b>${src.replace('.html', '')}</b>
+    <span class="grp">Width ${['1440', '768', '390'].map(v => link('w', v, v)).join('')}</span>
+    <span class="grp">Mode ${link('theme', 'dark', 'Dark')}${link('theme', 'light', 'Light')}</span>
+    <span class="grp">State ${states.map(v => link('state', v, v || 'default')).join('')}</span>`;
+  const f = document.getElementById('f');
+  f.style.width = w + 'px';
+  f.src = `${src}${src.includes('?') ? '&' : '?'}theme=${theme}${st ? '&state=' + st : ''}`;
+</script>
+</body>
+</html>

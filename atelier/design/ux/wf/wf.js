@@ -1,8 +1,54 @@
 /* D5 low-fi wireframes: one engine, one page per screen (wf/<screen>.html sets <body data-screen>).
    Real content from the walkthrough's data set: 7 waiting (2 need you now), 3 working, $52.60 today, plan 41 %;
    replay at its $40 daily limit, atelier-ui busy, dodge waiting on its design gate with the lead off.
-   ?clean hides the region notes, ?shot puts sticky bars in flow, ?state=zero shows the empty Inbox. */
+   ?clean hides the region notes, ?shot puts sticky bars in flow, ?state=zero shows the empty Inbox.
+   D6: the data model below (window.ATELIER_MODEL) is shared with the high-fi screens (design/screens2/),
+   so a different answer to a UX decision changes here, once, for both. */
+window.ATELIER_MODEL = (() => {
+  /* The UX answers the screens are drawn on. PROVISIONAL: the owner hasn't replied yet, so these are the recommendations
+     (DESIGN.md › UX › Decisions). Each screen reads its pick from here; screens2/index.html lists them. */
+  const UX = {
+    'UX-1': ['A', 'The Inbox opens first, always'],
+    'UX-2': ['A', 'Phone tabs: Inbox · Office · Projects · Activity; Settings and spend in the top bar'],
+    'UX-3': ['A', 'One global Settings, plus a Settings tab per project'],
+    'UX-4': ['A', 'A task opens as a full page with its own address'],
+    'UX-5': ['A', 'Task progress: stage, latest step, last active'],
+    'UX-6': ['A', 'Project page: Now first, figures in one line'],
+    'UX-7': ['A', '768–1279: a 64 px rail'],
+    'UX-8': ['A', 'Office: a floor per project, a desk per agent'],
+    'UX-9': ['A', 'Spend and plan quietly in the chrome (sidebar foot, phone top bar)'],
+    'UX-10': ['A', 'Decisions are instant with Undo; confirm only the irreversible and the costly'],
+    'UX-11': ['C', 'Early budget warning: words on the money line at 80 %, no new Inbox item'],
+    'UX-12': ['B', 'New project: the same field, growing into a brief'],
+    'UX-13': ['A', 'Activity: project picker + Only problems'],
+    'UX-14': ['A', 'Criteria are called Outcomes'],
+    'UX-15': ['A', 'Nothing outside the app for now'],
+  };
+  /* The one summary (R2): every count and money figure on every screen comes from here. */
+  const NOW = { waiting: 7, needs: 2, working: 3, onDuty: 6, today: '$52.60', plan: 41, planReset: '2 h 10 min', updated: '14:02' };
+  const PROJECTS = [
+    { id: 'replay', lead: true, waiting: 3, today: '$40.00', limit: '$40', line: 'Building · 4 of 9 outcomes met · paused at today’s $40' },
+    { id: 'atelier-ui', lead: true, waiting: 2, today: '$12.60', limit: '$30', line: 'Design · 2 working · 11 of 17 outcomes met' },
+    { id: 'dodge', lead: false, waiting: 2, today: '$0.00', limit: '$20', line: 'Design · waiting for your OK on the design · lead off' },
+  ];
+  /* Office (UX-8 A): a floor per project, busiest first; a desk per agent. k = the four meanings (§5):
+     'active' Working (lilac), 'needs' Needs you (red), '' Waiting (neutral), 'off' Off. quiet = the stuck signal, neutral text. */
+  const OFFICE = [
+    { p: 'atelier-ui', working: 2, today: '$12.60', desks: [
+      { id: 'd-ui-designer', role: 'Designer', k: 'active', st: 'Working', what: 'High-fi Inbox and Office screens', step: 'Drawing the Office floor at 390', prog: [4, 6, 'step'], ago: '4 min ago', href: 'task.html' },
+      { id: 'd-ui-auditor', role: 'Auditor', k: 'active', st: 'Working', what: 'Checking contrast in light and dark', step: 'Measuring text on every surface', prog: [12, 14, 'checks'], ago: '38 min ago', quiet: 'Quiet for 38 min, longer than usual', href: 'task.html' },
+      { id: 'd-ui-lead', role: 'Lead', k: '', st: 'Waiting', what: 'Asked you how the toast should read', step: 'In your Inbox', ago: '25 min ago', href: 'inbox.html' }] },
+    { p: 'replay', working: 1, today: '$40.00', atLimit: true, desks: [
+      { id: 'd-re-builder', role: 'Builder', k: 'active', st: 'Working', what: 'Trim clips on the timeline', step: 'Finishing its second try', prog: [2, 5, 'try'], ago: '1 min ago', href: 'task.html' },
+      { id: 'd-re-lead', role: 'Lead', k: 'needs', st: 'Needs you', what: 'Paused: today’s budget is used', step: 'Raise it or wait for midnight', ago: '12 min ago', href: 'inbox.html' },
+      { id: 'd-re-reviewer', role: 'Reviewer', k: '', st: 'Waiting', what: 'Nothing to review yet', step: 'Last review 40 min ago', ago: '40 min ago', href: 'project.html' }] },
+    { p: 'dodge', working: 0, today: '$0.00', quiet: true, lead: false, note: 'Lead off · nothing running · the design waits for your OK in the Inbox', desks: [] },
+  ];
+  return { UX, NOW, PROJECTS, OFFICE };
+})();
+
 (() => {
+  if (!document.getElementById('wf')) return; // the high-fi screens load this file for the model only
   const q = new URLSearchParams(location.search);
   const screen = document.body.dataset.screen;
   document.body.classList.toggle('is-clean', q.has('clean'));
@@ -18,12 +64,7 @@
   const track = (names, cur, label) => `<span class="wf-track" role="img" aria-label="${esc(label)}">${names.map((n, i) => `<span class="${i < cur ? 'past' : i === cur ? 'now' : ''}">${esc(n)}</span>`).join('')}</span>`;
   const fold = (t, body) => `<details class="details"><summary>${esc(t)}${I('chevron-down')}</summary><div class="details-body">${body}</div></details>`;
 
-  const NOW = { waiting: 7, needs: 2, working: 3, today: '$52.60', plan: 41 };
-  const PROJECTS = [
-    { id: 'replay', lead: true, waiting: 3 },
-    { id: 'atelier-ui', lead: true, waiting: 2 },
-    { id: 'dodge', lead: false, waiting: 2 },
-  ];
+  const { NOW, PROJECTS, OFFICE } = window.ATELIER_MODEL;
   const cur = { inbox: 'inbox', office: 'office', projects: 'projects', project: 'replay', task: 'replay', new: 'new', activity: 'activity', settings: 'settings' }[screen];
 
   /* ── Navigation ── */
@@ -141,21 +182,12 @@
 
   S.office = () => ({
     title: 'Office',
-    head: `<h1>Office</h1><span class="sum">${NOW.working} working · <span class="is-needs">${NOW.needs} need you</span> · 4 on duty</span>`,
+    head: `<h1>Office</h1><span class="sum">${NOW.working} working · <span class="is-needs">${NOW.needs} need you</span> · ${NOW.onDuty} on duty</span>`,
     body: `<div class="wf-body"><div class="wf-col is-list" style="max-width:none">
       ${note('Board · a floor per project, busiest first, desks in rows of three (UX-8 A)')}
-      ${[
-        { p: 'atelier-ui', sum: '2 working · $12.60 today', desks: [
-          ['Designer', 'active', 'Working', 'High-fi Inbox and Office screens', 'Drawing the Office floor at 390 · 4 min ago'],
-          ['Auditor', 'active', 'Working', 'Checking contrast in light and dark', '12 of 14 checks so far · 6 min ago'],
-          ['Lead', '', 'Waiting', 'Asked you how the toast should read', '25 min ago · in your Inbox']] },
-        { p: 'replay', sum: '1 working · $40.00 today, at its limit', desks: [
-          ['Builder', 'active', 'Working', 'Trim clips on the timeline', 'Finishing its second try · 1 min ago', 'task.html'],
-          ['Lead', 'needs', 'Needs you', 'Paused: today’s budget is used', 'Raise it or wait for midnight'],
-          ['Reviewer', '', 'Waiting', 'Nothing to review yet', 'Last review 40 min ago']] },
-      ].map(f => `<section class="wf-floor"><h2 class="wf-h">${f.p} <span class="n">${esc(f.sum)}</span></h2><div class="wf-desks">${f.desks.map(([role, k, st, what, sub, href]) => `
-        <${href ? `a href="${href}"` : 'div'} class="wf-desk"><span class="who">${dot(k, st)}<b>${role}</b><span class="st${k ? ' is-' + k : ''}">${st}</span></span><span class="what">${esc(what)}</span><span class="wf-meta">${esc(sub)}</span></${href ? 'a' : 'div'}>`).join('')}</div></section>`).join('')}
-      <p class="wf-quiet">dodge · quiet · lead off · $0.00 today</p>
+      ${OFFICE.filter(f => !f.quiet).map(f => `<section class="wf-floor"><h2 class="wf-h">${f.p} <span class="n">${esc(`${f.working} working · ${f.today} today${f.atLimit ? ', at its limit' : ''}`)}</span></h2><div class="wf-desks">${f.desks.map(d => `
+        <a href="${d.href}" class="wf-desk"><span class="who">${dot(d.k, d.st)}<b>${d.role}</b><span class="st${d.k ? ' is-' + d.k : ''}">${d.st}</span></span><span class="what">${esc(d.what)}</span><span class="wf-meta">${esc(d.quiet || `${d.step} · ${d.ago}`)}</span></a>`).join('')}</div></section>`).join('')}
+      ${OFFICE.filter(f => f.quiet).map(f => `<p class="wf-quiet">${f.p} · quiet · lead off · ${f.today} today</p>`).join('')}
     </div></div>`,
   });
 
