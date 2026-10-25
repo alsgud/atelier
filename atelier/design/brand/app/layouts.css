@@ -1,0 +1,53 @@
+/* D4 layout options for the Flow Inbox. html[data-layout] picks one; Y1 is D2's shell unchanged.
+   Only the shell moves: the item, the dock, the queue's contents and Flow's motion are the same in all three.
+   Y1 Sidebar   ≥1280 sidebar | item | queue.  Phone: top bar + bottom tab bar (D2).
+   Y2 Top bar   ≥1280 top bar over item | queue, full width.  Phone: tabs under the brand, no bottom bar.
+   Y3 Queue first  ≥1024 icon rail | queue | item, like a mail client.  Phone: no top bar, the item starts at the top. */
+
+/* ── Y2 Top bar ── */
+@media (min-width: 1280px) {
+  [data-layout="y2"] .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  [data-layout="y2"] .shell-side { display: none; }
+  [data-layout="y2"] .shell-top { display: flex; position: sticky; top: 0; z-index: 10; padding: 0 var(--space-6); }
+  [data-layout="y2"] .shell-main { margin: 0; border: 0; border-radius: 0; box-shadow: none; min-height: 0; }
+  [data-layout="y2"] .page-head { position: static; border-radius: 0; }
+  [data-layout="y2"] .queue { top: var(--size-topbar); max-height: calc(100vh - var(--size-topbar)); }
+}
+@media (max-width: 767px) {
+  [data-layout="y2"] .shell { grid-template-rows: auto 1fr; }
+  [data-layout="y2"] .shell-tabs { display: none; }
+  [data-layout="y2"] .shell-top { flex-wrap: wrap; height: auto; row-gap: 0; padding-top: var(--space-2); }
+  [data-layout="y2"] .shell-top .brand { min-height: var(--size-control-lg); }
+  [data-layout="y2"] .shell-top .tabs { display: flex; order: 3; flex: 1 0 100%; gap: var(--space-5); overflow-x: auto; scrollbar-width: none; }
+  [data-layout="y2"] .shell-top .tab { min-height: var(--size-control-lg); white-space: nowrap; }
+  [data-layout="y2"] .focus .dock { bottom: calc(env(safe-area-inset-bottom) + var(--space-2)); }
+  [data-layout="y2"] .toasts { --toast-bottom: calc(env(safe-area-inset-bottom) + var(--space-2)); }
+}
+
+/* ── Y3 Queue first ── */
+@media (min-width: 1024px) {
+  [data-layout="y3"] .inbox { grid-template-columns: var(--size-queue) minmax(0, 1fr); }
+  [data-layout="y3"] .queue { order: -1; border-left: 0; border-right: var(--border-width) solid var(--border); }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  [data-layout="y3"] .inbox { grid-template-columns: 300px minmax(0, 1fr); }
+}
+@media (min-width: 1280px) {
+  /* The sidebar folds to a 64 px rail: icons with their names for screen readers, counts as small badges. */
+  [data-layout="y3"] .shell { grid-template-columns: 64px minmax(0, 1fr); }
+  [data-layout="y3"] .sidebar { width: 64px; padding: var(--space-4) var(--space-2); align-items: center; }
+  [data-layout="y3"] .sidebar .brand { padding: 0; justify-content: center; }
+  [data-layout="y3"] .sidebar .brand .wm, [data-layout="y3"] .sidebar .nav[aria-label="Projects"], [data-layout="y3"] .meter-foot, [data-layout="y3"] .meter-track { display: none; }
+  [data-layout="y3"] .sidebar .nav { justify-items: center; }
+  [data-layout="y3"] .sidebar .nav-item { width: var(--size-control-lg); height: var(--size-control-lg); padding: 0; justify-content: center; font-size: 0; position: relative; }
+  [data-layout="y3"] .sidebar .nav-item .count { position: absolute; top: 2px; right: 0; margin: 0; font-size: var(--text-xs); line-height: var(--leading-xs); }
+  [data-layout="y3"] .sidebar .nav-item .count.is-active { display: none; }
+  [data-layout="y3"] .sidebar-foot { padding: var(--space-3) 0 0; justify-items: center; text-align: center; }
+  [data-layout="y3"] .sidebar-foot .meter-head { display: grid; justify-items: center; gap: 0; font-size: var(--text-xs); line-height: var(--leading-xs); }
+  [data-layout="y3"] .sidebar-foot .nav-item { margin: 0 !important; }
+  [data-layout="y3"] .shell-main { margin-left: 0; }
+}
+@media (max-width: 767px) {
+  [data-layout="y3"] .shell { grid-template-rows: 1fr auto; }
+  [data-layout="y3"] .shell-top { display: none; }
+}

@@ -435,7 +435,80 @@ Method: the same stepped frames (`vt-frames.mjs`), this time of the whole page a
 - **Changed** (Flow only): the title flight and the queue rows wait `--dur-fast`, and the leaving row is gone in `--dur-fast`, so nothing moves onto anything still visible; after a decision only the decided title flies and the next item rises in place; on Undo the body unfolds at 380 ms, under a title that has nearly landed. Motion › Choreography and the Flow column updated.
 - **Result**: in the full-page stepped frames of Flow's decide and undo, no text sits on text at any step; the one crossing left is the small decided title passing the "Decided today" header on its way in, at under a third of its opacity. The flight still reads as one move (it starts 120 ms later; total under 0.85 s). All seven demos and contact sheets re-recorded on this code and re-encoded to VP9 (sizes in EVIDENCE.md).
 
+## Brand (D4)
+
+The owner loves Flow (R-5) but not yet the colour, layout or logo. D4 gives numbered options on one pick page:
+**`design/brand/index.html`** (phone-friendly; reply with e.g. `L7 + C2 + Y1` or `Combo B`). Flow's motion is untouched:
+`brand/app/inbox.html` is `feel/flow/inbox.html` with its `<style>` copied byte for byte, plus a logo, a scheme and a layout
+from the query (`logo=L1..L16`, `scheme=c1..c5`, `layout=y1..y3`, and every Flow parameter).
+
+| File | What it is |
+|---|---|
+| `brand/index.html` | The pick page: logos, colours, contrast, layouts, combinations, top pick |
+| `brand/logos.js` | The 16 marks as hand-built SVG (32-unit grid) and the lockup helper |
+| `brand/schemes.css` | Five schemes: an 11-step neutral ramp per theme, one accent, the meanings; mapped onto D2's role tokens |
+| `brand/brand.css` | Lockup type (per concept) and the pick page |
+| `brand/app/inbox.html`, `app/layouts.css` | The Flow Inbox wearing an option; the three layouts |
+| `brand/img/` | Top-bar crops of every logo in the real app; layout and combo screens; demos |
+| `references/brand/` | The identity references board |
+
+### Identity references
+
+Captured headless from each brand's own public pages (R-2; Mobbin is still paid) into `references/brand/`.
+
+| Brand | What works | Take | Avoid |
+|---|---|---|---|
+| **Linear** (`linear-brand.png`) | A mark that is one simple filled shape, a plain geometric sans wordmark, lots of room around both; the guidelines ask for "room to breathe" | One idea per mark; the mark survives as a solid shape at 16 px; spacing is part of the logo | Diagonal-stripe motion marks; anything that reads as "speed" (we sell calm) |
+| **Vercel / Geist** (`vercel-brands.png`) | A single primitive (a triangle) and a tight, heavy wordmark; every sub-brand is a monochrome glyph next to a name | A family: four executions of one concept should read as siblings; ink-only versions must work | The triangle itself and any single-primitive mark that close to it |
+| **Things** (`things.png`) | The app icon is the product's own object (a box with a tick) and the wordmark is a friendly rounded bold | The mark can be the product's own object: our "cell at work", "window", "seal" are Atelier's objects | Skeuomorphic depth and gloss; a tick (green tick means *done* in our R4) |
+| **Raycast** (`raycast.png`) | A compact geometric mark with one strong colour that also leads the site | One accent that belongs to the brand | Red as a brand colour: red means *needs you* here |
+| **Mercury** (`mercury.png`) | A fine-line emblem plus a widely tracked caps wordmark: calm, premium, trustworthy | Tracked caps for a "maker's mark" wordmark (seal concept) | Atmospheric photography behind the product |
+| **Teenage Engineering** (`teenage.png`) | Line-drawn pictograms and a lowercase light wordmark: a studio that makes things | The studio-and-craft voice; line marks drawn on a grid | The playfulness and density of its navigation |
+
+What they agree on: one idea, drawn simply; the mark works in one colour; the wordmark is quiet and set with care.
+
+### Logos: four concepts × four executions (L1–L16)
+
+All drawn by hand on a 32-unit grid with 3-unit strokes (so a 16 px favicon keeps 1.5 px lines), ink in `currentColor`, the accent from `--brand-accent`, knock-outs from `--brand-knock`. Wordmarks are set in the system's own faces per concept (sans 600 for Grid, the display serif for North light, lowercase sans 500 at −0.03 em for Thread, serif caps at +0.2 em for Maker's mark); the chosen one gets outlined to paths in the next task so it renders the same everywhere.
+
+| Concept | Why it fits Atelier | Executions |
+|---|---|---|
+| **Studio grid** (L1–L4) | The team as cells of one studio; the coloured cell is the one at work. Continuity with D2 | L1 Lit cell (three squares, one round); L2 Open seat (one cell left open: the owner's place); L3 Rising cell (one cell steps up: work coming to you); L4 Grid tile (on an ink tile, the app-icon execution) |
+| **North light** (L5–L8) | An atelier is a room with a big north window; the light in it is the work going on | L5 Window and light (outline arch, sill, lit dot); L6 Four panes (solid, one pane lit); L7 Arch A (arch + crossbar reads as an A); L8 Line panes (the four panes in line) |
+| **Thread** (L9–L12) | Craft as one continuous line; a lowercase a, nearest the wordmark, the most personal | L9 Thread a (bowl in ink, stem as the thread); L10 Stitched a (bowl as a running stitch); L11 a tile (knocked out of an ink tile); L12 One line, full stop |
+| **Maker's mark** (L13–L16) | The stamp a maker puts on finished work, and the owner's sign-off: you decide, the mark is your approval | L13 Seal ring (a quarter lit); L14 Chop (serif a cut from a square); L15 Hallmark (cut-corner frame, A and its signed line); L16 Signet (solid, with a lit dot on the rim) |
+
+**Favicon test (16 px), honestly:** strongest at 16 are the solid ones (L1, L4, L6, L11, L14, L16). L3 and L8 get busy, L10's stitch turns to noise, L13 and L15's serif A blurs: those need a simplified 16 px cut if chosen (the tile executions L4 and L11 are exactly that for their concepts).
+
+**How originality was checked.** (1) Silhouette test: each mark was compared, filled black at 16 and 128 px, against the marks of the tools in the references board and of other well-known software, finance and fashion brands I know well. Typical near-misses: a 2×2 grid of equal squares (D2's mark) is the silhouette of a famous four-square logo, so every grid execution breaks it (a round cell, an open cell, a raised cell); arches stay single (a doubled arch is a famous fast-food sign); the seal avoids a notched rim (verified-badge look) and the tick. (2) Construction test: every shape is a primitive placed on the 32 grid in `logos.js`, nothing traced or generated. (3) Before the owner adopts one, the chosen mark needs a trademark search (USPTO / EUIPO image search) by the owner or a lawyer: that's outward-facing, so it's listed under Open questions, not done here.
+
+### Colour schemes (C1–C5)
+
+Each scheme is an 11-step neutral ramp per theme (`--n0` … `--n10`) mapped onto D2's roles in one block per theme (light: `--bg` n1, `--surface` n0, `--surface-sunken` n2, hover n3, selected and hairline n4, strong border n5, field border n6, text 3/2/1 n7/n8/n10; dark: `--bg` n0, sunken n1, surface n2, then the same), one accent, and the meanings. **Waiting** is neutral by design (R4: everything else neutral): a hollow `--wait` ring and the word. **Working** stays in the lilac family in every scheme, **needs you / problem** red, **done** green, each retuned to its ramp.
+
+| | Mood | Accent | Pairs with |
+|---|---|---|---|
+| **C1 Ink and paper** | Warm white, black ink, one violet thread for the work in progress (D2 refined) | Violet = working, one colour, one meaning | Grid, Thread |
+| **C2 Warm studio** | Linen and walnut in afternoon light; an ochre mark, like a workshop | Ochre `#94590d` / `#e3a85a`: mark and focus ring only | Maker's mark, Thread, North light |
+| **C3 Graphite** | Cool greys and an indigo violet: a precise tool that sits next to Linear | Indigo violet = working | Grid, Thread |
+| **C4 North light** | Cool, airy paper under a skylight; a slate-blue mark | Slate blue `#2f6aa8` / `#8fb3e0`: mark and focus ring only | North light |
+| **C5 Gallery** | True greys and black type; nothing has colour unless it means something | None: mark and focus ring are ink | Maker's mark, Grid |
+
+*Why the accent never touches content*: R4 gives colour only to meanings. A brand accent that isn't the working lilac (C2, C4) is limited to the mark and the focus ring, both identity and wayfinding, never state. *Why no scheme uses red, green or amber as its accent*: they would read as needs-you, done or a warning.
+
+**Contrast (AC-13).** Every text and status pair, both themes, every scheme: 460 pairs measured by `runs/hspr/tools/contrast-schemes.mjs`, 0 below AA; the pick page measures the same pairs again from its computed colours as it loads (Contrast section, one table per scheme). Lowest text pairs: meta text on the selected row (C1 light 4.64, C2 light 4.69 after round B1, C4 light 4.59, C5 light 4.68), done on selected in C3 light 4.56. Non-text (3:1): the waiting ring, field borders, the focus ring / mark accent on surface and canvas, progress fill on its track.
+
+### Critique log (Brand)
+
+**Round B1** (self-review of the first render at 1440 and 390, with measured contrast; the skill-led rounds B2 and B3 follow once layouts and combinations are on the page).
+- *Found*: logo cards overflowed their column (the favicon row's tab mocks were wider than a 280 px card), so the 128 px mark and the dark lockup were cut off; heading margins doubled the card head; the seal concept shown in C5 lost its accent entirely (C5's accent is ink), so L13's lit quarter and L16's dot vanished; the 1440 crop of the app was too small to read in a card; C4's slate accent (`#2c5282`) was too close to its ink to read as a colour; C2 light meta text on the selected row measured 4.48 (fail).
+- *Changed*: cards and their children `min-width: 0`, favicon row wraps; heading margins reset; the seal concept is shown in C2; the 1440 crop is the sidebar head only (420 × 56); C4 accent `#2f6aa8`; C2 `--n7` `#665c4a` (now 4.69).
+- *Result*: 460 / 460 pairs pass; no console errors at 390 or 1440.
+
 ## Open questions
+
+- **D4: trademark search** for the logo the owner picks (USPTO / EUIPO image search, or a lawyer). Outward-facing, so not done by an agent.
+- **D4: working stays lilac in every scheme** (SPEC R4 names lilac). If the owner wants a scheme whose accent replaces lilac as the working colour, R4 changes: lead's call.
 
 These are for the lead. They touch what the server sends, or they add scope.
 

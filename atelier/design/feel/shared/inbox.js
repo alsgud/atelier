@@ -15,6 +15,8 @@ if (P.has('shot') || P.has('demo')) document.body.classList.add('is-shot');
 const I = (n, c) => icon(n, c);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const mark = '<span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
+/* D4 brand options (design/brand/app/): the page may supply its own lockup (mark + wordmark). */
+const brand = () => window.BRAND_HTML || `${mark}Atelier`;
 const IMG = '../../screens/img/';
 const tok = v => parseFloat(getComputedStyle(ROOT).getPropertyValue(v)) || 0;
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -162,7 +164,7 @@ function chrome() {
   const cur = t => S.tab === t ? 'aria-current="page"' : '';
   const proj = [['replay', true], ['atelier-ui', true], ['dodge', false]].map(([p, on]) => [p, on, S.items.filter(x => x.project === p).length]);
   document.getElementById('side').innerHTML = `
-    <span class="brand">${mark}Atelier</span>
+    <span class="brand">${brand()}</span>
     <nav class="nav" aria-label="Main">
       <a class="nav-item" ${cur('inbox')} href="#" data-tab="inbox" aria-label="${inboxLabel}">${I('inbox')}Inbox${count}</a>
       <a class="nav-item" ${cur('office')} href="#" data-tab="office" aria-label="Office, 3 working">${I('office')}Office<span class="count is-active">3 working</span></a>
@@ -178,7 +180,7 @@ function chrome() {
       <a class="nav-item" href="#" style="margin:0 calc(-1 * var(--space-2))">${I('settings')}Settings</a>
     </div>`;
   document.getElementById('top').innerHTML = `
-    <span class="brand">${mark}Atelier</span>
+    <span class="brand">${brand()}</span>
     <nav class="tabs" aria-label="Main"><a class="tab" ${cur('inbox')} href="#" data-tab="inbox" aria-label="${inboxLabel}">Inbox ${count.replace(cn, cn2)}</a><a class="tab" ${cur('office')} href="#" data-tab="office">Office</a><a class="tab" href="#">Projects</a><a class="tab" href="#">Activity</a></nav>
     <span class="topbar-status"><span>Plan <b>41%</b></span><span>Today <b>${SPENT}</b></span></span>`;
   document.getElementById('tabs').innerHTML = `

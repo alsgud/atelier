@@ -1,0 +1,117 @@
+/* Atelier colour schemes, D4. Five complete schemes for the owner to pick from.
+   Each scheme is an 11-step neutral ramp per theme (--n0 … --n10), one brand accent, and the meaning colours
+   of SPEC R4: working (lilac family), needs you / problem (red), done (green). Waiting is neutral on purpose (R4:
+   everything else neutral): a hollow --wait ring and the word, never a colour of its own.
+   The ramp maps onto D2's role tokens (tokens.css) in one shared block per theme, so every component and the
+   Flow Inbox take a scheme by setting data-scheme on <html> (or any container) next to data-theme.
+   The accent: in C1 and C3 it is the working lilac itself (one colour, one meaning). In C2, C4 and C5 it is the
+   brand's own colour, used only in the mark and the focus ring, never on content.
+   Contrast for every pair is measured live on brand/index.html (Colours › Contrast) and by tools/contrast-schemes.mjs. */
+
+/* ── Shared role mapping ─────────────────────────────────────────── */
+[data-scheme][data-theme="light"] {
+  --bg: var(--n1); --surface: var(--n0); --surface-sunken: var(--n2); --surface-hover: var(--n3); --surface-selected: var(--n4);
+  --border: var(--n4); --border-strong: var(--n5); --border-field: var(--n6);
+  --text: var(--n10); --text-2: var(--n8); --text-3: var(--n7); --text-inverse: var(--n1); --text-on-ink: var(--n0);
+  --ink: var(--n10); --ink-hover: var(--n9); --ink-active: #000;
+  --surface-inverse: var(--n10);
+  --skeleton: var(--n3); --skeleton-shine: var(--n1);
+  --scrim: rgba(0, 0, 0, 0.3);
+  --focus-ring: var(--brand-accent);
+  --wait: var(--n7);
+  --brand-knock: var(--n0);
+  color: var(--text);
+}
+[data-scheme][data-theme="dark"] {
+  --bg: var(--n0); --surface: var(--n2); --surface-sunken: var(--n1); --surface-hover: var(--n3); --surface-selected: var(--n4);
+  --border: var(--n4); --border-strong: var(--n5); --border-field: var(--n6);
+  --text: var(--n10); --text-2: var(--n8); --text-3: var(--n7); --text-inverse: var(--n1); --text-on-ink: var(--n1);
+  --ink: var(--n10); --ink-hover: #fff; --ink-active: var(--n9);
+  --surface-inverse: var(--n10);
+  --skeleton: var(--n3); --skeleton-shine: var(--n4);
+  --scrim: rgba(0, 0, 0, 0.56);
+  --focus-ring: var(--brand-accent);
+  --wait: var(--n7);
+  --brand-knock: var(--n2);
+  color: var(--text);
+}
+
+/* ── C1 Ink and paper: warm white, black ink, one violet thread for work in progress (D2, refined) ── */
+[data-scheme="c1"][data-theme="light"] {
+  --n0: #ffffff; --n1: #f5f4f1; --n2: #f0eee9; --n3: #ebe9e4; --n4: #e4e1db; --n5: #cfcbc3; --n6: #8a857c; --n7: #67625a; --n8: #5d5953; --n9: #3a3834; --n10: #1c1b19;
+  --brand-accent: #6447cc;
+  --active: #6447cc; --active-soft: #efeafc; --active-track: #ddd3f7;
+  --needs: #b0291a; --needs-soft: #fcece9; --done: #176a40; --done-soft: #e5f3eb;
+  --toast-done: #5ccf91; --toast-needs: #ff8170; --text-on-needs: #ffffff;
+}
+[data-scheme="c1"][data-theme="dark"] {
+  --n0: #0f0f0e; --n1: #141412; --n2: #181816; --n3: #22211f; --n4: #2a2927; --n5: #3b3936; --n6: #6f6a63; --n7: #9a958c; --n8: #aaa59d; --n9: #d6d3cd; --n10: #edebe7;
+  --brand-accent: #b19cff;
+  --active: #b19cff; --active-soft: #231e36; --active-track: #352d55;
+  --needs: #ff8170; --needs-soft: #34201c; --done: #5ccf91; --done-soft: #17291f;
+  --toast-done: #176a40; --toast-needs: #b0291a; --text-on-needs: #1c1b19;
+}
+
+/* ── C2 Warm studio: linen and walnut, an ochre mark, like a workshop in afternoon light ── */
+[data-scheme="c2"][data-theme="light"] {
+  --n0: #fffdf9; --n1: #f5f0e7; --n2: #f0eadf; --n3: #e9e2d5; --n4: #e1d9ca; --n5: #cbc0ad; --n6: #897d68; --n7: #665c4a; --n8: #5d5444; --n9: #3d3529; --n10: #241e16;
+  --brand-accent: #94590d;
+  --active: #6743c0; --active-soft: #f0eafa; --active-track: #ddd2f2;
+  --needs: #ad2a17; --needs-soft: #fbebe5; --done: #1c6a3b; --done-soft: #e6f1e6;
+  --toast-done: #6dcf96; --toast-needs: #ff8a72; --text-on-needs: #ffffff;
+}
+[data-scheme="c2"][data-theme="dark"] {
+  --n0: #12100c; --n1: #16130f; --n2: #1b1813; --n3: #25211a; --n4: #2d2820; --n5: #3f382d; --n6: #776d5c; --n7: #a1967f; --n8: #b2a78f; --n9: #dcd4c4; --n10: #f1eadc;
+  --brand-accent: #e3a85a;
+  --active: #b9a2ff; --active-soft: #251f33; --active-track: #392f52;
+  --needs: #ff8a72; --needs-soft: #36211b; --done: #6dcf96; --done-soft: #192a1d;
+  --toast-done: #1c6a3b; --toast-needs: #ad2a17; --text-on-needs: #241e16;
+}
+
+/* ── C3 Graphite: cool greys and an indigo-violet, a precise tool that sits next to Linear ── */
+[data-scheme="c3"][data-theme="light"] {
+  --n0: #ffffff; --n1: #f4f5f7; --n2: #eff0f3; --n3: #e9eaee; --n4: #e2e4e9; --n5: #c9ccd3; --n6: #858a95; --n7: #5e6470; --n8: #535863; --n9: #31343b; --n10: #16171a;
+  --brand-accent: #5848d6;
+  --active: #5848d6; --active-soft: #eeecfc; --active-track: #dad6f7;
+  --needs: #b3261e; --needs-soft: #fceceb; --done: #12744a; --done-soft: #e3f3ea;
+  --toast-done: #4fd08c; --toast-needs: #ff7f72; --text-on-needs: #ffffff;
+}
+[data-scheme="c3"][data-theme="dark"] {
+  --n0: #0b0c0e; --n1: #101114; --n2: #15161a; --n3: #1e2024; --n4: #26282e; --n5: #373a41; --n6: #6b707b; --n7: #959aa5; --n8: #a7abb5; --n9: #d3d5db; --n10: #eceef2;
+  --brand-accent: #a69bff;
+  --active: #a69bff; --active-soft: #1f1d36; --active-track: #322e57;
+  --needs: #ff7f72; --needs-soft: #33191a; --done: #4fd08c; --done-soft: #12291d;
+  --toast-done: #12744a; --toast-needs: #b3261e; --text-on-needs: #16171a;
+}
+
+/* ── C4 North light: cool, airy paper under a studio skylight, a slate-blue mark ── */
+[data-scheme="c4"][data-theme="light"] {
+  --n0: #ffffff; --n1: #f2f4f6; --n2: #edf0f3; --n3: #e6eaee; --n4: #dee3e8; --n5: #c4ccd4; --n6: #808a95; --n7: #5a6572; --n8: #4f5966; --n9: #2f3740; --n10: #141a21;
+  --brand-accent: #2f6aa8;
+  --active: #6a46d4; --active-soft: #f0ebfc; --active-track: #ddd3f8;
+  --needs: #b0261b; --needs-soft: #fcebe9; --done: #13704a; --done-soft: #e3f2ea;
+  --toast-done: #57cf92; --toast-needs: #ff8073; --text-on-needs: #ffffff;
+}
+[data-scheme="c4"][data-theme="dark"] {
+  --n0: #0c0f13; --n1: #101419; --n2: #151a20; --n3: #1d232b; --n4: #252c35; --n5: #364049; --n6: #69737f; --n7: #929ca8; --n8: #a5aeb9; --n9: #d2d8de; --n10: #eaeef2;
+  --brand-accent: #8fb3e0;
+  --active: #b49dff; --active-soft: #221e37; --active-track: #362e58;
+  --needs: #ff8073; --needs-soft: #341c1c; --done: #57cf92; --done-soft: #13291f;
+  --toast-done: #13704a; --toast-needs: #b0261b; --text-on-needs: #141a21;
+}
+
+/* ── C5 Gallery: true greys, black type, no brand colour at all; only the meanings have colour ── */
+[data-scheme="c5"][data-theme="light"] {
+  --n0: #ffffff; --n1: #f5f5f5; --n2: #f0f0f0; --n3: #eaeaea; --n4: #e3e3e3; --n5: #cbcbcb; --n6: #878787; --n7: #636363; --n8: #575757; --n9: #333333; --n10: #171717;
+  --brand-accent: #171717;
+  --active: #6345d0; --active-soft: #efebfc; --active-track: #dcd3f8;
+  --needs: #b3261e; --needs-soft: #fcecea; --done: #13703f; --done-soft: #e4f2e9;
+  --toast-done: #57cf92; --toast-needs: #ff7f72; --text-on-needs: #ffffff;
+}
+[data-scheme="c5"][data-theme="dark"] {
+  --n0: #0a0a0a; --n1: #111111; --n2: #161616; --n3: #1f1f1f; --n4: #282828; --n5: #3a3a3a; --n6: #6e6e6e; --n7: #999999; --n8: #ababab; --n9: #d6d6d6; --n10: #ededed;
+  --brand-accent: #ededed;
+  --active: #ae99ff; --active-soft: #211d34; --active-track: #342d55;
+  --needs: #ff7f72; --needs-soft: #331a19; --done: #57cf92; --done-soft: #142a1d;
+  --toast-done: #13703f; --toast-needs: #b3261e; --text-on-needs: #171717;
+}
