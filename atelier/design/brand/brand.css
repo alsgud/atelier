@@ -94,6 +94,16 @@ details.more > div { padding: 0 var(--space-2) var(--space-3); max-height: 520px
 .tradeoff b { color: var(--text); font-weight: var(--weight-semibold); }
 .top-pick { background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); display: grid; gap: var(--space-3); }
 .top-pick .eyebrow-pick { color: var(--active); font-weight: var(--weight-semibold); font-size: var(--text-sm); }
+.top-pick ol { margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-2); max-width: var(--measure); }
+.recipe { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.recipe a { display: inline-flex; align-items: center; min-height: var(--size-control); padding: 0 var(--space-3); border: var(--border-width) solid var(--border); border-radius: var(--radius-md); color: var(--text); text-decoration: none; font-size: var(--text-sm); background: var(--surface); }
+.recipe a:hover { background: var(--surface-hover); }
+.recipe a b { font-weight: var(--weight-semibold); margin-right: var(--space-1); }
+.pick-badge { margin-left: var(--space-2); color: var(--active); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+/* A combo's head stacks: name, recipe, why, watch for; each on its own line, read top to bottom. */
+.combo-head { display: grid; gap: var(--space-2); justify-items: start; }
+.combo-head p { flex: none; }
+.combo-sub { margin: 0; font-size: var(--text-sm); color: var(--text-2); font-weight: var(--weight-semibold); }
 
 @media (max-width: 767px) {
   .pick-wrap { padding: var(--space-6) var(--space-4) var(--space-12); }
@@ -102,4 +112,7 @@ details.more > div { padding: 0 var(--space-2) var(--space-3); max-height: 520px
   .scheme-themes, .shots { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
   .ramp i { height: 24px; }
+  /* Phone tap targets (SPEC R5): caption links and the combo recipe are 44 px tall. */
+  .tile-cap a { display: inline-flex; align-items: center; min-height: var(--size-control-lg); }
+  .recipe a { min-height: var(--size-control-lg); }
 }

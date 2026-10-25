@@ -506,9 +506,33 @@ Each scheme is an 11-step neutral ramp per theme (`--n0` … `--n10`) mapped ont
 |---|---|---|---|
 | **Y1 Sidebar** | 240 px sidebar (nav, projects, plan meter, settings) \| item \| queue (D2's shell unchanged) | Brand bar on top, four tabs at the bottom | Everything one glance away, at the cost of 240 px the item and queue could use |
 | **Y2 Top bar** | `--size-topbar` bar: mark, four sections, "Plan 41%", "Today $52.60"; item and queue full width | Tabs under the logo, no bottom bar; the dock owns the bottom | Roomiest item and cleanest edges, but projects drop out of view and the phone tabs leave thumb reach |
-| **Y3 Queue first** | 64 px icon rail \| queue \| item, like a mail client | No top bar: the item starts at the top; tabs at the bottom | Queue before decision suits a full inbox; the rail hides names behind icons and the phone loses the logo |
+| **Y3 Queue first** | 64 px icon rail \| queue \| item, like a mail client | No top bar: the item starts at the top; tabs at the bottom | Queue before decision suits a full inbox; the rail hides names behind icons, the project list leaves the screen, and the phone loses the logo |
 
 *Why Y3 is not a "focused single column"*: one column hides the queue, and Flow's decided title then has nowhere to fly (DECISIONS). *Y3 rail foot*: "Claude plan" / "Spent today" don't fit 64 px, so the rail shows Y2's short labels "Plan" / "Today" (generated, with alt text `""`); the long label stays in the DOM, visually hidden, for screen readers.
+
+### Recommended combinations (Combo A–D)
+
+Pick page › Recommended combinations: each combo is the full Flow Inbox at 1440 and 390 in light and dark (`design/brand/img/combo/<a..d>-<w>-<theme>.png`, made by `runs/hspr/tools/combos.mjs`), plus a recorded demo of D3's journey (open the design item, write a note, approve, the next arrives, undo, approve, Office tab with a Working now tick, back, decide to inbox zero) on desktop in light and on the phone in dark, each with a 12-frame contact sheet (`combo-<id>-<form>-<theme>.webm`, `contact-<id>-<form>-<theme>.png`; `runs/hspr/tools/record-combos.sh`, VP9 crf 40). Flow's timings are untouched: the demo runs the same engine and `<style>` as `feel/flow/`.
+
+| | Logo | Scheme | Layout | Why | Watch for |
+|---|---|---|---|---|---|
+| **A The house, refined** | L1 Lit cell | C1 Ink and paper | Y1 Sidebar | D2 with a stronger mark; the lit cell and the working violet are one idea | Safest, least personality |
+| **B Warm studio** ★ | L14 Chop | C2 Warm studio | Y1 Sidebar | A workshop where things are made; ochre only on mark and focus, so content colour keeps its meaning | Warm neutrals look yellow on cool screens; serif caps wordmark must be outlined |
+| **C North light** | L6 Four panes | C4 North light | Y2 Top bar | Airy and the roomiest Inbox | Projects out of view; slate nears generic tool blue |
+| **D Graphite queue** | L9 Thread a | C3 Graphite | Y3 Queue first | Precise, queue first like mail | Closest to Linear, least distinctive; phone loses the logo |
+
+*Why two combos share Y1*: the sidebar is the layout that keeps projects in view and the phone tabs in thumb reach; the other two layouts are each shown once so the owner sees them in a full look, not only in L1 + C1.
+
+**Top pick: Combo B (L14 + C2 + Y1).** Warm studio is the only scheme that makes Atelier feel like a place where things are made while staying as quiet as Linear, and its ochre never touches content, so colour still only means working, done or needs you. The chop is one of the strongest marks at 16 px (a solid tile that doubles as the app icon), and its idea, a maker's stamp, is what the owner does on every decision. The sidebar keeps projects, plan and spend in view on desktop and the tabs under the thumb on the phone (the shell D2 proved), so what changes is identity, not the way of working. Runner-up: A.
+
+### Hand-off: once the owner picks
+
+Pick page: **`atelier/design/brand/index.html`**. When the owner replies (e.g. `Combo B` or `L7 + C2 + Y1`), the next task needs:
+1. **Tokens**: copy the chosen scheme's two blocks from `brand/schemes.css` into `tokens.css` as the default `:root` / `[data-theme="dark"]` (the role names are D2's, so components and screens need no edits); drop the other four.
+2. **Mark**: export the chosen mark from `logos.js` to `design/brand/mark.svg` (+ a 16 px cut if the favicon test listed it as busy), favicon `.ico`/`.svg`, a 512 px app icon on the ink tile; outline the wordmark to paths so it renders the same without the font.
+3. **Shell**: fold the chosen layout's rules from `app/layouts.css` into `components.css` (`.shell`, `.sidebar`, `.shell-top`, `.tabbar`) and delete the `data-layout` switch.
+4. **Other screens** (Office, project, task, settings) are drawn in that shell and scheme, with Flow's motion (DESIGN › Motion) unchanged: Office and project need the layout's nav state and the scheme's working colour on agent rows; settings needs a place for the plan meter if Y2 or Y3 is picked (their bars only show the short "Plan 41%").
+5. **Trademark search** for the chosen mark before it is used publicly (Open questions).
 
 ### Critique log (Brand)
 
@@ -516,6 +540,15 @@ Each scheme is an 11-step neutral ramp per theme (`--n0` … `--n10`) mapped ont
 - *Found*: logo cards overflowed their column (the favicon row's tab mocks were wider than a 280 px card), so the 128 px mark and the dark lockup were cut off; heading margins doubled the card head; the seal concept shown in C5 lost its accent entirely (C5's accent is ink), so L13's lit quarter and L16's dot vanished; the 1440 crop of the app was too small to read in a card; C4's slate accent (`#2c5282`) was too close to its ink to read as a colour; C2 light meta text on the selected row measured 4.48 (fail).
 - *Changed*: cards and their children `min-width: 0`, favicon row wraps; heading margins reset; the seal concept is shown in C2; the 1440 crop is the sidebar head only (420 × 56); C4 accent `#2f6aa8`; C2 `--n7` `#665c4a` (now 4.69).
 - *Result*: 460 / 460 pairs pass; no console errors at 390 or 1440.
+
+**Round B2** (design-critique skill on the four combos at 1440 and 390, light and dark; accessibility-review measured with `runs/hspr/tools/a11y.mjs` on the pick page at 390).
+- *First impression*: in every combo the item title is what the eye lands on first, then the dock, then the queue: right for the one job (decide). B reads warm and made-by-hand without adding a single colour to content; C and D read cooler and more generic; A is D2 with a better mark.
+- *Found, usability*: (1) Y3 on the phone: with no top bar, the focus column kept Flow's height for two bars, so the dock stopped 52 px short and the first queue heading peeked between the dock and the tab bar (`d-390-light.png` before). (2) Y3's rail drops the project list entirely, which its trade-off line didn't say. (3) Y2 at 1440 says "Inbox 7" twice (the bar's tab and the page header): accepted, the tab is wayfinding and the header the page's title, as Linear does; listed in C's watch-for line instead.
+- *Found, accessibility*: the combo recipe chips were 32 px tall and the "Open it live" / "Key frames" caption links 17 px on the phone (SPEC R5 asks 44); the scheme samples' "Yes, fix it" / "No, it's fine" were real focusable buttons (36 px) that do nothing, ten extra Tab stops.
+- *Found, visual*: the selected queue row (n4) is the heaviest block on B and C light; kept, because it is the current item and it matches D2's selected role, which already passes 4.5:1 for meta text on it.
+- *Changed*: Y3 phone `.focus` min-height drops one top bar (`layouts.css`); Y3 trade-off now says "the project list leaves the screen"; on phones, caption links are `inline-flex` 44 px tall and recipe chips `min-height: var(--size-control-lg)`; scheme samples are `inert` (a picture of the Inbox, not controls: no Tab stops, no dead buttons).
+- *Changed, pick page*: the combo head first rendered as one wrapped row (name, chips and the why line side by side, watch-for below); it now stacks top to bottom (`.combo-head`).
+- *Result*: a11y.mjs at 390: 0 unnamed controls, 0 images without alt, every Tab stop shows the focus ring; the only sub-44 px hits left are the inert sample buttons, which have no Tab stop (the tool doesn't skip `inert`); at 1440: 0 findings. `runs/hspr/tools/pick-check.mjs` at 1440 and 390: 54 images load, all 8 demos play (46–52 s), no console errors, no sideways scroll. Before/after: `design/review/brand/b2-before-y3-phone.png` → `b2-after-y3-phone.png`; the new sections: `b2-pick-combo-B-1440.png`, `b2-pick-top-390.png`.
 
 ## Open questions
 

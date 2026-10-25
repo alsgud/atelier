@@ -57,4 +57,6 @@
 @media (max-width: 767px) {
   [data-layout="y3"] .shell { grid-template-rows: 1fr auto; }
   [data-layout="y3"] .shell-top { display: none; }
+  /* No top bar, so the focus column gains its height back: the dock still lands on the tab bar. */
+  [data-layout="y3"] .focus { min-height: calc(100dvh - var(--size-topbar) - var(--size-tabbar) - env(safe-area-inset-bottom)); }
 }
