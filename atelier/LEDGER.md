@@ -2,8 +2,9 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
-## Running
-- hspr designer D4 brand: 16+ logos, 4-5 colour schemes, 3 layouts, 3-4 combos with demos on brand/index.html ($20, 7 it, base atelier/57cv). Next: owner picks e.g. L7 + C2 + Y1, then D5 other screens in that pick. (cg59 cancelled at once: PowerShell double quotes truncated its goal. Never put double quotes inside --goal.)
+## Waiting on the owner (new)
+- Brand pick: hspr APPROVED round 2 (~$14). Pick page worktrees/hspr/atelier/design/brand/index.html: L1-L16, C1-C5, Y1-Y3, Combos A-D. Designer's top pick Combo B = L14 Chop + C2 Warm studio + Y1 Sidebar; lead checked b-1440-light and b-390-dark, looks polished. Sent 2026-10-25. Then D5 other screens, base atelier/hspr. Note for Y3: no logo on phone.
+- Old note: cg59 cancelled at once because PowerShell double quotes truncated its goal. Never put double quotes inside --goal. (cg59 cancelled at once: PowerShell double quotes truncated its goal. Never put double quotes inside --goal.)
 
 ## Waiting on the owner
 - Price: redesign now estimated ~$185 instead of ~$120 (feel rounds + brand task $20) — telling owner 2026-10-25
