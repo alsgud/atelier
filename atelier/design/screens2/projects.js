@@ -15,6 +15,7 @@
   const money = p => `${p.today} of ${p.limit} today${p.pct >= 100 ? ', at its limit' : p.pct >= 80 ? ', most of it used' : ''}`;
   const waitWords = p => !p.waiting ? 'Nothing waits on you' : `${p.waiting} waiting${p.needsNow ? ` · ${p.needsNow} ${p.needsNow > 1 ? 'need' : 'needs'} you now` : ''}`;
   const phase = p => `<span class="pj-phase" aria-hidden="true">${M.PHASES.map((n, i) => `<i class="${i < p.phase ? 'past' : i === p.phase ? 'now' : ''}"></i>`).join('')}</span>`;
+  const waitHTML = p => !p.waiting ? waitWords(p) : `${p.waiting} waiting${p.needsNow ? ` · <span class="is-needs">${p.needsNow} ${p.needsNow > 1 ? 'need' : 'needs'} you now</span>` : ''}`;
   const label = p => `${p.id}, lead ${p.lead ? 'on' : 'off'}. ${p.now} ${waitWords(p)}. Phase ${M.PHASES[p.phase]}, ${p.met} of ${p.of} outcomes met. ${tasksLine(p.tasks)}. ${money(p)}.`;
 
   const card = p => `
@@ -22,7 +23,7 @@
       <span class="pj-top">
         <span class="pj-name"><b>${esc(p.id)}</b><span class="p-lead${p.lead ? '' : ' is-off'}"><span class="dot${p.lead ? ' dot-active' : ''}" aria-hidden="true"></span>${p.lead ? 'Lead on' : 'Lead off'}</span></span>
         <span class="strip" aria-hidden="true">${desks(p.id).map(k => `<i data-k="${k}"></i>`).join('')}</span>
-        <span class="pj-wait num${p.needsNow ? ' is-needs' : ''}">${known ? waitWords(p) : ''}</span>
+        <span class="pj-wait num">${known ? waitHTML(p) : ''}</span>
       </span>
       <span class="pj-now">${esc(p.now)}</span>
       <span class="pj-foot num">

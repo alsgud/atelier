@@ -91,6 +91,21 @@ window.ATELIER_MODEL = (() => {
       facts: [['Shipping', 'Draft pull requests you merge'], ['Gating', 'Standard: you OK the spec, design and contracts']],
       team: [['Lead', 'needs', 'Needs you'], ['Builder', 'active', 'Working'], ['Reviewer', '', 'Waiting']],
     },
+    'atelier-ui': {
+      lead: true, app: 'atelier-ui lead', phase: 2, met: 11, of: 17, tasks: 4, audits: 1,
+      now: 'The designer is drawing the Office for phones; the auditor is checking contrast.',
+      nowMore: 'The lead asked you one question about the toast. Nothing is blocked while it waits.',
+      act: ['Answer the lead', 'inbox.html'],
+      needs: [['', 'Should the toast say the time, or “just now”?', 'Question from the lead', '25 min'], ['', 'Atelier closed a window an agent opened', 'Notice', 'Mon']],
+      work: [
+        { id: 't-draw', k: 'active', title: 'High-fi Inbox and Office screens', who: 'Designer', stage: 1, step: 'Drawing the Office floor at 390', prog: 'Step 4 of 6', ago: '4 min ago', href: 'task.html?t=draw' },
+        { id: 't-audit', k: 'active', title: 'Checking contrast in light and dark', who: 'Auditor', stage: 2, step: 'Measuring text on every surface', prog: 'Check 12 of 14', ago: 'quiet for 38 min', href: 'task.html?t=audit' },
+        { id: 't-lists', k: '', title: 'High-fi Projects and Settings screens', who: 'Next', stage: 0, step: 'Starts when the designer is free', prog: '', ago: '', href: 'task.html?t=draw' }],
+      recent: [['13:58', 'The designer started drawing the Office floor at 390', ''], ['13:41', 'High-fi Inbox and Office screens showed its work', ''], ['13:37', 'The lead asked how the toast should read', ''], ['13:10', 'Contrast audit started', ''], ['10:52', 'You answered: the Inbox opens first', 'done']],
+      money: { today: '$12.60', limit: '$30', pct: 42, total: '$418.70', split: [['Tasks', '$352.30'], ['Lead', '$54.20'], ['Audits', '$12.20']] },
+      facts: [['Shipping', 'Draft pull requests you merge'], ['Gating', 'Strict: you OK every task’s plan, and the brief, spec, design and contracts']],
+      team: [['Lead', '', 'Waiting'], ['Designer', 'active', 'Working'], ['Auditor', 'active', 'Working']],
+    },
     dodge: {
       lead: false, app: 'dodge lead', phase: 2, met: 0, of: 6, tasks: 0, audits: 0,
       now: 'The design waits for your OK.',
@@ -100,7 +115,7 @@ window.ATELIER_MODEL = (() => {
       work: [],
       recent: [['Yesterday 16:30', 'Lead stopped by you', ''], ['Yesterday 16:04', 'The design is ready for your OK', '']],
       money: { today: '$0.00', limit: '$20', pct: 0, total: '$64.20', split: [['Tasks', '$0.00'], ['Lead', '$58.10'], ['Audits', '$6.10']] },
-      facts: [['Shipping', 'Draft pull requests you merge'], ['Gating', 'Standard: you OK the spec, design and contracts']],
+      facts: [['Shipping', 'Draft pull requests you merge'], ['Gating', 'Standard: you OK the spec and design']],
       team: [['Lead', 'off', 'Off']],
     },
     /* A project created a minute ago (New project → here): the lead reads the description and drafts a charter. */

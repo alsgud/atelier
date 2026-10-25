@@ -15,7 +15,7 @@
   /* Per project: the dials as they are now (replay's are the inventory's real values) */
   const DIALS = {
     replay: { gates: ['spec', 'design', 'contracts'], read: 'plain', trust: 'standard', report: 'exceptions', ship: 'pr', task: '10', day: '40', earned: null },
-    'atelier-ui': { gates: ['brief', 'spec', 'design', 'contracts'], read: 'plain', trust: 'strict', report: 'everything', ship: 'local', task: '16', day: '30', earned: ['standard', '9 tasks in a row passed review with no change from you.'] },
+    'atelier-ui': { gates: ['brief', 'spec', 'design', 'contracts'], read: 'plain', trust: 'strict', report: 'everything', ship: 'pr', task: '16', day: '30', earned: ['standard', '9 tasks in a row passed review with no change from you.'] },
     dodge: { gates: ['spec', 'design'], read: 'technical', trust: 'standard', report: 'digest', ship: 'pr', task: '8', day: '20', earned: null },
   };
   const ROSTER = {

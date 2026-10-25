@@ -59,10 +59,10 @@
     <div class="board${state === 'stale' ? ' is-stale' : ''}">
       ${busy.map(f => `
       <section class="floor" aria-labelledby="fl-${f.p}" data-floor="${f.p}">
-        <header class="floor-head"><h2 id="fl-${f.p}"><a href="${keep('project.html')}">${f.p}</a></h2>${strip(f)}<span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
+        <header class="floor-head"><h2 id="fl-${f.p}"><a href="${keep(HF.pHref(f.p))}">${f.p}</a></h2>${strip(f)}<span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
         <div class="desks">${f.desks.map(deskHTML).join('')}</div>
       </section>`).join('')}
-      ${quiet.map(f => `<a class="floor-quiet" href="${keep('project.html')}" aria-label="${esc(`${f.p}, quiet. ${f.note}. ${f.today} today`)}">${strip(f)}<b>${f.p}</b><span>${esc(f.note)}</span><span class="num">${f.today} today</span></a>`).join('')}
+      ${quiet.map(f => `<a class="floor-quiet" href="${keep(HF.pHref(f.p))}" aria-label="${esc(`${f.p}, quiet. ${f.note}. ${f.today} today`)}">${strip(f)}<b>${f.p}</b><span>${esc(f.note)}</span><span class="num">${f.today} today</span></a>`).join('')}
       <ul class="legend" aria-label="How to read a desk">
         <li><span class="strip"><i data-k="active"></i></span>Light on: working</li>
         <li><span class="strip"><i data-k="needs"></i></span>Hand up: needs you</li>

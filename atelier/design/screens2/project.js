@@ -1,5 +1,5 @@
 /* Project page (UX-6 A: Now first, figures in one line under it). Data from ATELIER_MODEL.PAGES[p]; counts from the
-   one summary. ?p=replay (default) · dodge (lead off) · tidepool (created a minute ago: the page's empty state).
+   one summary. ?p=replay (default) · atelier-ui (two working, a quiet one) · dodge (lead off) · tidepool (created a minute ago: the page's empty state).
    ?tab=tasks|outcomes|audits|docs draws that section; Activity and Settings are their own screens, filtered to the project.
    ?demo plays a live refresh in place (R7): the builder finishes, the reviewer starts, the review passes and an outcome is
    met. Nothing re-renders; open folds and scroll stay. */
