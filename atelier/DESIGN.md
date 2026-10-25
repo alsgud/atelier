@@ -659,6 +659,18 @@ Each is the full Flow Inbox in dark at 1440 and 390 and light at 390 (`r2/img/co
 - *Changed*: grid children `min-width: 0` (the table scrolls in its own box); sidebar crop 248 × 108 (brand and the Inbox row); the phone pair waits 2.2 s, past the cross-fade and inside the toast's 6 s; meanings columns 170 px.
 - *Result*: no sideways scroll at 390 or 1440, no console errors.
 
+**Round R2-3** (design-critique skill on the combo screens: `r2/img/combo/*-1440-dark.png`, `*-390-*.png`, the phone pair and the sidebar crops).
+- *Works*: the Y1 sidebar holds the mark at 20 px with the light patch still readable (N1 in K1); on every screen the only saturated colour is meaning (needs-you coral, working lilac, done green), so the page reads calm; the light phone is soft grey-blue, not white.
+- *Found*: (1) On the phone, the budget item's amounts sat one line above their labels: the narrow-screen rule that stacks plain facts (`.facts dd + dt { margin-top }`) also hit the two-column money list. (2) On the phone, the item's meta line wrapped as "replay ·" / "25 min ago", leaving a dot dangling at the line end. (3) Combos 1 and 3 look nearly the same at 1440: by design the scheme shows only in the greys and the mark, and the owner could think they're duplicates.
+- *Changed*: (1) `components.css`: `.facts.is-money dd + dt { margin-top: 0 }` at < 768 px. (2) `feel/shared/inbox.js` groups each separator with the item after it (`.eyebrow .grp`), and `components.css` clips the strip left of the eyebrow (`--sep-clip`, `clip-path`), so a separator that starts a wrapped line is cut off: no line starts or ends with a dot. Also fixes the D3 Inbox, which shares the rule. No change to Flow's motion. (3) One sentence under Combinations on the pick page says why they look close and where to compare (sidebars, light phones).
+- *Before/after*: `design/review/brand/r2/c3-before-budget-pair-light.png` → `c3-after-budget-pair-light.png`; `c3-before-eyebrow-390.png` → `c3-after-eyebrow-390.png`.
+
+**Round R2-4** (accessibility-review skill; measured with `runs/ysk4/tools/a11y.mjs`, `reflow-r2.mjs`, `sw.mjs`, `toast-hit.mjs`).
+- *Measured*: pick page at 390 and 1440 dark: no unnamed controls, no images without alt, every Tab stop shows the focus ring; the only "small" targets are the inert scheme samples (absent from the Tab order) and one inline text link (exempt as inline). Branded app in combos 1–3, dark and light, 390 and 1440: no unnamed controls, no small targets, Tab order skip link → nav → pager → details → note → decision buttons → queue, ring on every stop. Reflow at 320 and 720 (1440 at 200 %) in every combo and mode: no sideways scroll, one main, one h1, toast live region, lang set. Pick page at 320: no sideways scroll (the section nav and contrast tables scroll in their own boxes). Contrast: 276/276 pairs AA (`contrast-k.mjs`), re-measured live on the page.
+- *Found*: the contrast tables' scroll boxes took keyboard focus (Chromium makes scrollers focusable) but had no name or role, so a screen reader announced a bare group of cell text.
+- *Changed*: each `.contrast` box is `role="region"`, `tabindex="0"`, `aria-label="K1 contrast table, scrolls sideways"`.
+- *Kept*: the "·" separators stay readable to screen readers; hiding them would run "replay" and "25 min ago" together.
+
 ## Open questions
 
 - **D4: trademark search** for the logo the owner picks (USPTO / EUIPO image search, or a lawyer). Outward-facing, so not done by an agent.

@@ -276,7 +276,7 @@ function draw() {
   main.innerHTML = head() + `<div class="inbox">
     <section class="focus" aria-labelledby="ttl">
       <div class="focus-head"${vt('ih')}>
-        <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span><span class="sep">·</span>` : ''}<span class="kind">${I(x.glyph)}${x.kind}</span><span class="sep">·</span><span>${x.project}</span><span class="sep">·</span><span>${x.ageLong}</span></div>
+        <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${I(x.glyph)}${x.kind}</span></span><span class="grp"><span class="sep">·</span><span>${x.project}</span></span><span class="grp"><span class="sep">·</span><span>${x.ageLong}</span></span></div>
         <h2 class="title-display" id="ttl" tabindex="-1"${t ? vt(t, 'title') : ''}>${esc(x.title)}</h2>
       </div>
       <div class="focus-body"${vt('ib')}>${x.body()}</div>

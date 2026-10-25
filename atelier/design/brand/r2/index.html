@@ -53,7 +53,8 @@
 
   <section class="pick-sec" id="combos" aria-labelledby="combos-h">
     <header><h2 id="combos-h">Combinations</h2>
-      <p>Three whole looks, each a mark and a scheme, all in the Y1 sidebar layout you chose. Each is the full Inbox in dark at 1440 and 390, and light at 390, so you can see whether light suits the phone better. Each has a recorded demo of the same journey (open an item, decide, undo, check the Office, clear the inbox) with its key frames.</p></header>
+      <p>Three whole looks, each a mark and a scheme, all in the Y1 sidebar layout you chose. Each is the full Inbox in dark at 1440 and 390, and light at 390, so you can see whether light suits the phone better. Each has a recorded demo of the same journey (open an item, decide, undo, check the Office, clear the inbox) with its key frames.</p>
+      <p>Expect the three to look close at first glance: colour on the page still only means needs you, working or done, so a scheme shows in the temperature of the greys and in the mark's light. Compare the sidebars and the light phones, where the difference is clearest.</p></header>
     <div id="combo-list"></div>
   </section>
 
@@ -166,7 +167,7 @@ document.getElementById('contrast-tables').innerHTML = SCHEMES.map((s, si) => {
     return `<tr><th scope="row">${p[3]}</th><td class="r">${p[2]}:1</td>${cell(res[0][i])}${cell(res[1][i])}</tr>`;
   }).join('');
   const low = t => Math.min(...res[t].filter(x => x.min === 4.5).map(x => x.r)).toFixed(2);
-  return `<details class="more" id="contrast-${s.id}"${si === 0 ? ' open' : ''}><summary>${s.id.toUpperCase()} ${s.name}: ${PAIRS_C.length * 2} pairs, lowest text pair ${low(0)}:1 dark, ${low(1)}:1 light</summary><div class="contrast"><table>
+  return `<details class="more" id="contrast-${s.id}"${si === 0 ? ' open' : ''}><summary>${s.id.toUpperCase()} ${s.name}: ${PAIRS_C.length * 2} pairs, lowest text pair ${low(0)}:1 dark, ${low(1)}:1 light</summary><div class="contrast" role="region" tabindex="0" aria-label="${s.id.toUpperCase()} contrast table, scrolls sideways"><table>
     <thead><tr><th scope="col">Pair</th><th scope="col">Needs</th><th scope="col">Dark</th><th scope="col">Ratio</th><th scope="col">Light</th><th scope="col">Ratio</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
 }).join('');
 document.getElementById('contrast-sum').innerHTML = `<b>${all} pairs measured across K1–K3, dark and light: ${bad ? `${bad} below AA` : 'all pass AA'}.</b>`;
