@@ -69,6 +69,14 @@ a { color: inherit; text-decoration: none; }
 .is-tick { animation: hf-tick var(--dur-slow) var(--ease-enter); display: inline-block; }
 @keyframes hf-tick { from { opacity: 0; transform: translateY(var(--shift-sm)); } }
 
+/* The floor's windows, one per desk: the glance before the desks (aria-hidden; the sentence says the same) */
+.strip { display: inline-flex; gap: 3px; align-items: flex-end; }
+.strip i { width: 9px; height: 12px; border-radius: 4.5px 4.5px 1px 1px; background: var(--surface-selected); transition: background-color var(--dur-slow) var(--ease-enter); }
+.strip i[data-k="active"] { background: var(--active); }
+.strip i[data-k="done"] { background: var(--done); }
+.strip i[data-k="needs"] { background: var(--surface-selected); box-shadow: inset 0 -3px 0 var(--needs); }
+.strip i[data-k="off"] { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
+
 /* ── Middle 768–1279: rail, panel full bleed (UX-7 A) ── */
 @media (max-width: 1279px) {
   .hf { grid-template-columns: 64px minmax(0, 1fr); }

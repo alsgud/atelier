@@ -11,13 +11,6 @@
 .floor-sum .is-needs { color: var(--needs); }
 .floor-head .strip { align-self: center; }
 
-/* The floor's windows, one per desk: the glance before the desks (aria-hidden; the sentence says the same) */
-.strip { display: inline-flex; gap: 3px; align-items: flex-end; }
-.strip i { width: 9px; height: 12px; border-radius: 4.5px 4.5px 1px 1px; background: var(--surface-selected); transition: background-color var(--dur-slow) var(--ease-enter); }
-.strip i[data-k="active"] { background: var(--active); }
-.strip i[data-k="done"] { background: var(--done); }
-.strip i[data-k="needs"] { background: var(--surface-selected); box-shadow: inset 0 -3px 0 var(--needs); }
-.strip i[data-k="off"] { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
 
 .desks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-3); }
 .desk { display: grid; grid-template-rows: auto 1fr; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; color: var(--text);

@@ -31,6 +31,35 @@ window.ATELIER_MODEL = (() => {
     { id: 'atelier-ui', lead: true, waiting: 2, today: '$12.60', limit: '$30', line: 'Design · 2 working · 11 of 17 outcomes met' },
     { id: 'dodge', lead: false, waiting: 2, today: '$0.00', limit: '$20', line: 'Design · waiting for your OK on the design · lead off' },
   ];
+  /* D6 Projects list: per project the phase, its outcomes, the Now sentence (as on its page), how many of the waiting need
+     you now, today's share of its limit, and the task summary [working, needs you, queued, done] (inventory: Projects list). */
+  const LIST = {
+    replay: { phase: 4, met: 4, of: 9, needsNow: 1, pct: 100, now: 'Today’s $40 is used, so new work waits.', tasks: [1, 0, 1, 3] },
+    'atelier-ui': { phase: 2, met: 11, of: 17, needsNow: 0, pct: 42, now: 'The designer is drawing the Office for phones; the auditor is checking contrast.', tasks: [2, 0, 2, 6] },
+    dodge: { phase: 2, met: 0, of: 6, needsNow: 1, pct: 0, now: 'The design waits for your OK. The lead is off until you approve.', tasks: [0, 0, 0, 0] },
+  };
+  PROJECTS.forEach(p => Object.assign(p, LIST[p.id]));
+  /* Activity (UX-13 A): the last 3 days across every project, newest first. Same events as the project and task pages.
+     [day, time, project, task (or ''), event word, the message, k: 'needs' bad · 'done' good · '' neutral, href] */
+  const ACTIVITY = [
+    ['Today', '13:58', 'atelier-ui', 'High-fi Inbox and Office screens', 'Step', 'Drawing the Office floor at 390', '', 'task.html?t=draw'],
+    ['Today', '13:41', 'atelier-ui', 'High-fi Inbox and Office screens', 'Showed its work', '2 screenshots: the Office on the desk and on a phone', '', 'task.html?t=draw'],
+    ['Today', '13:40', 'replay', '', 'Paused', 'Today’s $40 is used, so new work waits', 'needs', 'inbox.html'],
+    ['Today', '13:37', 'atelier-ui', '', 'Question', 'The lead asked how the toast should read', '', 'inbox.html'],
+    ['Today', '13:31', 'replay', 'Trim clips on the timeline', 'Check failed', 'First try: the sound drifts by 40 ms after a trim', 'needs', 'task.html'],
+    ['Today', '13:22', 'replay', 'Trim clips on the timeline', 'Showed its work', '2 screenshots and a 0:48 recording', '', 'task.html'],
+    ['Today', '13:10', 'atelier-ui', 'Checking contrast in light and dark', 'Started', 'Scheduled audit of every text colour', '', 'task.html?t=audit'],
+    ['Today', '13:08', 'replay', 'Trim clips on the timeline', 'Started', 'The lead planned it as part of Build', '', 'task.html'],
+    ['Today', '11:05', 'replay', 'The clip list scrolls smoothly', 'Review passed', 'Scrolls smoothly with 500 clips', 'done', 'project.html?tab=tasks'],
+    ['Today', '11:02', 'replay', '', 'Finding', 'The trim handles can’t be reached by keyboard', 'needs', 'inbox.html'],
+    ['Today', '10:52', 'atelier-ui', '', 'You answered', 'The designer asked which screen opens first; you said the Inbox', '', 'project.html?p=atelier-ui'],
+    ['Yesterday', '17:20', 'replay', '', 'You approved', 'The spec: 9 outcomes, from trimming to export', 'done', 'project.html?tab=docs'],
+    ['Yesterday', '16:30', 'dodge', '', 'Lead stopped', 'You stopped the lead', '', 'project.html?p=dodge'],
+    ['Yesterday', '16:04', 'dodge', '', 'Ready for your OK', 'The design: playing a round and the results', '', 'inbox.html'],
+    ['Yesterday', '10:02', 'replay', '', 'Audit', 'Performance: 8 checks, nothing found', 'done', 'project.html?tab=audits'],
+    ['Saturday 24 Oct', '18:12', 'atelier-ui', '', 'You approved', 'The brand: the N1 mark in North light, dark first', 'done', 'project.html?p=atelier-ui'],
+    ['Saturday 24 Oct', '15:47', 'dodge', '', 'Charter changed', 'The lead changed one line after you approved it', 'needs', 'inbox.html'],
+  ];
   /* Office (UX-8 A): a floor per project, busiest first; a desk per agent. k = the four meanings (§5):
      'active' Working (lilac), 'needs' Needs you (red), '' Waiting (neutral), 'off' Off. quiet = the stuck signal, neutral text. */
   const OFFICE = [
@@ -144,7 +173,7 @@ window.ATELIER_MODEL = (() => {
       history: [['12:58', 'Started'], ['13:20', 'The shell drawn'], ['13:41', 'Showed its work: 2 screenshots']],
     },
   };
-  return { UX, NOW, PROJECTS, OFFICE, PHASES, PAGES, TASKS };
+  return { UX, NOW, PROJECTS, OFFICE, PHASES, PAGES, TASKS, ACTIVITY };
 })();
 
 (() => {

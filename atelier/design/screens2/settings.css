@@ -1,0 +1,53 @@
+/* Settings (UX-3 A): section nav 200 (sticky, follows the scroll) + one form column ≤ 640, sections between hairlines.
+   Below 1280 the nav goes and the sections stack; on the phone everything is one column with 44 px targets. */
+.s-grid { display: grid; grid-template-columns: 200px minmax(0, 640px); gap: var(--space-12); align-items: start; }
+.s-nav { position: sticky; top: calc(var(--size-topbar) + var(--space-8)); display: grid; gap: var(--space-0-5); }
+.s-nav .nav-item { font-size: var(--text-sm); height: 32px; }
+.s-nav .nav-item[aria-current] { background: var(--surface-selected); color: var(--text); }
+.s-nav .s-other { margin-top: var(--space-4); color: var(--text-3); }
+.s-nav .s-other .icon { width: 16px; height: 16px; }
+.s-form { gap: 0; }
+.s-sec { padding: var(--space-8) 0; border-top: var(--border-width) solid var(--border); scroll-margin-top: calc(var(--size-topbar) + var(--space-4)); }
+.s-sec:first-child { padding-top: 0; border-top: 0; }
+.s-p { margin: 0; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); max-width: var(--measure); }
+.s-meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+.s-meters .meter-head b small { color: var(--text-3); font-weight: var(--weight-regular); }
+.s-hold { margin: 0; display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
+.s-hold.is-holding { align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface-sunken); border: var(--border-width) solid var(--border); color: var(--text); }
+.s-hold .icon { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--text-2); }
+.s-hold b { font-weight: var(--weight-medium); }
+.s-lead { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }
+.s-app { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.s-sec .f-actions .btn .icon { width: 16px; height: 16px; }
+.s-earned { margin: 0; display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--done-soft); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.s-earned .icon { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--done); }
+.s-earned b { font-weight: var(--weight-medium); }
+.s-money { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); align-items: start; }
+.s-team { width: 100%; border-collapse: collapse; font-size: var(--text-sm); line-height: var(--leading-sm); }
+.s-team th, .s-team td { text-align: left; padding: var(--space-2-5) var(--space-3) var(--space-2-5) 0; border-top: var(--border-width) solid var(--border); vertical-align: baseline; }
+.s-team thead th { border-top: 0; padding-top: 0; color: var(--text-3); font-size: var(--text-xs); font-weight: var(--weight-medium); }
+.s-team tbody th { font-weight: var(--weight-medium); white-space: nowrap; }
+.s-team tbody th .dot { margin-right: var(--space-2); }
+.s-team td { color: var(--text-2); }
+.s-team td:last-child { white-space: nowrap; }
+.s-dl dd code, .s-dl dd { overflow-wrap: anywhere; }
+.s-sec .p-rows .m .icon { width: 16px; height: 16px; color: var(--text-3); }
+.s-sec .p-row { align-items: center; }
+
+@media (max-width: 1279px) {
+  .s-grid { grid-template-columns: minmax(0, 640px); gap: 0; }
+  .s-nav { display: none; }
+}
+@media (max-width: 767px) {
+  .s-sec { padding: var(--space-6) 0; }
+  .s-meters, .s-money { grid-template-columns: minmax(0, 1fr); }
+  .s-team thead { display: none; }
+  .s-team, .s-team tbody, .s-team tr { display: block; }
+  .s-team tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: var(--space-2-5) 0; border-top: var(--border-width) solid var(--border); }
+  .s-team th, .s-team td { border: 0; padding: 0; }
+  .s-team td:nth-of-type(1) { grid-column: 1 / -1; grid-row: 2; }
+  .s-team td:last-child { grid-row: 1; grid-column: 2; }
+  .s-sec .f-actions .btn { flex: 1 1 100%; }
+  .hf-head h1 { order: 2; flex-basis: auto; }
+  .hf-head .hf-sum { order: 3; }
+}
