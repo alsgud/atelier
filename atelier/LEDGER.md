@@ -6,6 +6,9 @@
 - 6umt designer D5 UX research + walkthrough ($22, 8 it, base atelier/ysk4): records chosen brand in DESIGN.md, tokens default K1 dark; ux/index.html with research, IA, journeys, layout, info design, patterns, wireframes, numbered UX decisions. Next: owner answers UX-n, then D6 high-fi every screen.
 - Check-ins resumed 2026-10-26 (cron 8f412b2d).
 
+## Overnight plan (owner: keep going overnight, checks in the morning, 2026-10-26)
+- When 6umt is approved: look at the walkthrough myself, then start D6 high-fi on the designer's recommended UX answers, marked provisional, core screens first (Office, project page, task page, then the rest), so the owner wakes to high-fi plus the questions. If the owner changes an answer, D6 reworks only those parts. Keep within the day budget.
+
 ## Decided 2026-10-26
 - Brand N1 + K1 + Y1, dark default (R-7). Phone follows device after first run: lead assumption, not asked. Owner wants everything documented (R-7) and a full UX walkthrough with research (R-8).
 
