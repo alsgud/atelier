@@ -3,7 +3,10 @@
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
 ## Running
-- 6umt designer D5 UX research + walkthrough ($22, 8 it, base atelier/ysk4): records chosen brand in DESIGN.md, tokens default K1 dark; ux/index.html with research, IA, journeys, layout, info design, patterns, wireframes, numbered UX decisions. Next: owner answers UX-n, then D6 high-fi every screen.
+- pjv7 designer D6 high-fi every screen, PROVISIONAL on the recommended UX answers ($35, 12 it, base atelier/6umt). Core first: Office (push it playful, R12), project, task, Inbox, then the rest. Demos per R-3.
+
+## Waiting on the owner (morning)
+- UX-1..UX-15 answers: 6umt APPROVED; page worktrees/6umt/atelier/design/ux/index.html. Lead ruled the D5 open questions: no Retry action, UX-11 C, long description = brief draft, no push. Lead looked at wf-office-1440: clean but plain, so D6 pushes Office.
 - Check-ins resumed 2026-10-26 (cron 8f412b2d).
 
 ## Overnight plan (owner: keep going overnight, checks in the morning, 2026-10-26)
