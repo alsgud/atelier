@@ -562,6 +562,103 @@ Pick page: **`atelier/design/brand/index.html`**. When the owner replies (e.g. `
 - *Re-rendered*: bar crops for all 16 (`bars.mjs`; only L13–L16 changed), all combo screens (`combos.mjs`; only B changed), Combo B's two demos and contact sheets (`ONLY=b record-combos.sh`, 0 page errors).
 - *Before/after*: `design/review/brand/b4-before-seal-font-dependent.png`, `b4-before-L14-card.png` → `b4-after-seal-drawn.png` (L13–L16 at 128, 32 and 16 px, light and dark).
 
+## Brand round 2 (D4b)
+
+The owner's notes on round 1 (R-6): of the marks, L8 Line panes was nice from afar but too simple (nothing stood out) and L12 One line was the most acceptable but something was missing; the thread concept failed (it looked like a weird A); no generic grids, plain monograms or plain seals; the owner likes smooth curves against crisp edges. Of the colours, C4 North light was liked, C2's warm-brown darks looked strange, and C2 light was too bright. Y1 Sidebar is chosen. Dark is now the main mode and the default.
+
+Pick page: **`design/brand/r2/index.html`** (dark by default; `?theme=light` shows the page in light). Round 1 stays at `brand/index.html`.
+
+| File | What it is |
+|---|---|
+| `brand/r2/index.html` | The round-2 pick page: references, marks, colours, contrast, combos, top pick |
+| `brand/r2/marks.js` | N1–N11 as hand-built SVG (32-unit grid) with small cuts, the six set-aside sketches, `mark2()` / `lockup2()` |
+| `brand/r2/schemes-k.css` | K1–K3, dark and light; the shared role mapping is still `brand/schemes.css` |
+| `brand/r2/r2.css` | The round-2 lockup and pick-page additions |
+| `brand/r2/app/inbox.html` | The Flow Inbox (its `<style>` copied byte for byte) in Y1, wearing `logo=N1..N11` and `scheme=k1..k3`; dark unless `theme=light` |
+| `brand/r2/img/` | Sidebar and phone-bar crops for every mark (`bar/`), combo screens and demos (`combo/`) |
+| `references/brand/r2/` | The round-2 references, captured headless from public pages |
+
+*Engine change*: `feel/shared/inbox.js` takes `window.IMG_BASE` (the r2 app sits one folder deeper, so its real images need another `../`). Nothing else in the engine or Flow's `<style>` changed.
+
+### References (round 2)
+
+| Reference | What works | Take | Avoid |
+|---|---|---|---|
+| **Arc** (`arc.png`) | One letter drawn as a soft ribbon with crisp-cut ends | Curve for warmth, a cut for precision, in the same stroke (N4, N6) | Its gradient, and an A made of loops (round 1's thread already read as a weird A) |
+| **Saw-tooth roofs** (`sawtooth.png`) | The real north-light building: curved roofs that turn their glass away from the sun | A true story behind the name (N9) | The factory pictogram on the same page: flat teeth and a chimney |
+| **Fanlight** (`fanlight.png`) | The arch, keystone and panes as an architect draws them | Crisp lines inside a smooth curve (N1–N3, N10) | The sunburst: small, a fanlight is a sunrise (set aside) |
+| **Pen nibs** (`nib.png`) | Curved shoulders, a hard tip, a breather hole that is already an arch | N11 | Quills and ink blots |
+| **Broad-pen writing** (`italic.png`) | Thick and thin in one stroke, chisel-cut ends | N4 | Swashes: noise at 16 px |
+| **Linear, dark** (`linear-dark.png`) | A near-black with a trace of blue, raised surfaces one small step lighter, hairlines, white type at two weights | K1's structure | Pure-white primary buttons; ours stop at the ramp's top step |
+| **Vercel, dark** (`vercel-dark.png`) | One lit mark carries a quiet black page | The mark's accent is the one brand colour on dark | Pure #000 and glow: harsh on OLED and theatrical |
+| **Raycast, dark** (`raycast-dark.png`) | A deep neutral with one accent that belongs to the brand | K3's single cyan | A red brand colour (red means needs you) |
+
+### Marks N1–N11
+
+All drawn by hand on the 32 grid, ink in `currentColor`, the accent from `--brand-accent`, knock-outs from `--brand-knock`; no `<text>`, nothing traced, generated or outlined from a font. Marks that get busy small have a **small cut** (`small` in `marks.js`), used automatically at 20 px and under (so the 20 px sidebar mark and the 16 px tab use it): heavier strokes and fewer details. One wordmark for all (system sans 600, −0.02 em) so the owner compares marks, not type; the chosen lockup gets its wordmark outlined in the hand-off.
+
+| | Mark | One idea | Curve / edge | Small cut |
+|---|---|---|---|---|
+| **From L8** | N1 Window and its light | The window and the patch of light it throws on the floor: the light is on, work is going on | Round arch over a sheared, sharp-cornered light patch | Yes: no transom, heavier line, bigger patch |
+| | N2 Keystone | The arch is held by its keystone: your decision is the piece that holds the work | Solid arch, a cut wedge at the crown | Yes: no mullions |
+| | N3 Window tile | L8 cut into a tile, seen from inside, one pane lit: the app icon | Soft arch in a crisp square | Yes: thicker mullions |
+| **From L12** | N4 Written a | L12 written with a broad pen, chisel end, square full stop: signed by hand | Thick-thin bowl, chisel cuts, a diamond stop | No (solid shapes hold) |
+| | N5 a, cut clean | L12 drawn like a typeface: flat ends, ink-trap notches, square stop | Round bowl, square cuts | Yes: no notches, heavier |
+| | N6 Two-storey a | The classic a in one line; its hook curves over like the arch; the full stop becomes the ball terminal | One curve, flat-cut tail | No |
+| **New** | N7 Someone at work | One line draws the arch, and its right jamb becomes the stem of an a sitting in the window | Arch and bowl, butt-cut ends | No |
+| | N8 Lamp on | The studio's pendant lamp and its cone of light: your team is still working | Dome over a hard-edged cone | No |
+| | N9 North-light roof | The curved saw-tooth roof that turns its glass north: even light all day | Curved roofs, vertical glass | No |
+| | N10 Door ajar | The studio door left open, light down its edge: come and look | Arched frame, straight leaf and light line | No |
+| | N11 Nib window | A nib whose breather hole is the arched window: the maker's hand and the studio's light | Curved shoulders, hard tip | Yes: wider slit and hole |
+
+*Set aside* (shown on the page with the reason): North star (the stock AI-feature sparkle: the slop the owner named), Compass needle (every maps and security product), Plumb bob (upside down it's a map pin), Lancet window (reads as a church), Studio with a roof (the phone's home icon), Prism (a famous album cover; a triangle beside Vercel's), Fanlight (small, a sunrise or a gauge).
+
+**How originality was checked.** (1) *Silhouette test*: each mark filled solid at 16 and 128 px and compared with the marks in both reference boards and the well-known software, finance, retail and architecture-practice marks I know; the near-misses were removed or changed: the first N9 (two curved sails) read as the Sydney Opera House outline, so it became three teeth on one building; the fanlight is a common sunrise; a pitched roof is the home icon. N3 and N1 avoid the four-equal-panes square (a famous four-square logo) by the round head and the single lit pane. (2) *Construction*: every shape is primitives and hand-placed Béziers in `marks.js`; the letters (N4–N7) follow the generic structure of a single- or two-storey a, not any typeface. (3) *Still needed before public use*: a trademark image search (USPTO / EUIPO) on the chosen mark by the owner or a lawyer (Open questions); outward-facing, so not done here.
+
+### Colour schemes K1–K3 (dark first)
+
+Same structure as C1–C5 (11-step ramp per theme on D2's roles, one accent for the mark and focus ring only, meanings retuned per ramp), so `tokens.css` takes the chosen one with no component changes. Dark is listed first everywhere and is the app's default. *Why no warm darks*: the owner found C2's walnut strange; all three darks are cool or neutral. *Why the light modes are off white*: the brightest surface is `#f6f8fa`-ish paper on an `#ecf0f4`-ish canvas, never `#fff`; C2 light read as glaring.
+
+| | Dark | Light | Accent (dark / light) |
+|---|---|---|---|
+| **K1 North light, night** | C4 turned to its dark side: slate near-black `#0b0e12`, surface `#141920`, a trace of blue | C4's cool paper, softened: canvas `#edf0f3`, surface `#f7f9fa` | Moonlit slate blue `#8fb6e6` / `#2e65a1` |
+| **K2 Night sky** | Cooler, deeper navy `#080b13`, surface `#111623` | Paper leaning blue, `#ecf0f6` / `#f6f8fb` | Starlight `#a9c8f5` / `#2f5ea8` |
+| **K3 Slate and aurora** | Deep neutral slate, almost no blue `#0c0f11`, surface `#151a1d` | Neutral grey-green paper `#edf1f2` / `#f7f9f9` | Aurora cyan `#7fd3e3` / `#1c6c7c` |
+
+**Contrast (AC-13)**: 276 pairs (46 per scheme and mode) measured by `runs/ysk4/tools/contrast-k.mjs`, 0 below AA, and measured again live on the pick page (Contrast section, from computed colours). Lowest text pairs: K1 light meta on selected 4.76, K2 light working on selected 4.75, K3 light meta on selected 4.73; darks all ≥ 5.1.
+
+### Combinations (all Y1 Sidebar)
+
+Each is the full Flow Inbox in dark at 1440 and 390 and light at 390 (`r2/img/combo/<n>-<w>-<theme>.png`, `runs/ysk4/tools/shots-r2.mjs`), plus a recorded demo of the D3 journey with a contact sheet. The top pick also has the phone in dark and light side by side at the same moment (just after a decision, Undo toast up: `1-phone-pair-{dark,light}.png`).
+
+| | Mark | Scheme | Why | Watch for |
+|---|---|---|---|---|
+| **1 North light, night** ★ | N1 | K1 | Name, mark and colour tell one story; the slate-blue light is the only brand colour on a calm near-black page | The light patch is 2 px high at 16; the small cut thickens it, and N3 is the app icon |
+| **2 Night sky** | N6 | K2 | The most typographic: a classic a in one line with a lit ball, on the deepest dark | A letter tells less story; the navy light mode is the most coloured |
+| **3 Slate and aurora** | N11 | K3 | The maker's hand: a nib with the studio's window, lit cyan on neutral slate | Cyan is nearer the done green than slate blue is; a nib leans "writing app" |
+
+**Top pick: Combo 1 (N1 + K1 + Y1).** N1 keeps what the owner liked in L8 from afar and adds the one thing it lacked, the patch of light on the floor, a crisp shape under a soft arch that says "the light is on, the work is going on" at a glance. K1 is C4 made dark first, so the slate-blue light is the only brand colour on a calm page and colour on content still only means working, done or needs you. Name, mark and colour tell one story, and N3 (the same window on a tile) is the app icon without a second idea. *Phone*: dark is the better default for night check-ins and OLED; light is soft enough for outdoors, so after first run the app follows the phone's setting.
+
+### Hand-off: once the owner picks
+
+1. **Tokens**: copy the chosen K block pair from `r2/schemes-k.css` (plus the shared mapping in `brand/schemes.css`) into `tokens.css`, with **dark as the default** `:root` and light under `[data-theme="light"]` (and `prefers-color-scheme: light` after first run, if the owner agrees).
+2. **Mark**: export the chosen N mark and its small cut to `design/brand/mark.svg` and `mark-16.svg`, favicon `.svg`/`.ico` from the small cut, a 512 px app icon (N3 on the tile if N1 is chosen); outline the wordmark to paths.
+3. **Shell**: fold Y1's rules from `brand/app/layouts.css` into `components.css` and drop the `data-layout` switch (Y1 is the only layout now).
+4. **Other screens** (Office, project, task, settings, next task): drawn dark first in the chosen scheme, in Y1, with Flow's motion unchanged; each needs both modes shot, the sidebar's nav state for its section, and the working lilac on agent rows. Check `--surface-selected` meta text in light (the lowest pair, 4.73–4.76) wherever a row can be selected.
+5. **Trademark search** on the chosen mark before public use.
+
+### Critique log (Brand round 2)
+
+**Round R2-1** (self-critique of the first sketches at 128 / 48 / 32 / 20 / 16 px, dark and light, `runs/ysk4/tools/mark-prev.mjs`).
+- *Found*: N4 and N5 read as "d." (the stem rose above the bowl, as in L12); N7 (window with a small a and a dot) read as a camera or a washing machine; N2 (line arch, mullion, keystone) read as a bell at 16; N9 (two curved sails) read as the Sydney Opera House; the fanlight read as a sunrise.
+- *Changed*: N4 and N5 stems start at the bowl's top; N5's notches made small ink traps; N7 rebuilt so the right jamb is the a's stem and the bowl is the lit thing in the window; N2 made a solid arch with a cut keystone and a sill; N9 became three teeth on one building with the glass lit; the fanlight moved to Set aside (11 marks, not 12).
+- *Before/after*: `design/review/brand/r2/c1-before-marks-a.png`, `c1-before-marks-b.png` → `c1-after-marks.png`.
+
+**Round R2-2** (first render of the pick page at 1440 and 390).
+- *Found*: the page scrolled sideways at 390 (718 px): the open contrast table widened its grid track; the 1440 sidebar crop caught the edge of the main column; the top pick's mid-decision phone shot caught the cross-fade halfway (two items on top of each other); "Needs you" wrapped in the colour panels.
+- *Changed*: grid children `min-width: 0` (the table scrolls in its own box); sidebar crop 248 × 108 (brand and the Inbox row); the phone pair waits 2.2 s, past the cross-fade and inside the toast's 6 s; meanings columns 170 px.
+- *Result*: no sideways scroll at 390 or 1440, no console errors.
+
 ## Open questions
 
 - **D4: trademark search** for the logo the owner picks (USPTO / EUIPO image search, or a lawyer). Outward-facing, so not done by an agent.
