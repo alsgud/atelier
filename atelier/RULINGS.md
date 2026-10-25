@@ -19,3 +19,9 @@ _2026-10-25 · owner chat 2026-10-25: 'I like flow a lot more... let's now look 
 
 ## R-6: Layout Y1 (left sidebar) is chosen. Dark mode is the main mode and the default; every screen is designed dark first, with light mode as a polished second (light may suit the phone: show both so the owner can choose). Logos so far are too simple and generic (studio grid, maker's mark and thread concepts rejected as plain or unclear). Next logos grow from L8 North light line panes and L12 One line: more distinctive and elegant, mixing smooth curves with crisp edges, with clear symbolism, never generic. Colour starts from C4 North light; C2 Warm studio's dark is rejected and its light is too bright and white.
 _2026-10-25 · owner chat 2026-10-25 feedback on the brand pick page_
+
+## R-7: Brand chosen: mark N1 (the window and its light) with colour scheme K1 (North light, night), Y1 sidebar layout, dark mode the default everywhere; the phone follows the device setting after first run, starting dark (lead assumption from the designer's note; owner can change). Every decision, option and rationale is documented in atelier/DESIGN.md and the design files, as for everything else.
+_2026-10-25 · owner chat 2026-10-26: continue with N1K1, colour scheming and logos are good, assume it is documented_
+
+## R-8: Before any more screens, the designer leads the owner through the whole UX, research first: layout, navigation, workflows and journeys, information design and interaction patterns, with numbered decisions the owner can answer in one reply.
+_2026-10-25 · owner chat 2026-10-26: work us through layout, design, workflow, basically everything UX; this will require lots of research_

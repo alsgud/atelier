@@ -2,10 +2,14 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
-## Check-ins paused
-- Owner, 2026-10-25 evening: stop check-ins until their next message. Cron 5b41ddc3 deleted. On their next message, re-create the 2-hourly Check-in cron.
+## Running
+- 6umt designer D5 UX research + walkthrough ($22, 8 it, base atelier/ysk4): records chosen brand in DESIGN.md, tokens default K1 dark; ux/index.html with research, IA, journeys, layout, info design, patterns, wireframes, numbered UX decisions. Next: owner answers UX-n, then D6 high-fi every screen.
+- Check-ins resumed 2026-10-26 (cron 8f412b2d).
 
-## Waiting on the owner (phone viewing)
+## Decided 2026-10-26
+- Brand N1 + K1 + Y1, dark default (R-7). Phone follows device after first run: lead assumption, not asked. Owner wants everything documented (R-7) and a full UX walkthrough with research (R-8).
+
+## Waiting on the owner (phone viewing, low priority now)
 - Owner wants to view round 2 on the phone. The Artifact upload is denied in this session (don't-ask mode), and sources outside the repo are refused. When home, the owner runs `/permissions` to allow Artifact plus `/add-dir C:\Users\oiyew\.atelier\worktrees\ysk4`, then the lead publishes atelier/share/brand-r2.html (the root page, untracked) with the files mapped under design/... (a helper already reviewed all 77 files: no external URLs or secrets). Meanwhile, the dashboard view-port route works: Design > Open the clickable screens, then change the end of the URL to atelier/design/brand/r2/index.html.
 
 ## Waiting on the owner (brand round 2)
