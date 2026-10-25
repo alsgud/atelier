@@ -16,3 +16,6 @@ _2026-10-24 · owner, chat 2026-10-25: 'I can't even use the dashboard anymore. 
 
 ## R-5: Flow is the chosen feel (motion system and timings from D3 Flow). Colour, layout and the logo are not settled yet: the designer shows the owner many original logo options, each paired with a matching colour scheme, plus a few layout options, on one page where the owner can pick by number. Logos must be original and must not resemble any existing brand.
 _2026-10-25 · owner chat 2026-10-25: 'I like flow a lot more... let's now look at the design color and layout as well as the logo... a whole bunch of logos for me to approve from, which also ties in with our color scheming'_
+
+## R-6: Layout Y1 (left sidebar) is chosen. Dark mode is the main mode and the default; every screen is designed dark first, with light mode as a polished second (light may suit the phone: show both so the owner can choose). Logos so far are too simple and generic (studio grid, maker's mark and thread concepts rejected as plain or unclear). Next logos grow from L8 North light line panes and L12 One line: more distinctive and elegant, mixing smooth curves with crisp edges, with clear symbolism, never generic. Colour starts from C4 North light; C2 Warm studio's dark is rejected and its light is too bright and white.
+_2026-10-25 · owner chat 2026-10-25 feedback on the brand pick page_
