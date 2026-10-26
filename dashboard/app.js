@@ -300,7 +300,7 @@ async function route({ refreshing = false, wait = false } = {}) {
       if (kind === 'p' && a) return await Project.show(decodeURIComponent(a), b || 'overview', c ? decodeURIComponent(c) : c, refreshing, wait);
       if (kind === 't' && a) return await Task.show(decodeURIComponent(a), refreshing);
       if (kind === 'new') return renderNew();
-      if (kind === 'projects') return renderProjects();
+      if (kind === 'projects') return Projects.show();
       if (kind === 'activity') return renderActivity();
       if (kind === 'office') return Office.show();
       if (kind === 'settings') return renderSettings();
@@ -335,6 +335,7 @@ function renderLoading() {
   renderChrome();
   if (!$('view')) return;
   if (place() === 'office') return Office.loading();
+  if (place() === 'projects') return Projects.loading();
   // First load only: skeletons where the Inbox will be, counts hidden in the chrome (DESIGN §5).
   const sk = (w, h = 12) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
   $('view').innerHTML = `<header class="page-head"><h1>${place() === 'inbox' ? 'Inbox' : 'Atelier'}</h1><span class="summary">Loading…</span></header>
@@ -351,6 +352,7 @@ function pageLoading(crumbs) {
   delete $('app').dataset.task;
 }
 function renderPageError() {
+  if (place() === 'projects') return Projects.error();
   if (place() === 'office') return void ($('view').innerHTML = `<header class="hf-head"><h1>Office</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('The Office')}</div>`);
   legacy(`<div class="top"><div class="crumbs"><b>Atelier</b></div></div><div class="page">${loadError('This page')}</div>`);
 }
@@ -1128,21 +1130,86 @@ const Office = (() => {
 const etaText = e => e ? `likely ${e.low}–${e.high} min` : '';
 const isBusy = s => s === 'working' || s === 'reviewing' || s === 'auditing';
 
-// ---------- projects list ----------
-function renderProjects() {
-  const C = counts();
-  legacy(`${topbar('<b>Projects</b>', `<a class="btn" href="#/new">${icon('plus', 'st')}New</a>`)}
-    <div class="list">${state.projects.map(p => `<a class="item" href="#/p/${esc(p.alias)}/overview">
-      <span class="pdot ${p.lead?.running ? 'live' : ''}"></span>
-      <span class="t">${esc(p.alias)}<small>${esc(p.phase)} · ${taskSummary(p.tasks || [])}</small></span>
-      <span class="r">${C.projects[p.alias]?.waiting || ''}</span></a>`).join('') || '<div class="empty"><b>No projects yet</b>Create one to get started.</div>'}</div>`);
-}
+// =====================================================================================================
+// Projects (D6 design/screens2/projects.html; UX-6 A, UX-14 A, UX-11 C). One card per project in the sidebar's order:
+// name, lead, the Office's window strip, what waits on you, then the project's Now sentence (the same words as its
+// page) in the serif, and the phase, task counts and today's money in one quiet line. Figures are the one summary's.
+// A refresh rewrites a card's insides only when its words changed, so focus, hover and scroll stay (R7).
+// =====================================================================================================
+const Projects = (() => {
+  let shown = new Map(); // card id → the words on screen
+  const needWord = n => `${n} need${n === 1 ? 's' : ''} you now`;
+  const tasksLine = T => {
+    const parts = [[T.running, 'working'], [T.paced, 'waiting for your plan window'], [T['needs-you'], n => `${n} need${n === 1 ? 's' : ''} you`], [T.queued, 'queued'], [T.done, 'done']]
+      .filter(([n]) => n).map(([n, w]) => typeof w === 'function' ? w(n) : `${n} ${w}`);
+    return parts.length ? parts.join(' · ') : 'No tasks yet';
+  };
+  const moneyWords = S => `${money(S.spentToday)} of ${money(S.dayLimit)} today${S.atLimit ? ', at its limit' : S.dayLimit && S.spentToday >= 0.8 * S.dayLimit ? ', most of it used' : ''}`;
+  const waitWords = S => !S.waiting ? 'Nothing waits on you' : `${S.waiting} waiting${S.needsNow ? ` · ${needWord(S.needsNow)}` : ''}`;
+  const waitHTML = S => !S.waiting ? waitWords(S) : `${S.waiting} waiting${S.needsNow ? ` · <span class="is-needs">${needWord(S.needsNow)}</span>` : ''}`;
 
-function taskSummary(tasks) {
-  const n = s => tasks.filter(t => t.status === s).length;
-  const parts = [[n('running'), 'working'], [n('needs-you'), 'need you'], [n('queued'), 'queued'], [n('done'), 'done']].filter(([x]) => x);
-  return parts.length ? parts.map(([x, l]) => `${x} ${l}`).join(', ') : 'no tasks yet';
-}
+  function model(p, C) {
+    const S = C.projects[p.alias];
+    const own = state.queue.filter(q => q.project === p.alias && !Inbox.isHidden(q.key));
+    const [nowT] = Project.nowOf(p, S, own);
+    const desks = Office.desks(p).map(d => d.k);
+    return { p, S, now: nowT, desks: desks.length ? desks : ['off'], ph: Math.max(0, PHASES.indexOf(p.phase)) };
+  }
+  const label = ({ p, S, now, ph }) => `${p.alias}, lead ${S.lead ? 'on' : 'off'}. ${now} ${waitWords(S)}. Phase ${cap1(PHASES[ph])}${S.outcomes?.of ? `, ${S.outcomes.met} of ${S.outcomes.of} outcomes met` : ''}. ${tasksLine(S.tasks || {})}. ${moneyWords(S)}.`;
+  const inner = m => {
+    const { p, S, now, ph } = m;
+    return `<span class="pj-top">
+        <span class="pj-name"><b>${esc(p.alias)}</b><span class="p-lead${S.lead ? '' : ' is-off'}"><span class="dot${S.lead ? ' dot-active' : ''}" aria-hidden="true"></span>${S.lead ? 'Lead on' : 'Lead off'}</span></span>
+        <span class="strip" aria-hidden="true">${m.desks.map(k => `<i data-k="${k}"></i>`).join('')}</span>
+        <span class="pj-wait num">${waitHTML(S)}</span>
+      </span>
+      <span class="pj-now">${esc(now)}</span>
+      <span class="pj-foot num">
+        <span class="pj-ph"><span class="pj-phase" aria-hidden="true">${PHASES.map((n, i) => `<i class="${i < ph ? 'past' : i === ph ? 'now' : ''}"></i>`).join('')}</span><span><b>${cap1(PHASES[ph])}</b>${S.outcomes?.of ? ` · ${S.outcomes.met} of ${S.outcomes.of} outcomes met` : ''}</span></span>
+        <span>${tasksLine(S.tasks || {})}</span>
+        <span class="pj-money${S.atLimit ? ' is-needs' : ''}">${moneyWords(S)}</span>
+      </span>`;
+  };
+  // A project whose files couldn't be read keeps its card (the old list showed it too), with the reason.
+  const broken = p => `<a class="pj" href="#/p/${esc(p.alias)}/overview" data-id="${esc(p.alias)}" aria-label="${esc(`${p.alias}. Couldn’t read this project: ${p.error}`)}"><span class="pj-top"><span class="pj-name"><b>${esc(p.alias)}</b></span></span><span class="pj-foot pj-err"><span>Couldn’t read this project: ${esc(p.error)}</span></span></a>`;
+  const card = (p, C) => { if (p.error) return { id: p.alias, label: '', html: broken(p), whole: true }; const m = model(p, C); return { id: p.alias, label: label(m), html: inner(m) }; };
+
+  const head = (C, n) => `<h1>Projects</h1>${C && n ? `<span class="hf-sum num">${n} project${n === 1 ? '' : 's'}${C.needsNow ? ` · <span class="is-needs">${needWord(C.needsNow)}</span>` : ''} · ${C.waiting} waiting</span>` : ''}${n || !C ? `${liveLine()}<span class="end"><a class="btn btn-secondary btn-sm pj-new" href="#/new">${I('plus')}New project</a></span>` : ''}`;
+  const empty = () => `<div class="hf-empty"><h2>No projects yet.</h2><p>Describe what you want made, in a line or a whole brief. A lead reads it, drafts a charter, and asks for your OK in the Inbox.</p><a class="btn btn-primary" href="#/new">${I('plus')}New project</a></div>`;
+  const frame = (h, body) => `<div class="scr pjs"><header class="hf-head" data-pj-head>${h}</header><div class="hf-body">${body}</div></div>`;
+
+  function loading() {
+    const sk = (w, h) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
+    $('view').innerHTML = frame(head(null, 0), `<div class="pj-list" aria-busy="true" aria-label="Loading projects">${[0, 1, 2].map(() => `<span class="pj is-skeleton">${sk('30%', 20)}${sk('80%', 24)}${sk('60%', 14)}</span>`).join('')}</div>`);
+  }
+  function error() { $('view').innerHTML = frame(head(null, 0), loadError('Your projects')); }
+
+  function show() {
+    const C = counts(), view = $('view');
+    const list = state.projects.map(p => card(p, C));
+    const ids = list.map(x => x.id).join('|');
+    const root = view.querySelector(':scope > .pjs');
+    const box = root?.querySelector('.pj-list:not([aria-busy])');
+    if (root && box && box.dataset.ids === ids && ids) {
+      const h = root.querySelector('[data-pj-head]'), hh = head(C, list.length);
+      if (h.dataset.html !== hh) { h.innerHTML = hh; h.dataset.html = hh; }
+      box.classList.toggle('is-stale', !!failedAt);
+      for (const x of list) {
+        const el = box.querySelector(`.pj[data-id="${CSS.escape(x.id)}"]`);
+        if (!el || shown.get(x.id) === x.html) continue;
+        shown.set(x.id, x.html);
+        if (x.whole) { el.outerHTML = x.html; continue; }
+        el.innerHTML = x.html; el.setAttribute('aria-label', x.label);
+      }
+      return;
+    }
+    view.innerHTML = frame(head(C, list.length), list.length
+      ? `<div class="pj-list${failedAt ? ' is-stale' : ''}" data-ids="${esc(ids)}">${list.map(x => x.whole ? x.html : `<a class="pj" href="#/p/${esc(x.id)}/overview" data-id="${esc(x.id)}" aria-label="${esc(x.label)}">${x.html}</a>`).join('')}</div>`
+      : empty());
+    shown = new Map(list.map(x => [x.id, x.html]));
+  }
+  return { show, loading, error };
+})();
 
 // ---------- activity ----------
 const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iteration', criteria: 'Criteria', suite: 'Full suite', 'review-started': 'Review started', reviewed: 'Reviewed', done: 'Finished', review: 'Ready for review', 'needs-you': 'Needs you', stalled: 'Stalled', failed: 'Failed', approved: 'Approved', answered: 'Answered', gate: 'Gate', 'gate-request': 'Gate requested', audit: 'Audit', 'audit-started': 'Audit started', 'finding-confirmed': 'You asked for a fix', 'finding-dismissed': "You said it's fine", 'finding-to-lead': 'Auditor → lead', 'finding-fixed': 'Lead fixed', 'criterion-draft': 'Criterion drafted', 'criterion-approve': 'Criterion approved', 'criterion-accept': 'Criterion accepted', 'criterion-reject': 'Criterion rejected', ruling: 'Ruling', message: 'Message', requested: 'Request', 'test-touch': 'Tests changed', 'owner-review': 'Needs your judgement', trust: 'Gating', reporting: 'Reporting', autonomy: 'Shipping', lead: 'Lead', charter: 'Charter', demoted: 'Trust tightened', ownership: 'Out-of-bounds edit reverted', paced: 'Paused for plan limits', queued: 'Queued', project: 'Project' };
@@ -1364,7 +1431,9 @@ const Project = (() => {
   }
 
   // ── Tasks: grouped by status in today's order; an empty group is left out and the line under the heading says so ──
-  const GROUP = [['needs-you', 'Needs you', 'needs'], ['running', 'Working', 'active'], ['review', 'In review', 'active'], ['queued', 'Queued', ''], ['planned', 'Waiting for your OK', ''], ['requested', 'Requests', ''], ['stalled', 'Stalled', ''], ['paused', 'Paused', ''], ['done', 'Done', 'done'], ['failed', 'Failed', ''], ['cancelled', 'Cancelled', '']];
+  // A task held for the plan window has its own group (the summary counts it as paced), so Working counts only work.
+  const groupOf = (p, t) => p.team.agents.some(x => x.id === t.id && x.state === 'paced') ? 'paced' : taskStatus(t);
+  const GROUP = [['needs-you', 'Needs you', 'needs'], ['running', 'Working', 'active'], ['paced', 'Waiting for your plan window', ''], ['review', 'In review', 'active'], ['queued', 'Queued', ''], ['planned', 'Waiting for your OK', ''], ['requested', 'Requests', ''], ['stalled', 'Stalled', ''], ['paused', 'Paused', ''], ['done', 'Done', 'done'], ['failed', 'Failed', ''], ['cancelled', 'Cancelled', '']];
   const TRY = { f: 'failed the check', p: 'passed', n: 'now', '': 'no check' };
   const tries = t => {
     const list = (t.live?.history || []).map(h => h.check === 'pass' ? 'p' : h.check === 'fail' ? 'f' : '');
@@ -1376,7 +1445,7 @@ const Project = (() => {
     const by = S.tasks || {};
     const hidden = GROUP.filter(([s]) => !by[s]).map(([, l]) => l.toLowerCase());
     const groups = GROUP.filter(([s]) => by[s]).map(([s, label, k]) => {
-      const rows = p.tasks.filter(t => taskStatus(t) === s).map(t => {
+      const rows = p.tasks.filter(t => groupOf(p, t) === s).map(t => {
         const v = taskView(p, t);
         // A paced task stays in its status group (the summary counts it there) but reads as waiting: no ETA, not lit.
         const sub = v.paced ? `${v.who} · ${v.step}${v.prog ? ` · ${v.prog}` : ''}` : s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${t.reason ? ` · ${t.reason}` : ''}`;
@@ -1649,7 +1718,7 @@ const Project = (() => {
   });
   addEventListener('resize', () => { if (!isPhone()) document.querySelectorAll('.project details[data-key="facts"]').forEach(d => { d.open = true; }); });
 
-  return { show };
+  return { show, nowOf };
 })();
 
 function projActivity(p) {

@@ -290,3 +290,7 @@ html[data-vt="decide"]::view-transition-old(ih), html[data-vt="decide"]::view-tr
 .hf-main > .legacy > .top .hf-live { margin-left: var(--space-3); }
 @media (max-width: 1279px) { .hf-main > .legacy > .top { border-radius: 0; } }
 @media (max-width: 767px) { .hf-main > .legacy > .top { position: static; } .hf-main > .legacy > .top .hf-live { display: none; } }
+
+/* Slice 3 screens (Projects, Activity, New project, Settings): the page wrapper takes the panel's height like .project */
+.scr { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.scr > .hf-body { flex: 1; }
