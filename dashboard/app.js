@@ -302,7 +302,8 @@ async function route({ refreshing = false, wait = false } = {}) {
     const dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(prev) ? 'fwd' : 'back';
     ROOT.dataset.vt = 'tab'; ROOT.dataset.dir = dir;
     const view = $('view'); if (view && !RM) view.style.viewTransitionName = 'page';
-    const t = document.startViewTransition(async () => { await draw(); const v = $('view'); if (v && !RM) v.style.viewTransitionName = 'page'; });
+    // The slide waits for what draws at once (cached data or a skeleton), never for a read: the new view stays live.
+    const t = document.startViewTransition(async () => { await Promise.race([draw(), new Promise(r => setTimeout(r, 50))]); const v = $('view'); if (v && !RM) v.style.viewTransitionName = 'page'; });
     t.finished.catch(() => {}).finally(() => { delete ROOT.dataset.vt; delete ROOT.dataset.dir; const v = $('view'); if (v) v.style.removeProperty('view-transition-name'); });
     return t.updateCallbackDone.catch(() => {});
   }
@@ -325,6 +326,15 @@ function renderLoading() {
   $('view').innerHTML = `<header class="page-head"><h1>${place() === 'inbox' ? 'Inbox' : 'Atelier'}</h1><span class="summary">Loading…</span></header>
     <div class="inbox" aria-busy="true"><section class="focus"><div class="focus-head">${sk('40%')}${sk('70%', 28)}${sk('55%', 28)}</div><div class="focus-body">${sk('90%', 14)}${sk('75%', 14)}<div class="frames is-hero"><div class="frame is-loading"><span class="frame-img"></span></div><div class="frame is-loading"><span class="frame-img"></span></div><div class="frame is-loading"><span class="frame-img"></span></div></div></div></section>
     <aside class="queue" aria-label="Waiting on you"><div class="queue-group">${Array.from({ length: 5 }, () => `<div class="qitem is-skeleton"><span class="skeleton" style="width:28px;height:28px"></span><span class="skeleton" style="height:12px;width:85%;margin-top:4px"></span><span></span><span class="qitem-meta"><span class="skeleton" style="height:10px;width:45%;margin-top:6px"></span></span></div>`).join('')}</div></aside></div>`;
+}
+// A project or task page before its first read arrives: Now, facts and two sections as skeletons (DESIGN, project
+// and task States), so the switch shows the new screen at once and a slow read never holds the old one.
+function pageLoading(crumbs) {
+  const sk = (w, h = 12) => `<span class="skeleton" style="display:block;width:${w};height:${h}px;margin-top:var(--space-2)"></span>`;
+  legacy(`${topbar(crumbs)}<div class="page" aria-busy="true"><span class="sr-only">Loading…</span>
+    ${sk('30%')}${sk('60%', 24)}<div class="box" style="margin-top:var(--space-4)">${sk('90%', 14)}${sk('70%', 14)}</div>
+    ${[0, 1].map(() => `<div class="sec">${sk('120px')}</div><div class="box">${sk('80%', 14)}${sk('55%', 14)}</div>`).join('')}</div>`);
+  delete $('app').dataset.task;
 }
 function renderPageError() {
   legacy(`<div class="top"><div class="crumbs"><b>Atelier</b></div></div><div class="page">${loadError('This page')}</div>`);
@@ -1080,6 +1090,7 @@ async function renderProject(alias, tab, sub, refreshing, wait) {
   const hash = location.hash;
   const seen = refreshing ? null : projectSeen.get(alias);
   if (seen) drawProject(seen.p, tab, sub);
+  else if (!refreshing) pageLoading(`<a href="#/projects">Projects</a><span>/</span><b>${esc(alias)}</b>`);
   const p = await get(`/api/project/${encodeURIComponent(alias)}${wait ? '?wait' : ''}`);
   if (location.hash !== hash) return; // the owner has already moved on
   const text = JSON.stringify(p);
@@ -1315,6 +1326,7 @@ function projSettings(p) {
 // ---------- task (Cursor / Devin agent view) ----------
 async function renderTask(id) {
   const hash = location.hash;
+  if ($('app')?.dataset.task !== id) pageLoading(`<b>${esc(id)}</b>`);
   const t = await get(`/api/task/${encodeURIComponent(id)}`);
   if (location.hash !== hash) return; // the owner has already moved on
   if (busy() && $('app')?.dataset.task === id) return; // the owner is typing an answer or reading a fold
