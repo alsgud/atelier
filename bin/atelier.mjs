@@ -185,7 +185,9 @@ function add() {
   }
   if (typeof flags.tools === 'string' && toolkit.unknown(flags.tools).length) throw new Error(`unknown tools: ${toolkit.unknown(flags.tools).join(', ')} (see atelier tools)`);
   // At strict trust every task waits for the owner to approve its plan.
-  const initial = flags.hold ? 'paused' : (p?.trust === 'strict' ? 'planned' : 'queued');
+  const after = typeof flags.after === 'string' ? flags.after.split(/[\s,]+/).filter(Boolean) : [];
+  for (const a of after) if (!fs.existsSync(path.join(paths.board, `${a}.md`))) throw new Error(`--after: no task ${a}`);
+  const initial = flags.hold ? 'paused' : (p?.trust === 'strict' ? 'planned' : after.length ? 'paused' : 'queued');
   const id = cards.newId();
   const goal = flags['goal-file'] ? fs.readFileSync(flags['goal-file'], 'utf8') : (flags.goal || title);
   cards.save({
@@ -193,7 +195,7 @@ function add() {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
       criteria: decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '').join(','),
-      ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.evidence === 'none' ? { evidence: 'none' } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
+      ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.evidence === 'none' ? { evidence: 'none' } : {}), ...(after.length ? { waits_on: after.join(','), reason: `waiting for ${after.join(', ')} to be done` } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
       repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
       model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
