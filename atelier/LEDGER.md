@@ -3,7 +3,7 @@
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
 ## Build started 2026-10-26 13:35
-- Design gate APPROVED by owner ("Good"), recommended UX answers accepted. 6dug + whole design chain merged to main by owner. The review-task notes below are settled.
+- Design gate APPROVED by owner ("Good"), recommended UX answers accepted. 6dug + whole design chain merged to main by owner. The review-task notes below are settled. hspr, ysk4, 6umt, pjv7, 57cv still show "review" but their branches are in main; Atelier's tick marks a merged branch done on its own (it did 6dug and 68h6), so nothing to do.
 - 5u8q slice 1 (shell, one summary, Inbox) queued, $30 / 12 it. Next: when it reaches review, check the proof myself, then slice 2 brief (PLAN), then slice 3.
 
 ## Design gate requested 2026-10-26 ~06:00 (settled)
