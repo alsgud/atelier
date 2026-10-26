@@ -6,6 +6,8 @@
 - pjv7 D6 APPROVED round 3 ($41+). Screens index worktrees/pjv7/atelier/design/screens2/index.html (linked from design/index.html, so the dashboard's Design review opens it). Lead checked office-1440-dark (lit desks, legend, good character) and task-1440-dark (stage track, proof, outcomes: strong). Gate approval = accepts recommended UX answers unless the owner names changes.
 - After approval: owner merges the design chain (tip atelier/pjv7). Then frontend slice 1 (shell + summary endpoint + Inbox) based on pjv7, then slices 2 and 3. Write the slice briefs from DESIGN.md Screens + Endpoint needs.
 
+- 2026-10-26 13:23: owner accepted AC-7 (feels calm) in the dashboard and said "good, continue" in chat. The design gate is still only requested, and building can't start until the owner approves it in the dashboard (the lead can't approve it). Asked the owner to press approve.
+
 ## Lead lesson
 - `atelier answer` on a needs-you task already requeues and starts it. Do not also run `retry` or `tick`: pjv7 started twice and failed with EPERM on the board file rename (2026-10-26). One retry after that.
 
