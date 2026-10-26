@@ -19,6 +19,17 @@ const ago = iso => {
   const m = Math.round((Date.now() - t) / 60000);
   return m < 1 ? 'now' : m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`;
 };
+// Ages in words, for the eyebrow, desks and pages ("4 min ago", "yesterday").
+const longAgo = iso => {
+  const t = Date.parse(iso); if (!t) return '';
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  if (m < 1440) return `${Math.round(m / 60)} h ago`;
+  const d = new Date(t);
+  return m < 2880 ? 'yesterday' : m < 7 * 1440 ? d.toLocaleDateString('en-GB', { weekday: 'long' }) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+};
+const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
 const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000); return m <= 0 ? 'now' : m < 60 ? `in ${m} min` : `in ${Math.floor(m / 60)} h ${m % 60} min`; };
 const money = n => `$${(n || 0).toFixed(2)}`;
@@ -289,7 +300,7 @@ async function route({ refreshing = false, wait = false } = {}) {
       if (kind === 'new') return renderNew();
       if (kind === 'projects') return renderProjects();
       if (kind === 'activity') return renderActivity();
-      if (kind === 'office') return renderOffice();
+      if (kind === 'office') return Office.show();
       if (kind === 'settings') return renderSettings();
       return Inbox.show(null, { refreshing });
     } catch (e) {
@@ -321,6 +332,7 @@ function legacy(html) {
 function renderLoading() {
   renderChrome();
   if (!$('view')) return;
+  if (place() === 'office') return Office.loading();
   // First load only: skeletons where the Inbox will be, counts hidden in the chrome (DESIGN §5).
   const sk = (w, h = 12) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
   $('view').innerHTML = `<header class="page-head"><h1>${place() === 'inbox' ? 'Inbox' : 'Atelier'}</h1><span class="summary">Loading…</span></header>
@@ -337,6 +349,7 @@ function pageLoading(crumbs) {
   delete $('app').dataset.task;
 }
 function renderPageError() {
+  if (place() === 'office') return void ($('view').innerHTML = `<header class="hf-head"><h1>Office</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('The Office')}</div>`);
   legacy(`<div class="top"><div class="crumbs"><b>Atelier</b></div></div><div class="page">${loadError('This page')}</div>`);
 }
 
@@ -359,15 +372,6 @@ const Inbox = (() => {
   let ownHash = false;
 
   const nums = ['no', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
-  const longAgo = iso => {
-    const t = Date.parse(iso); if (!t) return '';
-    const m = Math.round((Date.now() - t) / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return `${m} min ago`;
-    if (m < 1440) return `${Math.round(m / 60)} h ago`;
-    const d = new Date(t);
-    return m < 2880 ? 'yesterday' : m < 7 * 1440 ? d.toLocaleDateString('en-GB', { weekday: 'long' }) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  };
   const viewUrl = (port, p) => port && p ? `${location.protocol}//${location.hostname}:${port}${p}` : '';
   const frame = (url, cap, cls = '', play = '') => url
     ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="frame ${cls}" aria-label="${esc(cap)}, opens full size in a new tab">
@@ -375,7 +379,6 @@ const Inbox = (() => {
         <span class="frame-cap"><b>${esc(cap)}</b><span>Open ${I('external')}</span></span></a>` : '';
   const quote = (text, who) => `<blockquote class="quote" style="margin:0">${text}${who ? `<footer>${who}</footer>` : ''}</blockquote>`;
   const para = s => String(s || '').split(/\n\s*\n/)[0];
-  const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 
   // One Inbox item, from the server's queue entry: its words, the thing itself, and its dock. The dock's
   // actions are today's, with today's arguments (contracts rule 1).
@@ -932,96 +935,174 @@ function renderLogin() {
 // The screens slices 2 and 3 rebuild, as they were, inside the shell. Their figures now come from the summary.
 // =====================================================================================================
 
-// ---------- office: who's working, at a glance ----------
-// One desk per agent. The bubble says what they're doing: typing (working), red "!" (needs you),
-// magnifier (reviewing), "zz" (stuck), coffee (idle). Empty chair = not running.
-function scene(state) {
-  const typing = state === 'working' || state === 'reviewing' || state === 'auditing';
-  const person = state === 'away' ? '' : `
-    <g class="${typing ? 'typing' : ''}">
-      <rect class="chair" x="52" y="44" width="34" height="34" rx="6"/>
-      <rect class="shirt" x="56" y="46" width="26" height="24" rx="8"/>
-      <circle class="skin" cx="69" cy="36" r="9"/>
-      <path class="hair" d="M60 34a9 9 0 0 1 18 0c-3-4-15-4-18 0z"/>
-      <rect class="skin arm l" x="54" y="58" width="12" height="5" rx="2.5"/>
-      <rect class="skin arm r" x="72" y="58" width="12" height="5" rx="2.5"/>
-    </g>`;
-  const bubbles = {
-    working: `<g class="float"><rect class="bubble" x="88" y="4" width="34" height="18" rx="9"/><g class="dots"><circle class="lilac" cx="98" cy="13" r="2.2"/><circle class="lilac" cx="105" cy="13" r="2.2"/><circle class="lilac" cx="112" cy="13" r="2.2"/></g></g>`,
-    auditing: `<g class="float"><rect class="bubble" x="88" y="4" width="34" height="18" rx="9"/><g class="dots"><circle class="lilac" cx="98" cy="13" r="2.2"/><circle class="lilac" cx="105" cy="13" r="2.2"/><circle class="lilac" cx="112" cy="13" r="2.2"/></g></g>`,
-    needs: `<g class="float"><circle class="red" cx="100" cy="14" r="10"/><rect x="98.6" y="8" width="2.8" height="7.5" rx="1.4" fill="var(--surface)"/><circle cx="100" cy="18.6" r="1.6" fill="var(--surface)"/></g>`,
-    reviewing: `<g class="float"><rect class="bubble" x="88" y="4" width="26" height="20" rx="9"/><circle cx="99" cy="13" r="4.5" fill="none" stroke="var(--lilac)" stroke-width="2"/><path d="M102.5 16.5l4 4" stroke="var(--lilac)" stroke-width="2" stroke-linecap="round"/></g>`,
-    stuck: `<g class="float"><text x="90" y="18" class="muted" font-size="13" font-weight="700" font-family="var(--font-sans)">z z</text></g>`,
-    idle: `<g><rect class="muted" x="96" y="50" width="9" height="10" rx="2"/><path d="M105 52h2a2 2 0 0 1 0 5h-2" fill="none" stroke="var(--faint)" stroke-width="1.5"/></g>`,
-    away: '',
+// ---------- Office (D6 screens2/office.html; UX-8 A, UX-9 A, UX-7 A) ----------
+// A floor per project, busiest first, and a desk per agent from the server's team list (the same list the sidebar
+// and the project page count). Each desk's scene is the N1 mark at room scale: an arched window whose light is on
+// while the agent works, the light's patch on the floor, a desk, the agent, and one thing on the wall for the role.
+// Light on = working, hand up = needs you, light off = waiting, empty desk = off; a desk whose agent just finished
+// shows the green window with a tick once. A refresh patches each desk in place (R7): lights fade by CSS, nothing
+// re-renders, scroll and focus stay.
+const Office = (() => {
+  const arch = 'M14 64V30a16 16 0 0 1 32 0V64z';
+  const PROPS = {
+    designer: '<rect x="130" y="16" width="24" height="26" rx="1.5"/><path d="M136 37v-9a6 6 0 0 1 12 0v9z"/>',
+    auditor: '<rect x="132" y="14" width="20" height="28" rx="1.5"/><path d="M138 14v-2h8v2M136 22l2 2 3-3M143 23h5M136 30l2 2 3-3M143 31h5M136 37h12"/>',
+    builder: '<path d="M126 42h30"/><rect x="128" y="30" width="10" height="12" rx="1"/><rect x="140" y="34" width="8" height="8" rx="1"/><rect x="130" y="22" width="7" height="8" rx="1"/>',
+    reviewer: '<path d="M126 42h30"/><rect x="129" y="26" width="4" height="16" rx=".8"/><rect x="134" y="22" width="4" height="20" rx=".8"/><rect x="139" y="28" width="4" height="14" rx=".8"/><path d="m145 42 5-17 3.6 1-5 17"/>',
+    lead: '<rect x="128" y="16" width="28" height="24" rx="1.5"/><path d="M133 23h12M133 28h18M133 33h9"/><circle cx="142" cy="16" r="1.6"/>',
   };
-  return `<svg class="scene" viewBox="0 0 138 92" aria-hidden="true">
-    ${state === 'away' ? '<rect class="chair" x="52" y="44" width="34" height="34" rx="6"/>' : ''}
-    ${person}
-    <rect class="deskwood" x="14" y="66" width="110" height="6" rx="2"/>
-    <rect class="monitor" x="22" y="42" width="30" height="22" rx="2"/>
-    <rect class="screen ${typing ? 'on' : ''}" x="24.5" y="44.5" width="25" height="17" rx="1"/>
-    <rect class="monitor" x="34" y="64" width="6" height="3"/>
-    ${bubbles[state] || ''}
-  </svg>`;
-}
+  // Five wall props for any roster: every role that makes things gets the builder's boxes.
+  const propOf = r => /lead/.test(r) ? 'lead' : /design/.test(r) ? 'designer' : /audit/.test(r) ? 'auditor' : /review/.test(r) ? 'reviewer' : 'builder';
+  const scene = prop => `<svg viewBox="0 0 160 88" aria-hidden="true" focusable="false">
+    <g class="sc-prop">${PROPS[prop]}</g><circle class="sc-glow" cx="30" cy="42" r="40"/>
+    <path class="sc-wallwin" d="${arch}"/><path class="sc-pane" d="${arch}"/><path class="sc-done" d="${arch}"/>
+    <path class="sc-bars" d="M30 14V64M14 40H46"/><path class="sc-tick" d="M22.5 40.5l5 5 10-11"/>
+    <polygon class="sc-patch" points="14,72 46,72 66,88 34,88"/>
+    <g class="sc-who"><circle cx="95" cy="36" r="7"/><path d="M80 58c0-10 6.5-14 15-14s15 4 15 14z"/></g>
+    <g class="sc-hand"><path d="M106 49 113 31"/><circle cx="113.5" cy="28.5" r="3"/></g><circle class="sc-flag" cx="121" cy="20" r="3.5"/>
+    <ellipse class="sc-screen" cx="95" cy="41" rx="12" ry="7"/><path class="sc-lid" d="M85 47h20l-1.5 11h-17z"/><rect class="sc-lid-shut" x="85" y="56" width="20" height="2" rx="1"/>
+    <rect class="sc-desk" x="70" y="58" width="50" height="3" rx="1.5"/><rect class="sc-desk" x="73" y="61" width="2.5" height="11"/><rect class="sc-desk" x="114.5" y="61" width="2.5" height="11"/></svg>`;
+  const defs = '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><radialGradient id="hf-glow"><stop offset="0" style="stop-color:var(--active);stop-opacity:.42"/><stop offset="1" style="stop-color:var(--active);stop-opacity:0"/></radialGradient></defs></svg>';
+
+  // Only the design's words on a desk: Working, Needs you, Waiting, Off, and Done for a moment (S1 copy).
+  const WORD = { active: 'Working', needs: 'Needs you', '': 'Waiting', off: 'Off', done: 'Done' };
+  const ORDER = { needs: 0, active: 1, done: 2, '': 3, off: 4 };
+  const HOLD = 2400; // the green window after a finish, then the light goes out
+  const firstSeen = new Map(); // finished task id → when this page first showed it
+  let sig = '', shown = new Map(), timer = null;
+
+  const progText = p => !p ? '' : p[2] === 'try' ? `Try ${p[0]} of ${p[1]}` : `${p[0]} of ${p[1]} ${p[2]}`;
+  const meta = d => [progText(d.prog), d.ago].filter(Boolean).join(' · ');
+  const dotOf = (k, word) => `<span class="dot${k && k !== 'off' ? ` dot-${k}` : ''}${k === 'active' && !failedAt ? ' is-live' : ''}" role="img" aria-label="${esc(word)}"></span>`;
+
+  // One desk from one team entry. Every word is the server's or a fixed phrase; agent text goes through esc().
+  function deskOf(p, x, keys) {
+    const a = p.alias;
+    const who = (x.kind === 'lead' ? 'lead' : x.reviewingFor ? 'reviewer' : x.who || x.role || 'agent').toLowerCase();
+    let key = x.kind === 'lead' ? 'lead' : x.kind === 'auditor' ? 'auditor' : x.kind === 'reviewer' ? 'reviewer' : `r-${x.role || x.who}`;
+    if (keys.has(key)) key += `-${x.id || keys.size}`;
+    keys.add(key);
+    const d = { key, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: propOf(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.what || '', step: '', quiet: false, prog: null, ago: '' };
+    const working = () => Object.assign(d, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started on this try', quiet: !!x.quietMin, prog: x.prog || null, ago: longAgo(x.lastAt) });
+    if (x.kind === 'lead') {
+      if (x.state === 'working') Object.assign(d, { k: 'active', step: `In the Claude app as “${a} lead”` });
+      else if (x.state === 'duty') d.step = `In the Claude app as “${a} lead”`;
+      else Object.assign(d, { k: 'off', what: 'The lead is off', step: 'Start it on the project page' });
+    } else if (x.kind === 'auditor') {
+      if (x.audit) Object.assign(d, { k: 'active', step: cap1(x.audit.stage || 'Getting ready'), prog: x.prog || null, ago: `${x.audit.startedMin} min in` });
+      else d.step = p.lastAudit?.at ? `Last audit ${longAgo(p.lastAudit.at)}` : 'Audits start once there is something built to check';
+    } else if (x.id) {
+      if (x.kind === 'reviewer') d.what = `Reviewing ${x.what}`;
+      if (x.state === 'needs') Object.assign(d, { k: 'needs', step: 'It asked you something. Answer it on its page' });
+      else if (x.state === 'stuck') d.step = 'Stalled. The lead decides what happens next';
+      else working();
+    } else if (x.kind === 'reviewer') {
+      d.step = 'Checks every task before it ships';
+    } else {
+      const f = x.finished;
+      if (f && !firstSeen.has(f.id)) firstSeen.set(f.id, Date.now());
+      if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: f.title, step: 'Finished just now', prog: [1, 1, ''], ago: '' });
+      else d.step = f ? `Finished “${f.title}”` : 'Starts when the lead hands it a task';
+    }
+    d.word = WORD[d.k];
+    return d;
+  }
+
+  const label = d => `${d.role}, ${d.word}. ${d.what}. ${d.step ? `${d.step}. ` : ''}${meta(d)}`.trim();
+  const deskBody = d => `<span class="desk-who"><b>${esc(d.role)}</b><span class="desk-st">${dotOf(d.k, d.word)}<span class="w">${esc(d.word)}</span></span></span>
+    <span class="desk-what">${esc(d.what)}</span>${d.step ? `<span class="desk-step">${esc(d.step)}</span>` : ''}
+    <span class="desk-prog"><span class="desk-track"><i style="--p:${d.prog && d.prog[1] ? Math.min(1, d.prog[0] / d.prog[1]).toFixed(3) : 0}"></i></span><span class="desk-meta num">${esc(meta(d))}</span></span>`;
+  const desk = d => `<a class="desk" href="${esc(d.href)}" data-key="${esc(d.key)}" data-k="${d.k}"${d.quiet ? ' data-quiet' : ''} aria-label="${esc(label(d))}"><span class="desk-scene">${scene(d.prop)}</span><span class="desk-body">${deskBody(d)}</span></a>`;
+  const strip = f => `<span class="strip" aria-hidden="true">${f.desks.map(d => `<i data-k="${d.k}"></i>`).join('')}</span>`;
+  // Money in words (UX-11 C): the limit in red, "most of it used" from 80 %.
+  const moneyLine = s => `${money(s.spentToday)} today${s.atLimit ? ', <span class="is-needs">at its limit</span>' : s.dayLimit && s.spentToday >= 0.8 * s.dayLimit ? ', most of it used' : ''}`;
+  const floorSum = f => `${f.s.working} working · ${moneyLine(f.s)}`;
+  const quietNote = f => `Lead off · nothing running${f.s.waiting ? ` · ${f.s.waiting} waiting on you in the Inbox` : ''}`;
+
+  function model() {
+    const C = counts();
+    const floors = state.projects.filter(p => !p.error && p.team).map(p => {
+      const keys = new Set();
+      const desks = p.team.agents.map(x => deskOf(p, x, keys)).map((d, i) => [d, i]).sort((x, y) => ORDER[x[0].k] - ORDER[y[0].k] || x[1] - y[1]).map(x => x[0]);
+      const s = C.projects[p.alias] || {};
+      return { a: p.alias, s, desks, quiet: !p.lead?.running && !s.working && !s.agentsNeed };
+    });
+    floors.sort((x, y) => (y.s.working - x.s.working) || (y.s.agentsNeed - x.s.agentsNeed) || (+y.s.lead - +x.s.lead));
+    return { C, floors };
+  }
+
+  const head = C => `<h1>Office</h1>${C ? `<span class="hf-sum num"><span data-count="working">${C.working}</span> working · <span${C.agentsNeed ? ' class="is-needs"' : ''}>${C.agentsNeed} need${C.agentsNeed === 1 ? 's' : ''} you</span> · ${C.onDuty} on duty</span>` : ''}<span class="end">${liveLine()}</span>`;
+
+  const board = floors => `<div class="board${failedAt ? ' is-stale' : ''}">
+    ${floors.filter(f => !f.quiet).map(f => `<section class="floor" aria-labelledby="fl-${esc(f.a)}" data-floor="${esc(f.a)}">
+      <header class="floor-head"><h2 id="fl-${esc(f.a)}"><a href="#/p/${esc(f.a)}/overview">${esc(f.a)}</a></h2>${strip(f)}<span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
+      <div class="desks">${f.desks.map(desk).join('')}</div></section>`).join('')}
+    ${floors.filter(f => f.quiet).map(f => `<a class="floor-quiet" href="#/p/${esc(f.a)}/overview" data-floor="${esc(f.a)}" aria-label="${esc(`${f.a}, quiet.${f.s.needsNow ? ` ${f.s.needsNow} needs you now.` : ''} ${quietNote(f)}. ${money(f.s.spentToday)} today`)}">${strip(f)}<b>${esc(f.a)}</b>${f.s.needsNow ? `<span class="fq-needs">${dotOf('needs', 'Needs you now')}${f.s.needsNow} need${f.s.needsNow === 1 ? 's' : ''} you now</span>` : ''}<span>${esc(quietNote(f))}</span><span class="num">${money(f.s.spentToday)} today</span></a>`).join('')}
+    <ul class="legend" aria-label="How to read a desk">
+      <li><span class="strip"><i data-k="active"></i></span>Light on: working</li><li><span class="strip"><i data-k="needs"></i></span>Hand up: needs you</li>
+      <li><span class="strip"><i data-k=""></i></span>Light off: waiting</li><li><span class="strip"><i data-k="off"></i></span>Empty desk: off</li></ul></div>`;
+
+  const emptyBuilding = `<svg viewBox="0 0 120 96" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 94V28a42 22 0 0 1 84 0v66"/><path d="M8 94h104"/>${[0, 1, 2].map(r => [0, 1, 2].map(c => `<path d="M${33 + c * 20} ${50 + r * 16}v-5a5 5 0 0 1 10 0v5z"/>`).join('')).join('')}</svg>`;
+  const empty = () => `<div class="hf-empty office-empty">${emptyBuilding}<h2>No one is working yet.</h2><p>Start a project and its team moves in here: one floor for the project, one desk for each agent.</p><a class="btn btn-primary" href="#/new">${I('plus')}New project</a></div>`;
+
+  // Loading: two floors of skeleton desks, counts hidden.
+  function loading() {
+    $('view').innerHTML = `<header class="hf-head">${head(null)}</header><div class="hf-body office"><div class="board" aria-busy="true" aria-label="Loading the Office">${[3, 3].map(n => `<section class="floor"><span class="skeleton" style="width:160px;height:20px"></span>
+      <div class="desks">${Array.from({ length: n }, () => `<span class="desk is-skeleton"><span class="desk-scene skeleton"></span><span class="desk-body"><span class="skeleton" style="width:40%;height:14px"></span><span class="skeleton" style="width:85%;height:18px;margin-top:6px"></span><span class="skeleton" style="width:60%;height:14px;margin-top:4px"></span></span></span>`).join('')}</div></section>`).join('')}</div></div>`;
+    sig = '';
+  }
+
+  function show() {
+    const view = $('view');
+    const { C, floors } = model();
+    const next = floors.map(f => `${f.a}${f.quiet ? '~' : ''}:${f.desks.map(d => d.key).join(',')}`).join('|');
+    const body = view.querySelector(':scope > .hf-body.office');
+    if (body && next === sig && floors.length) patch(view, C, floors);
+    else {
+      sig = next;
+      view.innerHTML = `<header class="hf-head" data-office-head>${head(C)}</header><div class="hf-body office">${defs}${floors.length ? board(floors) : empty()}</div>`;
+      shown = new Map(floors.flatMap(f => f.desks.map(d => [`${f.a}/${d.key}`, JSON.stringify(d)])));
+    }
+    // A green window holds for a moment, then the light goes out: look again when the first one is due.
+    clearTimeout(timer);
+    const due = floors.flatMap(f => f.desks).some(d => d.k === 'done');
+    if (due) timer = setTimeout(() => { if (place() === 'office' && state) show(); }, HOLD + 50);
+  }
+
+  // Same floors and desks as on screen: change each desk's own light, words and track, nothing else.
+  function patch(view, C, floors) {
+    const h = view.querySelector('[data-office-head]');
+    const hh = head(C);
+    if (h && h.dataset.html !== hh) { h.innerHTML = hh; h.dataset.html = hh; }
+    view.querySelector('.board')?.classList.toggle('is-stale', !!failedAt);
+    for (const f of floors) {
+      const fl = view.querySelector(`[data-floor="${CSS.escape(f.a)}"]`);
+      if (!fl) continue;
+      fl.querySelectorAll('.strip i').forEach((i, n) => { const k = f.desks[n]?.k ?? ''; if (i.dataset.k !== k) i.dataset.k = k; });
+      const fs = fl.querySelector('[data-floor-sum]');
+      if (fs && fs.innerHTML !== floorSum(f)) fs.innerHTML = floorSum(f);
+      for (const d of f.desks) {
+        const id = `${f.a}/${d.key}`, json = JSON.stringify(d);
+        if (shown.get(id) === json) continue;
+        const was = JSON.parse(shown.get(id) || '{}');
+        shown.set(id, json);
+        const el = fl.querySelector(`.desk[data-key="${CSS.escape(d.key)}"]`);
+        if (!el) continue;
+        el.dataset.k = d.k;
+        el.toggleAttribute('data-quiet', d.quiet);
+        el.setAttribute('aria-label', label(d));
+        el.setAttribute('href', d.href);
+        el.querySelector('.desk-body').innerHTML = deskBody(d);
+        if (was.what !== d.what || was.step !== d.step) { el.classList.remove('is-changing'); void el.offsetWidth; el.classList.add('is-changing'); }
+      }
+    }
+  }
+
+  return { show, loading };
+})();
 
 const etaText = e => e ? `likely ${e.low}–${e.high} min` : '';
-
-const DESK_LABEL = { working: 'Working', reviewing: 'Reviewing', auditing: 'Auditing', needs: 'Needs you', stuck: 'Stuck', duty: 'On duty', idle: 'Idle', away: 'Off' };
-const DESK_ORDER = { needs: 0, working: 1, reviewing: 1, auditing: 1, stuck: 2, duty: 3, idle: 4, away: 5 };
 const isBusy = s => s === 'working' || s === 'reviewing' || s === 'auditing';
-
-function desk({ href, state, who, what, meta, cls = '' }) {
-  const tag = href ? 'a' : 'div';
-  const tone = isBusy(state) ? 'busy' : state === 'needs' ? 'needs' : state === 'stuck' ? 'stuck' : state === 'duty' ? 'duty' : state === 'away' ? 'off' : 'idle';
-  return `<${tag} class="desk ${cls} ${tone}" ${href ? `href="${href}"` : ''}>
-    <div class="state"><span class="sdot"></span>${DESK_LABEL[state] || state}</div>
-    ${scene(state === 'duty' ? 'idle' : state)}
-    <div class="who">${who}</div>
-    ${what ? `<div class="what">${what}</div>` : ''}
-    ${meta ? `<div class="meta">${meta}</div>` : ''}
-  </${tag}>`;
-}
-
-// Desks come straight from the server's team list, the same one the sidebar and project page count.
-function officeDesks(p) {
-  const desks = (p.team?.agents || []).map(x => {
-    const meta = x.kind === 'task' || (x.kind === 'reviewer' && x.id)
-      ? (x.state === 'needs' ? 'answer it in your inbox' : x.state === 'stuck' ? 'the lead will replan it' : esc(progressLine(x)))
-      : esc(x.meta || '');
-    return { order: x.state, d: { href: x.href ? esc(x.href) : '', cls: x.kind === 'lead' ? 'lead' : '', state: x.state,
-      who: x.reviewingFor ? `reviewer <span class="faint">on ${esc(x.reviewingFor)}'s work</span>` : x.kind === 'lead' ? 'Lead' : esc(x.who),
-      what: esc(x.what || ''), meta } };
-  });
-  desks.sort((x, y) => DESK_ORDER[x.order] - DESK_ORDER[y.order]);
-  return desks;
-}
-
-function renderOffice() {
-  const C = counts();
-  const ps = [...state.projects].filter(p => !p.error);
-  const all = ps.map(p => ({ p, desks: officeDesks(p), s: C.projects[p.alias] }));
-  all.sort((x, y) => (y.s.working - x.s.working) || (y.p.lead.running - x.p.lead.running));
-  const floors = all.map(({ p, desks, s }) => {
-    const a = esc(p.alias);
-    if (!p.lead.running && !s.working && !s.agentsNeed) {
-      return `<a class="item quiet-floor" href="#/p/${a}/overview"><span class="pdot"></span><span class="t">${a}<small>Nobody working · lead off · ${money(s.spentTotal)} spent in total</small></span></a>`;
-    }
-    return `<div class="floor-h"><a href="#/p/${a}/overview">${a}</a><span>${s.working} working · ${money(s.spentToday)} today</span></div>
-      <div class="floor">${desks.map(d => desk(d.d)).join('')}</div>`;
-  }).join('');
-  legacy(`${topbar('<b>Office</b>')}
-    <div class="page">
-      <div class="office-bar">
-        <span class="ob busy"><span class="sdot"></span><b>${C.working}</b> working</span>
-        <span class="ob ${C.agentsNeed ? 'needs' : ''}"><span class="sdot"></span><b>${C.agentsNeed}</b> need${C.agentsNeed === 1 ? 's' : ''} you</span>
-        ${C.onDuty ? `<span class="ob duty"><span class="sdot"></span><b>${C.onDuty}</b> on duty</span>` : ''}
-        <span class="ob">Spent today: <b>${money(C.spentToday)}</b></span>
-      </div>
-      ${floors || '<div class="empty"><b>No projects yet</b>Create one and the team shows up here.</div>'}
-    </div>`);
-}
 
 // ---------- projects list ----------
 function renderProjects() {
