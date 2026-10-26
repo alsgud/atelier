@@ -3,6 +3,7 @@
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
 ## Slice 3 done 2026-10-27 ~04:30
+- 9pfh (Office characters) APPROVED, waits for the owner's pick: A1, A2, A3 (designer's top pick), or "bolder". Lead told the owner honestly the stills look close to each other and still minimal, and offered a bolder round 2. Page: worktrees/9pfh/atelier/design/office-chars/index.html. Review follow-ups: frame budget at the edge on phone; webms add 23 MB (keep them out of the merge); pick-page nav order.
 - DO NOT MERGE atelier/a46b: its work is done, but the runner's ownership revert 5ee365a undid main's own files (voice projects, -412 lines outside dashboard/). a46b stopped. a7nb (sonnet, $10) builds from main and copies only a46b's dashboard/ + lib/dashboard.mjs. The owner merges atelier/a7nb. Core bug for the owner: the ownership revert should skip files equal to the base's version (it reverts merged-in base changes).
 - EPERM card-write race is now frequent (2026-10-27: xhen, 9pfh twice, a46b crashed at start). Each time: one `atelier resume`/`retry`. Tell the owner it's the top core fix.
 - 66eq and xhen wait in review on purpose: both are inside a46b, which the owner merges once; then the lead closes them with `atelier close` (chained branches don't close themselves).
