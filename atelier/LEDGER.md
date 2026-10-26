@@ -2,6 +2,11 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## Slice 3 done 2026-10-27 ~04:30
+- xhen APPROVED round 1. Lead checked projects-1440-dark (real data, matches) and the inventory table (95 lines, 0 missing). Owner has NOT merged 66eq; xhen contains 5u8q + 66eq, so one merge later brings everything.
+- main has the owner's core commits (voice projects: audio proof in the old task page; window guard fix 489552d) and conflicts with xhen in dashboard/app.js. a46b integration task: base xhen, merge main, carry audio proof, small follow-ups. Then: second-port try for the owner (`node bin/atelier.mjs dashboard --port 4750 --no-tailscale` from the a46b worktree), owner merges atelier/a46b, audit.
+- Tell owner: xhen's settings test accidentally started a real "replay lead" (claude --remote-control) in a fixture for ~3.5 h; the frontend stopped it. A stale "replay lead" remote session may show in the owner's Claude app.
+
 ## 2026-10-27 ~02:30
 - Owner wants advanced Office character design ("alive but professional and smooth", game inspiration). Started designer 9pfh ($40, 10 it), parallel with xhen (no file overlap). Building the picked direction = next milestone, a frontend slice after slice 3, priced when the owner picks.
 - Design gate REOPENED (owner's own request quoted) so 9pfh can write atelier/design/office-chars/** and a DESIGN.md Office characters section. When the owner picks a direction: request the design gate again with the pick.
