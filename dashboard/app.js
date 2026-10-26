@@ -1022,7 +1022,7 @@ const Office = (() => {
       else if (x.state === 'duty') d.step = `In the Claude app as “${a} lead”`;
       else Object.assign(d, { k: 'off', what: 'The lead is off', step: 'Start it on the project page' });
     } else if (x.kind === 'auditor') {
-      if (x.audit) Object.assign(d, { k: 'active', step: cap1(x.audit.stage || 'Getting ready'), prog: x.prog || null, ago: `${x.audit.startedMin} min in` });
+      if (x.audit) Object.assign(d, { k: 'active', step: x.audit.quietMin ? `Quiet for ${x.audit.quietMin} min, longer than usual` : cap1(x.audit.stage || 'Getting ready'), quiet: !!x.audit.quietMin, prog: x.prog || null, ago: `${x.audit.startedMin} min in` });
       else d.step = p.lastAudit?.at ? `Last audit ${longAgo(p.lastAudit.at)}` : 'Audits start once there is something built to check';
     } else if (x.id) {
       if (x.kind === 'reviewer') d.what = `Reviewing ${x.what}`;
@@ -1938,7 +1938,7 @@ const Project = (() => {
     const a = esc(p.alias);
     const run = p.team.agents.find(x => x.kind === 'auditor')?.audit;
     const panel = run ? `<div class="p-audit" role="status" aria-label="Audit running">${win('active')}
-        <span class="t"><b>Audit running · ${run.startedMin ? `${run.startedMin} min` : 'just started'}</b><span class="s">${esc(cap1(run.stage || 'getting ready'))}</span></span>
+        <span class="t"><b>Audit running · ${run.startedMin ? `${run.startedMin} min` : 'just started'}</b><span class="s">${esc(cap1(run.stage || 'getting ready'))}${run.quietMin ? ` · quiet for ${run.quietMin} min, longer than usual` : ''}</span></span>
         ${run.checkers ? `<span class="p-stages" role="img" aria-label="${run.finished} of ${run.checkers} checkers done">${Array.from({ length: run.checkers }, (_, i) => `<i class="${i < run.finished ? 'past' : i === run.finished ? 'now' : ''}"></i>`).join('')}</span>` : ''}</div>` : '';
     const lastLine = `${p.lastAudit ? `Last audit ${when(p.lastAudit.at)}, on what was built by then.` : 'No audit has run yet.'} ${p.auditMode === 'auto' ? 'Audits start on their own once 3 tasks have finished since the last one (or a day after work lands), or when you run one.' : 'Audits run when you or the lead start one: the lead runs one at the end of each milestone.'}`;
     const by = (...s) => [...p.findings].reverse().filter(f => s.includes(f.status));
