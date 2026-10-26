@@ -37,6 +37,7 @@ Rough split (to be re-priced from real costs after the design task):
 | 5u8q | frontend | Slice 1: shell + summary endpoint + Inbox (17 it, $90) | design gate (approved 2026-10-26) | APPROVED round 2, on atelier/5u8q, owner to merge |
 | 66eq | frontend | Slice 2: Office, project + task pages, plus slice 1 follow-ups (17 it, $90), base atelier/5u8q | slice 1 (merged by owner 21:33) | APPROVED round 3, on atelier/66eq, owner to merge |
 | xhen | frontend | Slice 3: Projects, Activity, New project, Settings, palette, states, inventory sweep, plus slice 1-2 follow-ups (17 it, $90), base atelier/66eq | slice 2 | running |
+| 9pfh | designer | Office characters: references from games, three directions A1-A3 to pick, base atelier/66eq (10 it, $40). Owner request 2026-10-27; next milestone M2 (build of the picked direction as its own frontend slice after slice 3) | owner request | running |
 | — | auditor | End-of-milestone audit | slice 3 | not started |
 
 ## Ready-to-send briefs

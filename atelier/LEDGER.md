@@ -2,6 +2,9 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## 2026-10-27 ~02:30
+- Owner wants advanced Office character design ("alive but professional and smooth", game inspiration). Started designer 9pfh ($40, 10 it), parallel with xhen (no file overlap). Building the picked direction = next milestone, a frontend slice after slice 3, priced when the owner picks.
+- xhen runner crashed on the EPERM card-write race (Atelier core) when 9pfh started; lead resumed it once.
 ## Resumed by owner 2026-10-27 (xhen running). Owner pauses and resumes on demand: stop or resume xhen at once when asked.
 ## (was) PAUSED BY OWNER 2026-10-26 ~23:30
 - Owner asked to stop all workers (lag, being tabbed out). xhen stopped at try 3/17 (`atelier resume xhen` when the owner says resume). Nothing else was running. Leftover headless Edge pid 40788: owner given the command. Do not start new work until the owner says so.
