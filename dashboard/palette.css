@@ -1,0 +1,43 @@
+/* Ctrl/⌘ K palette and the ? keys sheet (DESIGN Interaction patterns › Keys). The design names the palette's job but
+   draws no palette: it is the confirm dialog's surface (.p-dialog) with the lead menu's 44 px rows (.p-pop), nearest
+   pattern per R-1. Tokens only. */
+.k-pal { width: min(560px, calc(100% - 2 * var(--space-4))); max-height: min(520px, calc(100dvh - 2 * var(--space-8))); margin: 12vh auto auto; padding: 0; display: none; border: var(--border-width) solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow-3); overflow: hidden; }
+.k-pal[open] { display: flex; flex-direction: column; animation: p-in var(--dur-base) var(--ease-enter); }
+.k-pal::backdrop { background: var(--scrim); }
+
+.k-in { display: flex; align-items: center; gap: var(--space-2-5); padding: 0 var(--space-4); border-bottom: var(--border-width) solid var(--border); }
+.k-in .icon { width: var(--size-icon); height: var(--size-icon); color: var(--text-3); flex: none; }
+.k-q { flex: 1; min-width: 0; min-height: var(--size-control-lg); padding: var(--space-3) 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: var(--text-md); line-height: var(--leading-md); }
+.k-q::placeholder { color: var(--text-3); }
+.k-pal .k-q:is(:focus, :focus-visible) { outline: none; box-shadow: none; } /* the bottom rule of .k-in is its focus mark */
+.k-pal:has(.k-q:focus-visible) .k-in { box-shadow: inset 0 calc(-1 * var(--focus-width)) 0 var(--focus-ring); }
+
+.k-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-1); }
+.k-gh { padding: var(--space-2) var(--space-2-5) var(--space-1); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); font-weight: var(--weight-medium); }
+.k-opt { display: flex; align-items: center; gap: var(--space-2-5); min-height: 44px; padding: var(--space-2) var(--space-2-5); border-radius: var(--radius-sm); color: var(--text); text-decoration: none; font-size: var(--text-sm); line-height: var(--leading-sm); cursor: pointer; }
+.k-opt:hover { background: var(--surface-hover); }
+.k-opt[aria-selected="true"] { background: var(--surface-selected); box-shadow: inset 2px 0 0 var(--focus-ring); }
+.k-opt > .icon { width: 16px; height: 16px; color: var(--text-2); flex: none; }
+.k-t { flex: 1; min-width: 0; display: grid; }
+.k-t b { font-weight: var(--weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-t small { color: var(--text-2); font-size: var(--text-xs); line-height: var(--leading-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-key { display: inline-flex; gap: var(--space-1); flex: none; }
+.k-none { margin: 0; padding: var(--space-6) var(--space-4); color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+
+.k-foot { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); padding: var(--space-2) var(--space-4); border-top: var(--border-width) solid var(--border); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+.k-foot > span { display: inline-flex; align-items: center; gap: var(--space-1); }
+
+/* The keys sheet: the confirm dialog with a two-column list */
+.k-keys { width: min(480px, calc(100% - 2 * var(--space-4))); }
+.k-dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-2) var(--space-4); margin: var(--space-2) 0 var(--space-4); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.k-dl dt { display: flex; align-items: center; gap: var(--space-1); color: var(--text-2); white-space: nowrap; }
+.k-dl dd { margin: 0; color: var(--text); }
+.k-keys p { margin-bottom: var(--space-4); font-size: var(--text-sm); }
+
+/* Phones have no ⌘K, but a keyboard on a tablet does: the palette sits at the top so the on-screen keyboard can't cover it */
+@media (max-width: 767px) {
+  .k-pal { margin-top: var(--space-4); }
+  .k-foot { display: none; }
+  .k-dl { grid-template-columns: 1fr; gap: var(--space-1); }
+  .k-dl dd { margin-bottom: var(--space-2); }
+}

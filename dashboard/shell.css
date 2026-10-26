@@ -82,8 +82,13 @@ a { color: inherit; text-decoration: none; }
   .hf-head { padding: var(--space-2) var(--space-6); border-radius: 0; }
   .hf-body { padding: var(--space-6); }
 }
+/* Keyboard focus never lands under a sticky bar: scrolling to the focused control leaves room for the page head and a
+   project's tabs above, and on a phone for the tab bar below (WCAG 2.4.11). */
+html { scroll-padding-top: calc(var(--size-topbar) + var(--space-3)); scroll-padding-bottom: var(--space-3); }
+html:has(.p-tabs) { scroll-padding-top: calc(var(--size-topbar) + 44px + var(--space-3)); }
 /* ── Phone < 768: top bar, one column, tab bar ── */
 @media (max-width: 767px) {
+  html { scroll-padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-3)); }
   .hf { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom)); }
   .hf-rail { display: none; }
   .hf-top { display: flex; }
@@ -159,7 +164,10 @@ a { color: inherit; text-decoration: none; }
 /* Phone: the top bar sticks, the head scrolls; live line drops (the top bar's spend is the freshness cue) */
 @media (max-width: 767px) {
   .hf .page-head { padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); }
-  .hf .page-head .hf-live { display: none; }
+  .hf .page-head .hf-live[data-live] { display: none; }
+  /* ...but a stale page says so, on its own line under the title (as the Projects head does) */
+  .hf .page-head:has(.hf-live[role="status"]) { flex-wrap: wrap; padding-bottom: var(--space-3); }
+  .hf .page-head .hf-live[role="status"] { order: 9; flex-basis: 100%; margin-left: 0; white-space: normal; }
   .focus-head .eyebrow a.proj { display: inline-block; min-width: 44px; text-align: center; padding: 13px 0; margin: -13px 0; }
   .dock-row:not(:has(.btn)) .dock-hint { display: block; }
 }
@@ -290,3 +298,7 @@ html[data-vt="decide"]::view-transition-old(ih), html[data-vt="decide"]::view-tr
 .hf-main > .legacy > .top .hf-live { margin-left: var(--space-3); }
 @media (max-width: 1279px) { .hf-main > .legacy > .top { border-radius: 0; } }
 @media (max-width: 767px) { .hf-main > .legacy > .top { position: static; } .hf-main > .legacy > .top .hf-live { display: none; } }
+
+/* Slice 3 screens (Projects, Activity, New project, Settings): the page wrapper takes the panel's height like .project */
+.scr { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.scr > .hf-body { flex: 1; }
