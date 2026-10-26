@@ -33,7 +33,8 @@ const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
 const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000); return m <= 0 ? 'now' : m < 60 ? `in ${m} min` : `in ${Math.floor(m / 60)} h ${m % 60} min`; };
 const money = n => `$${(n || 0).toFixed(2)}`;
-const hhmm = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const HHMM = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit' }); // one formatter: building one per call is slow on a phone
+const hhmm = t => HHMM.format(new Date(t));
 
 // ---------- icons (the design's set, atelier/design/icons.js, as one inline sprite) ----------
 const ICON = {
@@ -1241,10 +1242,19 @@ const Activity = (() => {
   const keyOf = e => `${e.ts}|${e.id}|${e.type}`;
   const word = e => EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' '));
   const KW = { needs: 'Problem: ', done: 'Good news: ', '': '' };
+  // One label per calendar day, worked out once (hundreds of events share a handful of days; date formatting is slow on a phone).
+  const dayNames = new Map();
   const dayOf = ts => {
     const d = new Date(ts), t = new Date(); t.setHours(0, 0, 0, 0);
-    const diff = Math.round((t - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / DAY);
-    return diff <= 0 ? 'Today' : diff === 1 ? 'Yesterday' : d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }).replace(',', '');
+    const k = `${t.getTime()}|${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    let name = dayNames.get(k);
+    if (name === undefined) {
+      const diff = Math.round((t - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / DAY);
+      name = diff <= 0 ? 'Today' : diff === 1 ? 'Yesterday' : d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }).replace(',', '');
+      if (dayNames.size > 50) dayNames.clear();
+      dayNames.set(k, name);
+    }
+    return name;
   };
   const linkOf = e => e.task ? `#/t/${encodeURIComponent(e.id)}` : e.project ? `#/p/${encodeURIComponent(e.project)}/overview` : '';
   const sub = e => [e.project, e.task || (e.id !== e.project ? e.id : '')].filter(Boolean).join(' · ');
