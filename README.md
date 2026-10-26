@@ -41,6 +41,7 @@ This opens the dashboard in your browser and starts it if needed. Everything wai
 
 1. Install Tailscale on the PC (tailscale.com/download) and on your phone (App Store / Play Store), and sign in to both with the same account. The free personal plan is enough.
 2. Run `atelier open`. When Tailscale is connected it prints a line like `on your phone, anywhere (Tailscale on): http://100.x.y.z:4747`. The dashboard listens only on this PC and on that address. If you started Tailscale after the dashboard, give it up to 30 seconds.
+3. With the Tailscale app switched on, open that address on your phone. Add it to your home screen if you like. Enter the access token once; the phone stays signed in for 90 days. Design mockups open on the same address, port 4748.
 
 If Windows asks whether Node.js may use the network, allow it. Use `--no-tailscale` to keep the dashboard on this PC only. To use it from the home Wi-Fi without Tailscale, run `atelier open --lan`, which opens it to every device on the home network.
 
