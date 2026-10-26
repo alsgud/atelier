@@ -2,6 +2,10 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## Slice 1 done 2026-10-26 ~17:00
+- 5u8q APPROVED round 2 (round 1 must-fix: double exposure leaving Inbox zero). Lead checked inbox-gate-1440-dark (matches mockup) and inbox-real-390-dark (real data, matches). Evidence: ~/.atelier/runs/5u8q/evidence/. Owner to merge atelier/5u8q to use it (restart: the service restarts the dashboard within 5 min).
+- 66eq slice 2 started on base atelier/5u8q, includes reviewer follow-ups (cold first switch, Office wrap at 390, cache overview helpers). Still open from review: phone Inbox zero has no stale line (designer question); answered questions don't show in Decided today (answered event lacks who; Atelier core).
+
 ## Build started 2026-10-26 13:35
 - Design gate APPROVED by owner ("Good"), recommended UX answers accepted. 6dug + whole design chain merged to main by owner. The review-task notes below are settled. hspr, ysk4, 6umt, pjv7, 57cv still show "review" but their branches are in main; Atelier's tick marks a merged branch done on its own (it did 6dug and 68h6), so nothing to do. Correction: tick only closes a branch that is an ancestor of its own base, so chained branches never close; lead closed 57cv, hspr, ysk4, 6umt, pjv7, tkvt with `atelier close` (worth telling the owner: core quirk). 5u8q is queued behind two replay tasks (c8pn, qsg9) using both parallel slots; it starts by itself when one frees.
 - 5u8q slice 1 (shell, one summary, Inbox) queued, $30 / 12 it. Next: when it reaches review, check the proof myself, then slice 2 brief (PLAN), then slice 3.

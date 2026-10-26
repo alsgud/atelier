@@ -34,8 +34,8 @@ Rough split (to be re-priced from real costs after the design task):
 | ysk4 | designer | D4b: brand round 2 (N1-N11, K1-K3) | R-6 | done, owner picked N1 + K1 (R-7) |
 | 6umt | designer | D5: UX research + walkthrough with numbered decisions ($22, 8 it) | R-8 | running |
 | — | designer | D6: every screen high-fi in N1 + K1 dark-first, from D5 answers (old D4 brief below + R-3 motion) | owner answers UX decisions | not started |
-| 5u8q | frontend | Slice 1: shell + summary endpoint + Inbox (12 it, $30) | design gate (approved 2026-10-26) | queued |
-| — | frontend | Slice 2: project + task pages | slice 1 | not started |
+| 5u8q | frontend | Slice 1: shell + summary endpoint + Inbox (17 it, $90) | design gate (approved 2026-10-26) | APPROVED round 2, on atelier/5u8q, owner to merge |
+| 66eq | frontend | Slice 2: Office, project + task pages, plus slice 1 follow-ups (17 it, $90), base atelier/5u8q | slice 1 | queued |
 | — | frontend | Slice 3: office, new project, settings | slice 2 | not started |
 | — | auditor | End-of-milestone audit | slice 3 | not started |
 
