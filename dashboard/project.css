@@ -291,3 +291,8 @@
   .p-figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1) var(--space-4); }
   .p-figs > span + span::before { content: none; }
 }
+
+/* dashboard: sections off screen are not styled or laid out until they near the view (AC-18: the first switch to a
+   project or task page on a phone was one long style + layout task). Not the task's question: its dock is sticky.
+   The clip margin keeps focus halos on edge rows whole. */
+.p-sec:not(.t-ask), .p-fact { content-visibility: auto; contain-intrinsic-block-size: auto 320px; overflow-clip-margin: var(--space-3); }

@@ -119,3 +119,7 @@
   .desk-what { font-size: var(--text-base); line-height: var(--leading-base); }
   .floor-quiet .num { margin-left: 0; }
 }
+
+/* dashboard: a floor off screen is not styled or laid out until it nears the view (AC-18: the first switch to the
+   Office on a phone was one long style + layout task). The clip margin keeps focus halos on edge desks whole. */
+.floor { content-visibility: auto; contain-intrinsic-block-size: auto 560px; overflow-clip-margin: var(--space-3); }
