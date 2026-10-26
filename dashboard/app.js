@@ -1823,6 +1823,8 @@ const Project = (() => {
     const n = x.prog || (t.iteration ? [t.iteration, t.iterations, 'try'] : null);
     if (n && s !== 'queued' && s !== 'done') v.prog = `Try ${n[0]} of ${n[1]}`;
     v.ago = v.paced ? '' : x.lastAt ? longAgo(x.lastAt) : s === 'done' ? longAgo(t.updated) : '';
+    // The runner's heartbeat touches a paced task's card every minute: its time is when it last did something.
+    v.at = v.paced && x.lastAt ? x.lastAt : t.updated;
     v.word = v.k === 'active' ? 'Working' : v.k === 'done' ? 'Done' : s === 'needs-you' ? 'Needs you' : v.paced ? 'Waiting' : v.who === 'Next' ? 'Next' : STATUS_WORD[s] || 'Waiting';
     return v;
   }
@@ -1899,7 +1901,7 @@ const Project = (() => {
         // A paced task stays in its status group (the summary counts it there) but reads as waiting: no ETA, not lit.
         const sub = v.paced ? `${v.who} · ${v.step}${v.prog ? ` · ${v.prog}` : ''}` : s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${t.reason ? ` · ${t.reason}` : ''}`;
         const eta = s === 'running' && t.eta && !v.paced ? `about ${t.eta.low}–${t.eta.high} min left` : '';
-        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${v.paced ? v.word : label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(t.updated)}`)}">${dot(v.paced ? '' : k, v.paced ? v.word : label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${tries(t)}<span class="p-id">${esc(t.id)}</span>${esc(when(t.updated))}</span></a>`;
+        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${v.paced ? v.word : label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(v.paced ? '' : k, v.paced ? v.word : label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${tries(t)}<span class="p-id">${esc(t.id)}</span>${esc(when(v.at))}</span></a>`;
       }).join('');
       return `<section class="p-sec"><h3 class="p-h3">${label} <span class="n">${by[s]}</span></h3><div class="p-rows">${rows}</div></section>`;
     }).join('');
@@ -2246,7 +2248,7 @@ const Task = (() => {
       case 'paused': Object.assign(v, { step: /owner/.test(reason) ? 'You stopped it' : 'Paused', why: 'This try’s work is kept as it is. The lead decides what happens next.' }); break;
       default: Object.assign(v, { step: v.word, why: reason ? `${cap1(reason)}.` : '' });
     }
-    v.label = v.k === 'done' ? `${role} · finished ${longAgo(T.updated)}` : (s === 'running' && !paced) || s === 'needs-you' ? `${role} · now` : `${role} · ${when(T.updated)}`;
+    v.label = v.k === 'done' ? `${role} · finished ${longAgo(T.updated)}` : (s === 'running' && !paced) || s === 'needs-you' ? `${role} · now` : `${role} · ${when(paced && ag.lastAt ? ag.lastAt : T.updated)}`; // a paced card's updated is the runner's heartbeat
     v.last = ag.lastAt || T.updated;
     // Building fills to tries used of those it is likely to need; other stages have no measure, so their bar is whole.
     v.fill = v.stage === 1 && n ? Math.round(100 * n / Math.max(n, Number(T.eta?.expected) || of || n)) : 100;
