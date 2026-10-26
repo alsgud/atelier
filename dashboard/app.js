@@ -301,7 +301,7 @@ async function route({ refreshing = false, wait = false } = {}) {
       if (kind === 'p' && a && b === 'activity') { history.replaceState(null, '', `#/activity?p=${a}`); return await Activity.show(false); }
       if (kind === 'p' && a) return await Project.show(decodeURIComponent(a), b || 'overview', c ? decodeURIComponent(c) : c, refreshing, wait);
       if (kind === 't' && a) return await Task.show(decodeURIComponent(a), refreshing);
-      if (kind === 'new') return renderNew();
+      if (kind === 'new') return New.show();
       if (kind === 'projects') return Projects.show();
       if (kind === 'activity') return await Activity.show(refreshing, wait);
       if (kind === 'office') return Office.show();
@@ -2354,35 +2354,117 @@ const Task = (() => {
 })();
 
 // ---------- new project ----------
-function renderNew() {
-  if ($('new-form')) return; // a refresh never wipes what the owner is typing
-  legacy(`${topbar('<a href="#/projects">Projects</a><span>/</span><b>New project</b>')}
-    <div class="page"><form id="new-form" class="form">
-      <div class="f"><label for="nf-name">Name</label><input type="text" id="nf-name" name="name" placeholder="Pocket Garden" required autocomplete="off"></div>
-      <div class="f"><label for="nf-desc">One line about it <span class="faint">(optional)</span></label><input type="text" id="nf-desc" name="description" placeholder="A tiny idle game about growing a garden"></div>
-      <fieldset><legend>Team</legend>
-        <label class="opt"><input type="radio" name="roster" value="pair"><div><b>Pair</b><span>Builder + reviewer. Small apps and quick ideas.</span></div></label>
-        <label class="opt"><input type="radio" name="roster" value="team" checked><div><b>Team</b><span>Designer, frontend, backend, reviewer. Web apps.</span></div></label>
-        <label class="opt"><input type="radio" name="roster" value="game"><div><b>Game</b><span>Game designer, gameplay, systems, reviewer.</span></div></label>
-      </fieldset>
-      <fieldset><legend>Shipping</legend>
-        <label class="opt"><input type="radio" name="ship" value="merge" checked><div><b>Straight to main</b><span>After checks and review pass. For your own projects.</span></div></label>
-        <label class="opt"><input type="radio" name="ship" value="pr"><div><b>Draft PRs</b><span>You merge each one. For client work.</span></div></label>
-      </fieldset>
-      <label class="tick"><input type="checkbox" name="github" checked> Private GitHub repo</label>
-      <label class="tick"><input type="checkbox" name="startLead" checked> Start the lead now</label>
-      <div class="btns" style="margin-top:18px"><button class="btn primary" type="submit">Create project</button><a class="btn ghost" href="#/inbox">Cancel</a></div>
-    </form></div>`);
-  $('new-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    const btn = e.target.querySelector('button[type=submit]');
-    btn.disabled = true; btn.textContent = 'Creating…';
-    const r = await act({ action: 'project-create', name: f.get('name'), description: f.get('description'), roster: f.get('roster'), ship: f.get('ship'), github: f.get('github') === 'on', startLead: f.get('startLead') === 'on' }, 'Project created');
-    if (r && r.alias) location.hash = `#/p/${encodeURIComponent(r.alias)}/overview`;
-    else { btn.disabled = false; btn.textContent = 'Create project'; }
-  });
-}
+// D6 New project (UX-12 B): one field that grows from a line into the brief draft (the lead reads it in full), team,
+// shipping, repo, start the lead; "What happens next" beside it follows the choices. Same action as before: project-create.
+const New = (() => {
+  const isBrief = s => s.length > 280 || /\n/.test(s.trim());
+  const words = s => (s.trim().match(/\S+/g) || []).length;
+  const hint = s => !s.trim() ? 'One line is enough. Paste a whole brief if you have one.'
+    : isBrief(s) ? `<b>Reads as your brief draft</b> · <span class="num">${words(s)}</span> words. The lead starts from it, in full, instead of a blank page.`
+    : 'The lead turns this into a charter for you to approve.';
+  const repoLine = n => (n ? `${esc(n)}, on your account` : 'Named after the project, on your account');
+  const choice = (name, val, title, sub, on) => `<label class="choice is-two"><input type="radio" name="${name}" value="${val}"${on ? ' checked' : ''}><span><b>${title}</b><small>${sub}</small></span></label>`;
+  const next = o => `<ol class="n-next">
+      <li><b>Atelier makes the folder${o.repo ? ` and a private GitHub repo${o.name ? `, <span class="num">${esc(o.name)}</span>` : ''}` : ''}.</b><span>A few seconds.</span></li>
+      ${o.lead ? `<li><b>The lead reads your ${o.brief ? 'brief' : 'description'} and drafts a charter.</b><span>About ten minutes. You can watch it in the Office.</span></li>
+      <li><b>You approve the charter in the Inbox.</b><span>Nothing else to do until then.</span></li>`
+      : '<li><b>The project waits with the lead off.</b><span>Start the lead from the project page when you’re ready.</span></li>'}
+    </ol>`;
+  const nameError = s => (!s ? 'Give it a name.' : !/^[a-z0-9][a-z0-9-]*$/.test(s) ? 'Use lowercase letters, numbers and dashes.'
+    : (state?.projects || []).some(p => p.alias === s) ? `${esc(s)} already exists. Pick another name.` : '');
+
+  function show() {
+    if ($('n-form')) return; // a refresh never wipes what the owner is typing
+    $('view').innerHTML = `<div class="scr news"><header class="hf-head"><a class="back" href="#/projects">${I('chevron-left')}<span>Projects</span></a><h1>New project</h1></header>
+      <div class="hf-body"><div class="n-grid">
+      <form class="f-form n-form" id="n-form" novalidate>
+        <div class="field">
+          <label class="field-label" for="n-name">Name</label>
+          <input class="input n-name" id="n-name" name="name" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="n-name-help">
+          <span class="field-help" id="n-name-help">Lowercase letters, numbers and dashes. Used for the folder and the GitHub repo.</span>
+        </div>
+        <div class="field n-desc" data-desc>
+          <label class="field-label" for="n-desc">What it is <span class="faint">(one line, or paste a whole brief)</span></label>
+          <textarea class="input" id="n-desc" name="desc" rows="2" aria-describedby="n-desc-hint" placeholder="A tide-times app for the three beaches near home…"></textarea>
+          <span class="field-help n-hint" id="n-desc-hint" aria-live="polite">${I('plan')}<span>${hint('')}</span></span>
+        </div>
+        <fieldset class="f-sec"><legend>Team</legend>
+          <div class="f-row3">
+            ${choice('roster', 'pair', 'Pair', 'A lead, a builder and a reviewer. For small things.')}
+            ${choice('roster', 'team', 'Team', 'Lead, designer, frontend, backend, reviewer.', true)}
+            ${choice('roster', 'game', 'Game', 'Lead, game designer, gameplay, systems, reviewer.')}
+          </div>
+        </fieldset>
+        <fieldset class="f-sec"><legend>Shipping</legend>
+          <div class="f-row2">
+            ${choice('ship', 'pr', 'Draft pull requests', 'You merge each one.', true)}
+            ${choice('ship', 'merge', 'Straight to main', 'Reviewed work lands by itself.')}
+          </div>
+        </fieldset>
+        <div class="f-checks">
+          <label class="f-check"><input type="checkbox" name="github" checked><span>Make a private GitHub repo<small data-repo-name>${repoLine('')}</small></span></label>
+          <label class="f-check"><input type="checkbox" name="lead" checked><span>Start the lead now<small>It drafts the charter first; you approve it in the Inbox.</small></span></label>
+        </div>
+        <div class="n-fail" data-fail role="alert" hidden></div>
+        <div class="f-actions"><button class="btn btn-primary" type="submit" data-create>Create project</button><a class="btn btn-ghost" href="#/projects">Cancel</a></div>
+      </form>
+      <aside class="n-aside" aria-labelledby="n-next-h"><h2 class="section-label" id="n-next-h">What happens next</h2><div data-next>${next({ repo: true, lead: true, name: '', brief: false })}</div></aside>
+      </div></div></div>`;
+    wire($('n-form'));
+  }
+
+  function wire(f) {
+    const ta = f.desc, nm = f.name, view = $('view');
+    let kind = 'empty';
+    const sync = () => {
+      const s = ta.value, b = isBrief(s), k = b ? 'brief' : s.trim() ? 'line' : 'empty';
+      view.querySelector('[data-desc]').classList.toggle('is-brief', b);
+      // New words rise in (hf-tick) when the hint changes kind; the word count changes in place.
+      const el = view.querySelector('.n-hint > span');
+      if (k !== kind) el.replaceWith(Object.assign(document.createElement('span'), { innerHTML: hint(s) }));
+      else if (b) el.innerHTML = hint(s);
+      kind = k;
+      view.querySelector('[data-repo-name]').innerHTML = repoLine(nm.value.trim());
+      view.querySelector('[data-next]').innerHTML = next({ repo: f.github.checked, lead: f.lead.checked, name: nm.value.trim(), brief: b });
+    };
+    f.addEventListener('input', sync); f.addEventListener('change', sync);
+    const err = msg => {
+      $('n-name-err')?.remove();
+      if (!msg) { nm.removeAttribute('aria-invalid'); nm.setAttribute('aria-describedby', 'n-name-help'); return true; }
+      nm.setAttribute('aria-invalid', 'true'); nm.setAttribute('aria-describedby', 'n-name-help n-name-err');
+      nm.insertAdjacentHTML('afterend', `<span class="field-error" id="n-name-err">${I('alert')}<span>${msg}</span></span>`);
+      return false;
+    };
+    const check = () => err(nameError(nm.value.trim()));
+    nm.addEventListener('blur', () => { if (nm.value || nm.hasAttribute('aria-invalid')) check(); });
+    nm.addEventListener('input', () => { if (nm.hasAttribute('aria-invalid') && !nameError(nm.value.trim())) err(''); });
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      const b = f.querySelector('[data-create]');
+      if (b.disabled) return;
+      if (!check()) { nm.focus(); return; }
+      const name = nm.value.trim(), fail = f.querySelector('[data-fail]');
+      const again = b.textContent !== 'Create project';
+      b.setAttribute('aria-busy', 'true'); b.disabled = true; b.textContent = 'Creating…';
+      const done = text => { b.removeAttribute('aria-busy'); b.disabled = false; b.textContent = text; };
+      try {
+        const r = await post({ action: 'project-create', name, description: ta.value.trim(), roster: f.roster.value, ship: f.ship.value, github: f.github.checked, startLead: f.lead.checked });
+        await refresh().catch(() => {});
+        location.hash = `#/p/${encodeURIComponent(r?.alias || name)}/overview`;
+        // The project is made even when GitHub said no: say so, the project page shows where its work goes.
+        const gh = (r?.steps || []).find(s => /^couldn't create the GitHub repo/.test(s));
+        if (gh) toast(`${cap1(gh)}. Work stays on local branches.`, { error: true });
+      } catch (x) {
+        if (/already exists/.test(x.message)) { done(again ? 'Try again' : 'Create project'); fail.hidden = true; err(`${esc(name)} already exists. Pick another name.`); nm.focus(); return; }
+        done('Try again');
+        const net = /fetch|network/i.test(x.message);
+        fail.innerHTML = `${I('alert')}<span><b>Couldn’t create ${esc(name)}.</b> ${net ? 'Atelier didn’t answer, so nothing was made. Try again.' : `${esc(cap1(x.message))}.`}</span>`;
+        fail.hidden = false;
+      }
+    });
+  }
+  return { show };
+})();
 
 // ---------- markdown (escaped first, so agent-written text can't inject markup) ----------
 function md(src) {
