@@ -834,7 +834,7 @@ const Inbox = (() => {
     S.active = true;
     const prevKeys = list().map(x => x.id).join('|'), prevOpen = S.open;
     if (state) sync();
-    if (key && key !== S.open && !refreshing) { S.open = key; S.dock = 'ready'; S.note = ''; S.choice = ''; }
+    if (key && key !== S.open && (fresh || !refreshing)) { S.open = key; S.dock = 'ready'; S.note = ''; S.choice = ''; }
     if (fresh || !refreshing) { render(true); return; }
     // A refresh while the owner reads: the open item, its folds and the note being typed stay as they are;
     // only the head and the queue (counts, rows, Working now) are redrawn, and only when they changed.

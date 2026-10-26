@@ -132,6 +132,13 @@ a { color: inherit; text-decoration: none; }
 .doc h3 { margin: 0 0 var(--space-1); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--weight-semibold); }
 .doc p { margin: 0 0 var(--space-3); color: var(--text-2); }
 .doc p:last-child { margin: 0; }
+/* dashboard: agent text arrives as markdown (md()), so its headings and paragraphs take the same look */
+.doc .md :is(h3, h4, h5, h6) { margin: 0 0 var(--space-1); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--weight-semibold); }
+.doc .md p, .doc .md ul, .doc .md ol { margin: 0 0 var(--space-3); color: var(--text-2); }
+.doc .md > :last-child { margin-bottom: 0; }
+.quote .md p { margin: 0 0 var(--space-2); }
+.quote .md p:last-child { margin: 0; }
+.focus .md code, .quote code { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 4px; border-radius: var(--radius-xs); background: var(--surface-sunken); }
 /* Three frames with no "+N more" tile: the first full width, two halves under it (no hole in the third column; S3) */
 .frames.is-hero:not(:has(.frame-more)) { --cols: 2; }
 /* A dock with nothing to decide: just its sentence */
