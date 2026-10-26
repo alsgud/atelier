@@ -4,6 +4,7 @@
 
 ## 2026-10-27 ~02:30
 - Owner wants advanced Office character design ("alive but professional and smooth", game inspiration). Started designer 9pfh ($40, 10 it), parallel with xhen (no file overlap). Building the picked direction = next milestone, a frontend slice after slice 3, priced when the owner picks.
+- 9pfh writes its section in atelier/design/office-chars/CHARACTERS.md (DESIGN.md frozen). When the owner picks: reopen the design gate with the owner's words, add a "## Office characters (D7)" pointer to DESIGN.md, re-request the gate.
 - xhen runner crashed on the EPERM card-write race (Atelier core) when 9pfh started; lead resumed it once.
 ## Resumed by owner 2026-10-27 (xhen running). Owner pauses and resumes on demand: stop or resume xhen at once when asked.
 ## (was) PAUSED BY OWNER 2026-10-26 ~23:30
