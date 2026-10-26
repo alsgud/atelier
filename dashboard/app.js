@@ -2100,17 +2100,24 @@ const Project = (() => {
     $('view').innerHTML = `<div class="project" data-key=""><header class="hf-head"><a class="back" href="#/projects">${I('chevron-left')}<span>Projects</span></a><h1>${esc(a)}</h1><span class="end">${liveLine()}</span></header>${tabs(a, tab, null)}<div class="hf-body">${loadError(`The ${a} page`)}</div></div>`;
     pageKey = '';
   }
+  // The server doesn't know this project (404): say so with a way back, and don't retry (Settings' unknown project).
+  function missing(a) {
+    $('view').innerHTML = `<div class="project" data-key=""><header class="hf-head"><a class="back" href="#/projects">${I('chevron-left')}<span>Projects</span></a><h1>${esc(a)}</h1><span class="end">${liveLine()}</span></header><div class="hf-body"><p class="p-empty"><b>There’s no project called ${esc(a)}.</b><span><a class="link" href="#/projects">All projects</a></span></p></div></div>`;
+    pageKey = `missing:${a}`;
+  }
 
   async function show(a, tab, sub, refreshing, wait) {
     if (tab === 'criteria') tab = 'outcomes';
     if (!TABS.includes(tab)) tab = 'overview';
     const hash = location.hash;
     const had = seen.get(a);
+    if (refreshing && pageKey === `missing:${a}`) return;
     if (had && !(refreshing && pageKey.startsWith(`${a}/`))) draw(had, tab, sub);
     else if (!had) loading(a, tab);
     let p;
     try { p = await get(`/api/project/${encodeURIComponent(a)}${wait ? '?wait' : ''}`); } catch (e) {
       if (e.message === 'signed out') throw e;
+      if (location.hash === hash && e.message === 'HTTP 404') { seen.delete(a); missing(a); return; }
       if (location.hash === hash && !had) error(a, tab);
       return;
     }
@@ -2468,15 +2475,24 @@ const Task = (() => {
     $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back(row.project)}<h1>${esc(row.title || id)}</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('This task')}</div></div>`;
     pageId = '';
   }
+  // The server doesn't know this task (404): say so with a way back, and don't retry (Settings' unknown project).
+  let gone = '';
+  function missing(id) {
+    $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back('')}<h1>${esc(id)}</h1><span class="end">${liveLine()}</span></header><div class="hf-body"><p class="p-empty"><b>There’s no task called ${esc(id)}.</b><span><a class="link" href="#/projects">All projects</a></span></p></div></div>`;
+    pageId = ''; gone = id;
+  }
 
   async function show(id, refreshing) {
     const hash = location.hash, had = seen.get(id);
+    if (refreshing && gone === id && !pageId) return;
+    gone = '';
     if (had && !(refreshing && pageId === id)) draw(had);
     else if (!had) loading(id);
     let t;
     try { t = await get(`/api/task/${encodeURIComponent(id)}`); } catch (e) {
       if (e.message === 'signed out') throw e;
       if (location.hash !== hash) return;
+      if (e.message === 'HTTP 404') { seen.delete(id); missing(id); return; }
       if (had) draw(had); else error(id); // a failed refresh keeps the page, marked stale
       return;
     }
@@ -2695,7 +2711,16 @@ const New = (() => {
       return false;
     };
     const check = () => err(nameError(nm.value.trim()));
-    nm.addEventListener('blur', () => { if (nm.value || nm.hasAttribute('aria-invalid')) check(); });
+    const blurCheck = () => { if (nm.value || nm.hasAttribute('aria-invalid')) check(); };
+    // Pressing Create blurs Name; an error line inserted then would push the button out from under the click and
+    // lose it. Hold the check until the press ends: the click's submit checks and focuses Name, else check then.
+    let pressing = false;
+    f.querySelector('[data-create]').addEventListener('pointerdown', () => {
+      pressing = true;
+      const end = () => { removeEventListener('pointerup', end); removeEventListener('pointercancel', end); setTimeout(() => { pressing = false; if (document.activeElement !== nm) blurCheck(); }); };
+      addEventListener('pointerup', end); addEventListener('pointercancel', end);
+    });
+    nm.addEventListener('blur', () => { if (!pressing) blurCheck(); });
     nm.addEventListener('input', () => { if (nm.hasAttribute('aria-invalid') && !nameError(nm.value.trim())) err(''); });
     f.addEventListener('submit', async e => {
       e.preventDefault();
