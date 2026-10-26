@@ -1354,6 +1354,7 @@ async function renderTask(id) {
               if (!u) return `<span class="hint">${esc(f.name)}</span>`;
               if (f.image) return `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="${esc(f.name)}" loading="lazy"></a>`;
               if (f.video) return `<video src="${esc(u)}" controls preload="metadata"></video>`;
+              if (f.audio) return `<figure class="aud"><figcaption>${esc(f.name)}</figcaption><audio src="${esc(u)}" controls preload="none"></audio></figure>`;
               return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(f.name)}</a>`;
             }).join('')}</div></div>` : ''}
         <div class="sec">Timeline</div>

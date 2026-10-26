@@ -1,0 +1,5 @@
+
+/* Audio proof (voice projects): label above a full-width player. */
+.evid .aud { margin: 0; grid-column: 1 / -1; }
+.evid .aud figcaption { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.evid .aud audio { width: 100%; }
