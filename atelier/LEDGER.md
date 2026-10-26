@@ -5,6 +5,9 @@
 ## 2026-10-26 21:36
 - Owner merged 5u8q (slice 1 live) and raised Atelier's plan ceilings to 90% (5h) / 90% (week). A paced runner sleeps to its fixed time and ignores new ceilings, so the lead stopped and resumed 66eq once. 66eq round 1 review: changes; builder fixing.
 
+- 66eq round 2 must-fix: a paced task shows as working and stuck. Lead ruled: paced tasks are not counted in working; add a read-only paced count to the summary; wording "Waiting for your plan window, carries on at HH:MM"; dim desk. Answered 21:53.
+- 21:41 window guard closed Chrome New Tab, the Tailscale installer and its setup window, blamed on 66eq: almost certainly the owner's own (second false positive). Told the owner. Atelier core fix, the owner's call.
+
 ## Slice 1 done 2026-10-26 ~17:00
 - 5u8q APPROVED round 2 (round 1 must-fix: double exposure leaving Inbox zero). Lead checked inbox-gate-1440-dark (matches mockup) and inbox-real-390-dark (real data, matches). Evidence: ~/.atelier/runs/5u8q/evidence/. Owner to merge atelier/5u8q to use it (restart: the service restarts the dashboard within 5 min).
 - 66eq slice 2 started on base atelier/5u8q, includes reviewer follow-ups (cold first switch, Office wrap at 390, cache overview helpers). Still open from review: phone Inbox zero has no stale line (designer question); answered questions don't show in Decided today (answered event lacks who; Atelier core).
