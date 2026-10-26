@@ -2,7 +2,7 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
-## Resumed by owner 2026-10-27 (xhen running again)
+## PAUSED BY OWNER again 2026-10-27: xhen stopped; resume only when the owner says so
 ## (was) PAUSED BY OWNER 2026-10-26 ~23:30
 - Owner asked to stop all workers (lag, being tabbed out). xhen stopped at try 3/17 (`atelier resume xhen` when the owner says resume). Nothing else was running. Leftover headless Edge pid 40788: owner given the command. Do not start new work until the owner says so.
 
