@@ -1,0 +1,292 @@
+/* The dashboard's shell and Inbox, lifted from the approved D6 high-fi (atelier/design/screens2/hf.css + inbox.css).
+   Shell: Y1 sidebar ≥ 1280, 64 px rail 768–1279, top bar + tab bar < 768. Built only from tokens.css and
+   components.css. Changes from the mockup are marked "dashboard:" and logged in the task's DECISIONS.md. */
+html, body { background: var(--bg); }
+body { color: var(--text); font-family: var(--font-sans); font-size: var(--text-base); line-height: var(--leading-base); margin: 0; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+.num, .hf-sum, .count { font-variant-numeric: tabular-nums; }
+.icon { stroke-width: 1.75; }
+.lockup { display: inline-flex; align-items: center; gap: 0.5em; color: var(--text); line-height: 1; white-space: nowrap; }
+.lockup .wm { font-weight: var(--weight-semibold); letter-spacing: -0.02em; }
+.skip { position: absolute; left: var(--space-2); top: -60px; z-index: 60; }
+.skip:focus { top: var(--space-2); }
+
+/* ── Shell ── */
+.hf { min-height: 100vh; display: grid; grid-template-columns: var(--size-sidebar) minmax(0, 1fr); }
+.hf-side { position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.hf-side .nav-item .count { transition: opacity var(--dur-fast); }
+.hf-rail, .hf-top, .hf-tabs { display: none; }
+.hf-rail { flex-direction: column; align-items: center; gap: var(--space-1); padding: var(--space-3) 0; width: 64px; position: sticky; top: 0; height: 100vh; border-right: var(--border-width) solid var(--border); }
+.hf-rail .brand { display: grid; place-items: center; height: 44px; margin-bottom: var(--space-2); }
+.hf-rail a { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-sm); color: var(--text-2); transition: background-color var(--dur-fast), color var(--dur-fast); }
+.hf-rail a:hover { background: var(--surface-hover); color: var(--text); }
+.hf-rail a[aria-current="page"] { background: var(--surface-selected); color: var(--text); }
+.hf-rail .rc { position: absolute; top: 3px; right: 1px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: var(--radius-full); font-size: 10px; line-height: 16px; text-align: center; font-weight: var(--weight-semibold); background: var(--surface-selected); color: var(--text-2); }
+.hf-rail .rc.is-needs { background: var(--needs); color: var(--text-on-needs); }
+.hf-rail .rc.is-active { background: var(--active-soft); color: var(--active); }
+.hf-rail .ini { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-2); }
+.hf-rail .ini + .dot { position: absolute; bottom: 7px; right: 7px; width: 6px; height: 6px; }
+.hf-rail hr { width: 32px; border: 0; border-top: var(--border-width) solid var(--border); margin: var(--space-2) 0; }
+.hf-rail .push { margin-top: auto; }
+.hf-top { align-items: center; gap: var(--space-2); height: var(--size-topbar); padding: 0 var(--space-1) 0 var(--space-4); border-bottom: var(--border-width) solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 20; }
+.hf-top .brand { display: inline-flex; align-items: center; min-height: 44px; }
+.hf-top .spend { margin-left: auto; font-size: var(--text-sm); color: var(--text-2); display: flex; align-items: center; gap: var(--space-1); min-height: 44px; padding: 0 var(--space-2); }
+.hf-top .spend b { color: var(--text); font-weight: var(--weight-medium); }
+.hf-top .gear { display: grid; place-items: center; width: 44px; height: 44px; color: var(--text-2); border-radius: var(--radius-sm); }
+.hf-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; }
+
+/* The app panel (desk: inset 8, radius 14) */
+.hf-main { margin: var(--space-2) var(--space-2) var(--space-2) 0; min-height: calc(100vh - 2 * var(--space-2)); background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); display: flex; flex-direction: column; min-width: 0; }
+.hf-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); min-height: var(--size-topbar); padding: var(--space-2) var(--space-8); border-bottom: var(--border-width) solid var(--border); position: sticky; top: 0; z-index: 10; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.hf-head h1 { font-size: var(--text-base); line-height: var(--leading-base); font-weight: var(--weight-semibold); margin: 0; }
+.hf-sum { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.hf-sum .is-needs { color: var(--needs); font-weight: var(--weight-medium); }
+.hf-sum .is-active { color: var(--active); }
+.hf-head .end { margin-left: auto; display: flex; gap: var(--space-2); align-items: center; }
+.hf-head .back { color: var(--text-2); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
+.hf-head .back:hover { color: var(--text); }
+/* The live line: how fresh the page is. Neutral always; it never alarms (§5 states). */
+.hf-live { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); white-space: nowrap; }
+.hf-live .icon { width: 14px; height: 14px; }
+.hf-body { flex: 1; padding: var(--space-8); display: grid; gap: var(--space-8); align-content: start; }
+
+/* A neutral notice inside the page: it retries by itself, so it is not red (§5: red only if the owner must act). */
+.hf-notice { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-sunken); border: var(--border-width) solid var(--border); color: var(--text); }
+.hf-notice > .icon { color: var(--text-2); }
+.hf-notice .t { flex: 1; min-width: 200px; }
+.hf-notice .t small { display: block; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+
+/* Empty: one serif line, one sentence, at most one action */
+.hf-empty { display: grid; justify-items: start; gap: var(--space-3); max-width: 520px; padding: var(--space-10) 0; }
+.hf-empty h2 { font-family: var(--font-display); font-weight: var(--weight-regular); font-size: var(--text-xl); line-height: var(--leading-xl); letter-spacing: var(--tracking-display); margin: 0; }
+.hf-empty p { margin: 0 0 var(--space-2); color: var(--text-2); font-size: var(--text-md); line-height: var(--leading-md); }
+
+/* Live figures change in place: the new value rises 4 px (Flow, §6 "live figures"). */
+.is-tick { animation: hf-tick var(--dur-slow) var(--ease-enter); display: inline-block; }
+@keyframes hf-tick { from { opacity: 0; transform: translateY(var(--shift-sm)); } }
+
+/* The floor's windows, one per desk: the glance before the desks (aria-hidden; the sentence says the same) */
+.strip { display: inline-flex; gap: 3px; align-items: flex-end; }
+.strip i { width: 9px; height: 12px; border-radius: 4.5px 4.5px 1px 1px; background: var(--surface-selected); transition: background-color var(--dur-slow) var(--ease-enter); }
+.strip i[data-k="active"] { background: var(--active); }
+.strip i[data-k="done"] { background: var(--done); }
+.strip i[data-k="needs"] { background: var(--surface-selected); box-shadow: inset 0 -3px 0 var(--needs); }
+.strip i[data-k="off"] { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+/* ── Middle 768–1279: rail, panel full bleed (UX-7 A) ── */
+@media (max-width: 1279px) {
+  .hf { grid-template-columns: 64px minmax(0, 1fr); }
+  .hf-side { display: none; }
+  .hf-rail { display: flex; }
+  .hf-main { margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .hf-head { padding: var(--space-2) var(--space-6); border-radius: 0; }
+  .hf-body { padding: var(--space-6); }
+}
+/* ── Phone < 768: top bar, one column, tab bar ── */
+@media (max-width: 767px) {
+  .hf { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom)); }
+  .hf-rail { display: none; }
+  .hf-top { display: flex; }
+  .hf-tabs { display: grid; }
+  .hf-head { padding: var(--space-2) var(--space-4); position: static; }
+  .hf-head .back { min-height: var(--size-control-lg); }
+  .hf-body { padding: var(--space-5) var(--space-4) var(--space-10); gap: var(--space-6); }
+  .hf-empty { padding: var(--space-6) 0; }
+  .hf-empty .btn { height: var(--size-control-lg); }
+  .hf-notice .btn { height: var(--size-control-lg); }
+}
+/* Full-page screenshots (?shot): bars that stick sit in flow so they don't land mid-image */
+.is-shot .hf-top, .is-shot .hf-tabs, .is-shot .hf-side, .is-shot .hf-rail, .is-shot .hf-head { position: relative; top: auto; bottom: auto; }
+.is-shot .hf-side, .is-shot .hf-rail { height: auto; min-height: 100vh; }
+.is-shot .hf { padding-bottom: 0; }
+/* D6 high-fi Inbox (screens2/inbox.html). Two parts: (1) the Flow choreography, copied unchanged from the chosen
+   Flow Inbox (brand/r2/app/inbox.html ← feel/flow/inbox.html), so every decision, undo and slide moves as approved;
+   (2) the D6 fit: the hf shell (sidebar / 64 px rail / top bar + tab bar), the window glyph in Working now, the
+   charter diff, and the bits the new item kinds need. Only tokens. */
+
+/* ── (2) D6 fit ── */
+.hf-slot { display: contents; }
+/* The engine's page head is the D6 head: same height and padding as .hf-head, live line at the end. */
+.hf .page-head { padding: var(--space-2) var(--space-8); flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
+.hf .page-head .hf-live { margin-left: auto; }
+.hf .page-head .pager + .hf-live { margin-left: var(--space-4); }
+/* The project in the eyebrow is a link (inventory: "project link") */
+.focus-head .eyebrow a.proj { color: inherit; text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; border-radius: var(--radius-xs); }
+.focus-head .eyebrow a.proj:hover { color: var(--text); text-decoration-color: currentColor; }
+/* Working now: the Office's lit window instead of a dot, so a working agent looks the same on every screen */
+.agent-dot .dot-active { width: 9px; height: 12px; border-radius: 4.5px 4.5px 1px 1px; box-shadow: 0 0 6px color-mix(in srgb, var(--active) 55%, transparent); }
+.agent-dot .dot-active.is-live::after { border-radius: 6px 6px 3px 3px; }
+[data-state="stale"] .agent-dot .dot-active { box-shadow: none; opacity: .5; }
+/* Charter changed: what changed, as two lines under the section name */
+.diff { max-width: var(--measure); display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-sunken); border: var(--border-width) solid var(--border); }
+.diff-sec { font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-2); font-weight: var(--weight-semibold); text-transform: uppercase; letter-spacing: .06em; }
+.diff p { margin: 0; padding-left: var(--space-5); position: relative; font-size: var(--text-md); line-height: var(--leading-md); }
+.diff p::before { position: absolute; left: 0; width: var(--space-4); text-align: center; font-family: var(--font-mono); }
+.diff-old { color: var(--text-2); text-decoration: line-through; text-decoration-color: var(--text-3); }
+.diff-old::before { content: "−"; }
+.diff-new { color: var(--text); }
+.diff-new::before { content: "+"; color: var(--done); }
+/* Outcomes to approve and a charter read in place */
+.olist { margin: 0; padding-left: var(--space-5); max-width: var(--measure); display: grid; gap: var(--space-2); font-size: var(--text-md); line-height: var(--leading-md); }
+.doc { max-width: var(--measure); padding: var(--space-4) var(--space-5); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.doc h3 { margin: 0 0 var(--space-1); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--weight-semibold); }
+.doc p { margin: 0 0 var(--space-3); color: var(--text-2); }
+.doc p:last-child { margin: 0; }
+/* dashboard: agent text arrives as markdown (md()), so its headings and paragraphs take the same look */
+.doc .md :is(h3, h4, h5, h6) { margin: 0 0 var(--space-1); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--weight-semibold); }
+.doc .md p, .doc .md ul, .doc .md ol { margin: 0 0 var(--space-3); color: var(--text-2); }
+.doc .md > :last-child { margin-bottom: 0; }
+.quote .md p { margin: 0 0 var(--space-2); }
+.quote .md p:last-child { margin: 0; }
+.focus .md code, .quote code { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 4px; border-radius: var(--radius-xs); background: var(--surface-sunken); }
+/* Three frames with no "+N more" tile: the first full width, two halves under it (no hole in the third column; S3) */
+.frames.is-hero:not(:has(.frame-more)) { --cols: 2; }
+/* A dock with nothing to decide: just its sentence */
+.dock-row:not(:has(.btn)) .dock-hint { display: block; white-space: normal; margin-left: 0; }
+/* Two long button labels (charter: "Approve the new wording" + "Open the charter") wrap to a second row
+   instead of pushing the page sideways at 360 (review, iteration 7) */
+.dock-row { flex-wrap: wrap; }
+.dock-row > .btn { min-width: 0; }
+/* Load error and first run sit in the panel like any D6 page */
+.hf-main > .hf-body { flex: 1; }
+
+/* Middle 768–1279: the rail has no top bar, so the head stays sticky at the top and the queue under it */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .hf .page-head { position: sticky; top: 0; padding: var(--space-2) var(--space-6); }
+  .hf .queue { top: var(--size-topbar); max-height: calc(100vh - var(--size-topbar)); }
+  .hf .focus { min-height: calc(100dvh - var(--size-topbar)); }
+}
+/* Phone: the top bar sticks, the head scrolls; live line drops (the top bar's spend is the freshness cue) */
+@media (max-width: 767px) {
+  .hf .page-head { padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); }
+  .hf .page-head .hf-live { display: none; }
+  .focus-head .eyebrow a.proj { display: inline-block; min-width: 44px; text-align: center; padding: 13px 0; margin: -13px 0; }
+  .dock-row:not(:has(.btn)) .dock-hint { display: block; }
+}
+/* Full-page shots: everything that sticks sits in flow */
+.is-shot .hf .page-head, .is-shot .hf .queue, .is-shot .focus .dock { position: relative; top: auto; bottom: auto; }
+.is-shot .hf .queue { max-height: none; }
+
+/* ── (1) Flow choreography (unchanged; dashboard: the mockup's file had a stray HTML comment here that swallowed
+   the first rule, the press transition, so the mockup never ran it; it runs here as the design intends) ── */
+/* ── FLOW: every item is a thing with a place. ─────────────────────────────────────────────
+   An item's title lives in one place at a time: its queue row, the focus, or "Decided today".
+   Open an item and its title rises from the row into the focus; decide it and the title flies down
+   into Decided today while the next one rises from its row. Undo flies it back. J/K slide the item
+   sideways in the direction you moved. Springs (--spring-glide for the long flights and
+   big surfaces, --spring-soft for the tick bar, --spring-snappy for rows and presses). Below 1024 px the queue is under the item,
+   so nothing flies: the item slides like a card, out to the left, the next in from the right. */
+
+/* Press: the control gives under your finger and springs back. */
+.btn, .qitem, .agent, .ledger-row, .choice, .frame { transition: background-color var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), box-shadow var(--dur-base), transform var(--spring-snappy-dur) var(--spring-snappy); }
+.btn:is(:active, .is-active):not(:disabled):not([aria-busy="true"]) { transform: scale(var(--press-scale)); transition-duration: var(--dur-instant); transition-timing-function: var(--ease-press); }
+.qitem:active, .ledger-row:active, .agent:active { transform: scale(0.985); transition: transform var(--dur-instant) var(--ease-press); }
+/* Hover: frames lift toward you, 2 px, with the dock's shadow. */
+.frame:hover .frame-img { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.frame-img { transition: transform var(--spring-snappy-dur) var(--spring-snappy), box-shadow var(--dur-base), border-color var(--dur-fast); }
+/* Focus: the ring and halo, as shared. */
+
+/* The decided row and the sent dock: the tick draws in with a spring. */
+.qitem.is-done { transition: background-color var(--dur-base) var(--ease-out); }
+.dock.is-sent .tick { animation: flow-pop var(--spring-snappy-dur) var(--spring-snappy) both; }
+.dock.is-sent .dock-msg > :not(.tick) { animation: flow-in-x var(--dur-slow) var(--ease-enter) 60ms both; }
+
+/* Working now: the bar springs to its new value. */
+.agent-progress .track i { transition: transform var(--spring-soft-dur) var(--spring-soft); }
+.agent.is-tick .fig { animation: flow-in-y var(--dur-slow) var(--ease-enter); }
+
+/* Toast: rises out of the dock it anchors to. */
+.toast { animation: flow-rise var(--spring-snappy-dur) var(--spring-snappy) both; }
+.toast.is-leaving { animation: flow-sink var(--dur-base) var(--ease-exit) both; }
+.input[aria-invalid="true"] { animation: flow-nudge var(--dur-slow) var(--ease-move); }
+
+/* ── Choreography ── */
+/* Titles fly (the one place sizes morph: the group animates its box, the images only move and fade). */
+/* Critically damped: a 1.7 % overshoot on an 800 px flight landed the title 10 px into the row below. */
+/* It waits --dur-fast: the old body is gone before a title crosses where it was (round 10: at 60 ms the flying title sat on the body). */
+::view-transition-group(*.title) { animation-duration: var(--spring-glide-dur); animation-timing-function: var(--spring-glide); animation-delay: var(--dur-fast); z-index: 5; }
+/* The snapshots keep their own size, pinned top-left: stretched to the morphing box, the landing title
+   read larger and sat over the row below it until the last frame. The old title leaves in --dur-fast and the new one fades in from 160 ms, so the flight is
+   faint while it crosses other rows and solid only as it lands. */
+::view-transition-old(*.title), ::view-transition-new(*.title) { inline-size: auto; block-size: auto; object-fit: none; object-position: left top; }
+::view-transition-old(*.title) { animation: flow-out var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(*.title) { animation: flow-fade var(--dur-slow) var(--ease-enter) 160ms both; }
+
+/* The rest of the item: out the way it's going, in from where it comes. */
+::view-transition-group(ih), ::view-transition-group(ib), ::view-transition-group(page), ::view-transition-group(empty), ::view-transition-group(zero-work) { animation: none; }
+/* Never a double exposure: the old content is gone (--dur-fast) before the new is more than faint (Inbox zero too, when a tab leaves it). */
+::view-transition-old(ih), ::view-transition-old(ib), ::view-transition-old(page), ::view-transition-old(empty), ::view-transition-old(zero-work) { animation: flow-leave var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(ih), ::view-transition-new(page) { animation: flow-arrive var(--spring-glide-dur) var(--spring-glide) 100ms both; }
+::view-transition-new(ib) { animation: flow-arrive var(--spring-glide-dur) var(--spring-glide) calc(100ms + 2 * var(--stagger)) both; }
+html[data-dir="back"]::view-transition-old(ih), html[data-dir="back"]::view-transition-old(ib), html[data-dir="back"]::view-transition-old(page), html[data-dir="back"]::view-transition-old(empty), html[data-dir="back"]::view-transition-old(zero-work) { animation-name: flow-leave-back; }
+html[data-dir="back"]::view-transition-new(ih), html[data-dir="back"]::view-transition-new(ib), html[data-dir="back"]::view-transition-new(page) { animation-name: flow-arrive-back; }
+/* Undo: the title leads home; the body unfolds under it once it has nearly landed, so the flight never crosses the frames (round 10). */
+html[data-vt="undo"]::view-transition-new(ib) { animation-delay: 380ms; }
+/* Deciding: the item is lifted away (down, toward Decided today), not swiped. */
+html[data-vt="decide"]::view-transition-old(ih), html[data-vt="decide"]::view-transition-old(ib), html[data-vt="zero"]::view-transition-old(ih), html[data-vt="zero"]::view-transition-old(ib) { animation-name: flow-drop; animation-duration: var(--dur-fast); }
+
+::view-transition-group(dock) { animation: none; }
+::view-transition-old(dock) { animation: flow-out var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(dock) { animation: flow-fade var(--dur-base) var(--ease-enter) 80ms both; }
+
+/* Queue rows: they are objects; the gap closes with a spring, new rows grow in. */
+/* The leaving row shrinks away in --dur-fast; only then do the rows below spring up into its place (round 10). */
+::view-transition-group(*.row) { animation-duration: var(--spring-snappy-dur); animation-timing-function: var(--spring-snappy); animation-delay: var(--dur-fast); }
+::view-transition-old(*.row):only-child { animation: flow-shrink var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(*.row):only-child { animation: flow-grow var(--spring-snappy-dur) var(--spring-snappy) 200ms both; }
+
+/* Inbox zero: the last title lands in the ledger, then the calm line rises a long way, slowly. */
+::view-transition-new(empty) { animation: flow-rise-far var(--spring-glide-dur) var(--spring-glide) 200ms both; }
+::view-transition-new(zero-work) { animation: flow-rise-far var(--spring-glide-dur) var(--spring-glide) calc(200ms + var(--stagger-max)) both; }
+
+/* Phone and tablet: no flights (the queue is below the item), the card slides. */
+@media (max-width: 1023px) {
+  ::view-transition-new(ih), ::view-transition-new(ib) { animation-name: flow-arrive-card; }
+  ::view-transition-old(ih), ::view-transition-old(ib) { animation-name: flow-leave-card; }
+  html[data-dir="back"]::view-transition-new(ih), html[data-dir="back"]::view-transition-new(ib) { animation-name: flow-arrive-card-back; }
+  html[data-dir="back"]::view-transition-old(ih), html[data-dir="back"]::view-transition-old(ib) { animation-name: flow-leave-card-back; }
+}
+
+@keyframes flow-fade { from { opacity: 0; } }
+@keyframes flow-out { to { opacity: 0; } }
+@keyframes flow-pop { from { opacity: 0; transform: scale(0.4); } }
+@keyframes flow-in-x { from { opacity: 0; transform: translateX(calc(-1 * var(--shift))); } }
+@keyframes flow-in-y { from { opacity: 0; transform: translateY(var(--shift-sm)); } }
+@keyframes flow-rise { from { opacity: 0; transform: translateY(var(--shift-lg)) scale(0.98); } }
+@keyframes flow-sink { to { opacity: 0; transform: translateY(var(--shift)); } }
+@keyframes flow-nudge { 30% { transform: translateX(calc(-1 * var(--shift-sm))); } 60% { transform: translateX(var(--shift-sm)); } }
+@keyframes flow-leave { to { opacity: 0; transform: translateX(calc(-1 * var(--shift-lg))); } }
+@keyframes flow-leave-back { to { opacity: 0; transform: translateX(var(--shift-lg)); } }
+@keyframes flow-arrive { from { opacity: 0; transform: translateX(var(--shift-lg)); } }
+@keyframes flow-arrive-back { from { opacity: 0; transform: translateX(calc(-1 * var(--shift-lg))); } }
+@keyframes flow-drop { to { opacity: 0; transform: translateY(var(--shift)) scale(0.985); } }
+@keyframes flow-shrink { to { opacity: 0; transform: scale(0.96); } }
+@keyframes flow-grow { from { opacity: 0; transform: scale(0.96); } }
+@keyframes flow-rise-far { from { opacity: 0; transform: translateY(calc(2 * var(--shift-lg))); } }
+@keyframes flow-leave-card { to { opacity: 0; transform: translateX(-40%); } }
+@keyframes flow-leave-card-back { to { opacity: 0; transform: translateX(40%); } }
+@keyframes flow-arrive-card { from { opacity: 0; transform: translateX(40%); } }
+@keyframes flow-arrive-card-back { from { opacity: 0; transform: translateX(-40%); } }
+
+/* ── Sign in (screens2/login.css, unchanged): a 400 card centred on the page background; on the phone it is the
+   page (no card edge), top-aligned so the keyboard never covers the button. ── */
+.l-wrap { min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6) var(--space-4); background: var(--bg); }
+.l-card { width: min(400px, 100%); display: grid; gap: var(--space-5); padding: var(--space-8); border-radius: var(--radius-lg); background: var(--surface); border: var(--border-width) solid var(--border); box-shadow: var(--shadow-2); animation: p-in var(--dur-slow) var(--ease-enter); }
+.l-mark { display: block; line-height: 0; color: var(--text); }
+.l-card h1 { margin: 0; font-family: var(--font-display); font-size: var(--text-2xl); line-height: var(--leading-2xl); font-weight: var(--weight-regular); }
+.l-lede { margin: calc(-1 * var(--space-2)) 0 0; color: var(--text-2); }
+.l-card code { font-family: var(--font-mono); font-size: 0.92em; color: var(--text); }
+.l-card .input { min-height: var(--size-control-lg); font-family: var(--font-mono); letter-spacing: 0.04em; }
+.l-go { height: var(--size-control-lg); width: 100%; justify-content: center; }
+@keyframes p-in { from { opacity: 0; transform: translateY(4px); } }
+@media (max-width: 767px) {
+  .l-wrap { place-items: start center; padding-top: var(--space-12); }
+  .l-card { padding: 0; background: none; border: 0; box-shadow: none; }
+}
+
+/* dashboard: the old screens sit in the panel like any D6 page; their own head bar is the panel's head. */
+.hf-main > .legacy { display: flex; flex-direction: column; }
+.hf-main > .legacy > .top { position: sticky; top: 0; z-index: 10; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.hf-main > .legacy > .top .hf-live { margin-left: var(--space-3); }
+@media (max-width: 1279px) { .hf-main > .legacy > .top { border-radius: 0; } }
+@media (max-width: 767px) { .hf-main > .legacy > .top { position: static; } .hf-main > .legacy > .top .hf-live { display: none; } }

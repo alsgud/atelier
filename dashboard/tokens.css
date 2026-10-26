@@ -1,0 +1,247 @@
+/* Atelier design tokens (direction B, "one at a time").
+   The only place raw values live. Components and screens use these roles, never hex or px of their own
+   Documented exceptions in components.css: layout widths, and a few fixed sizes too small for the scales
+   (10-12 px badge, tab-bar and kbd labels; 28-32 px compact nav rows, play pill and toast action; the dock's 160 px
+   note cap). They live only in components.css; screens never add their own.
+   Rules: colour means something. Lilac = active / working, red = needs you now or wrong, green = done.
+   Everything else is K1's cool slate neutral. Actions are ink (neutral), not coloured, so colour stays a signal.
+   The brand accent (slate blue) is only on the mark and the focus ring. Dark is the default (ruling R-7).
+   Fonts are the system's own; nothing loads from the internet. */
+
+:root {
+  color-scheme: dark;
+
+  /* ── Type families ─────────────────────────────────────────────── */
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Helvetica Neue", Arial, sans-serif;
+  /* Display serif: the one identity move. Used only for the title of the decision in focus and the
+     inbox-zero line. New York on Apple (ui-serif), Sitka on Windows, Georgia elsewhere. */
+  --font-display: ui-serif, "Sitka Display", "Sitka Heading", "Iowan Old Style", "New York", Georgia, serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, Menlo, monospace;
+
+  /* ── Type scale (size / line height) ───────────────────────────── */
+  --text-xs: 12px;   --leading-xs: 16px;   /* kbd, captions, timestamps */
+  --text-sm: 13px;   --leading-sm: 18px;   /* meta lines, queue item meta, nav */
+  --text-base: 14px; --leading-base: 20px; /* UI default: queue titles, buttons, fields */
+  --text-md: 16px;   --leading-md: 24px;   /* reading text inside the focused item */
+  --text-lg: 20px;   --leading-lg: 28px;   /* section headings on wide pages */
+  --text-xl: 30px;   --leading-xl: 36px;   /* display: focused item title (desktop) */
+  --text-xl-phone: 24px; --leading-xl-phone: 30px; /* display on phone */
+  --text-2xl: 40px;  --leading-2xl: 46px;  /* display: inbox zero */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --tracking-display: -0.015em;
+  --tracking-caps: 0.04em;
+  --measure: 62ch; /* longest line of reading text */
+
+  /* ── Spacing (4 px base) ───────────────────────────────────────── */
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Sizes ─────────────────────────────────────────────────────── */
+  --size-control-sm: 28px;  /* compact desktop controls: pager arrows */
+  --size-control: 36px;     /* desktop buttons and fields */
+  --size-control-lg: 44px;  /* phone: every tap target (SPEC R5) */
+  --size-icon: 16px;
+  --size-icon-lg: 20px;
+  --size-glyph-box: 28px;   /* kind glyph tile in the queue */
+  --size-dot: 8px;          /* status dot */
+  --size-sidebar: 240px;
+  --size-queue: 344px;
+  --size-focus-max: 760px;
+  --size-tabbar: 56px;
+  --size-topbar: 52px;
+
+  /* ── Radii ─────────────────────────────────────────────────────── */
+  --radius-xs: 4px;   /* kbd */
+  --radius-sm: 6px;   /* buttons, fields, rows */
+  --radius-md: 10px;  /* preview frames, panels */
+  --radius-lg: 14px;  /* decision dock, sheets, the main app panel */
+  --radius-full: 999px; /* dots and progress tracks only */
+
+  /* ── Borders ───────────────────────────────────────────────────── */
+  --border-width: 1px;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* ── Motion (D3; see DESIGN.md › Motion) ─────────────────────────
+     Only transform and opacity animate. Durations are named for what they do; easings for their purpose.
+     The three feel variants (design/feel/) pick from these; none invents its own numbers. */
+  --dur-instant: 80ms;   /* press: the control answers your finger */
+  --dur-fast: 120ms;     /* hover, colour changes, a tick appearing */
+  --dur-base: 200ms;     /* enter: toast, disclosure, the next item's first block */
+  --dur-slow: 320ms;     /* leave or move: a decided item goes, rows close the gap */
+  --dur-hold: 560ms;     /* the decision is shown done, in place, before anything moves */
+  --dur-calm: 640ms;     /* the one slow moment: inbox zero settling in */
+  --dur-pulse: 2400ms;   /* the live dot of a working agent */
+  --dur-shimmer: 1800ms; /* a working agent's progress sheen (one pass, then rest) */
+  --stagger: 40ms;       /* between the blocks of an arriving item: eyebrow, title, body */
+  --stagger-max: 160ms;  /* never more than this from first block to last */
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);        /* D2 name, kept: = --ease-enter's softer twin */
+  --ease-in-out: cubic-bezier(0.6, 0, 0.3, 1);       /* D2 name, kept: = --ease-move */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);       /* arrive: fast start, long quiet landing */
+  --ease-exit: cubic-bezier(0.4, 0, 0.84, 0.44);     /* leave: gathers speed, gone before you look for it */
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);       /* from A to B on screen: rows closing a gap */
+  --ease-press: cubic-bezier(0.3, 0, 0.5, 1);        /* press down and release */
+  /* Springs as CSS linear() curves (damping ratio 0.79, ~2 % overshoot; 1.0 for glide). The duration is part of the spring. */
+  --spring-snappy: linear(0, 0.033, 0.115, 0.223, 0.341, 0.458, 0.568, 0.666, 0.75, 0.82, 0.877, 0.921, 0.955, 0.98, 0.997, 1.008, 1.015, 1.019, 1.02, 1.019, 1.018, 1.016, 1.013, 1.011, 1.009, 1.007, 1.005, 1.004, 1.003, 1.002, 1);
+  --spring-snappy-dur: 400ms;  /* stiffness 420, damping 32: presses, a row landing */
+  --spring-soft: linear(0, 0.034, 0.116, 0.225, 0.343, 0.461, 0.57, 0.667, 0.751, 0.82, 0.876, 0.92, 0.953, 0.977, 0.994, 1.005, 1.012, 1.016, 1.017, 1.017, 1.016, 1.014, 1.012, 1.01, 1.008, 1.006, 1.005, 1.003, 1.002, 1.002, 1);
+  --spring-soft-dur: 660ms;    /* stiffness 160, damping 20: medium travel with a little life (a progress bar). Long flights use glide: 1.7 % of 800 px is a visible overshoot */
+  --spring-glide: linear(0, 0.038, 0.125, 0.233, 0.345, 0.451, 0.547, 0.631, 0.702, 0.761, 0.81, 0.849, 0.881, 0.907, 0.927, 0.944, 0.956, 0.966, 0.974, 0.98, 0.985, 0.988, 0.991, 0.993, 0.995, 0.996, 0.997, 0.998, 0.998, 0.999, 1);
+  --spring-glide-dur: 700ms;   /* stiffness 170, critically damped: big surfaces, no bounce */
+
+  --shift: 8px;          /* how far things travel when they enter or leave */
+  --shift-sm: 4px;       /* the quiet travel: Calm's enter, a tick settling */
+  --shift-lg: 24px;      /* the spatial travel: Flow's next item sliding in */
+  --press-scale: 0.97;   /* buttons and rows pressed */
+  --press-depth: 1px;    /* buttons pressed (Crisp adds a shadow change, not more travel) */
+
+  /* ── Breakpoints (for reference; CSS media queries use the numbers) ─
+     phone < 768 · tablet 768–1279 · desktop ≥ 1280 */
+}
+
+/* ── Colour roles: K1 North light, night (the chosen brand, ruling R-7; DESIGN.md › Chosen brand) ──
+   Dark is the default: it is what :root carries, so a page with no data-theme is dark.
+   Light is opt-in with data-theme="light". The app sets data-theme itself: dark on first run, then the
+   phone's setting (prefers-color-scheme) unless the owner picks one in Settings. Tokens never guess.
+   Values are K1 from brand/r2/schemes-k.css pushed through the shared role mapping (brand/schemes.css),
+   so the r2 pick page and these tokens are the same colours. */
+:root, [data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0e12;             /* n0 canvas: behind the app panel; the sidebar sits on it */
+  --surface: #141920;         /* n2 the app panel, dock, frames */
+  --surface-sunken: #0f1318;  /* n1 wells, quotes, code */
+  --surface-hover: #1b2129;   /* n3 row and ghost-button hover */
+  --surface-selected: #222a33;/* n4 the open queue item, current nav item (neutral: lilac means working) */
+  --surface-inverse: #e9edf1; /* n10 toasts */
+  --toast-done: #13704a;      /* status colours on the inverse toast surface */
+  --toast-needs: #b0261b;
+  --text-on-needs: #141a21;   /* count on the red phone badge */
+  --overlay-media: rgba(11, 14, 18, 0.78); /* labels laid over screenshots: same in both themes */
+  --text-on-media: #ffffff;
+  --border: #222a33;          /* n4 hairlines */
+  --border-strong: #313b46;   /* n5 frame hover, dividers that must show */
+  --border-field: #65707c;    /* n6 text fields and checkboxes: 3:1 against the surface (WCAG 1.4.11) */
+
+  --text: #e9edf1;            /* n10 */
+  --text-2: #a7b0bb;          /* n8 */
+  --text-3: #919ba7;          /* n7 meta, placeholders; ≥ 4.5:1 on every dark surface */
+  --text-inverse: #0f1318;
+  --text-on-ink: #0f1318;
+
+  --ink: #e9edf1;             /* primary button: the ramp's top step, never pure white */
+  --ink-hover: #ffffff;
+  --ink-active: #d3d9e0;
+
+  --brand-accent: #8fb6e6;    /* moonlit slate blue: the mark's light patch and the focus ring only, never content */
+  --brand-knock: #141920;     /* knock-outs inside the mark */
+  --wait: #919ba7;            /* waiting is neutral (R4): a hollow ring and the word */
+
+  --active: #b39cff;          /* lilac: working, live */
+  --active-soft: #211d35;     /* lilac wash behind a working row */
+  --active-track: #352d56;    /* empty part of a progress bar */
+  --needs: #ff8578;           /* red: needs you now, wrong, error */
+  --needs-soft: #321c1d;
+  --done: #5fd198;            /* green: done */
+  --done-soft: #132820;
+
+  --focus-ring: #8fb6e6;
+  --scrim: rgba(0, 0, 0, 0.56);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 32px -10px rgba(0, 0, 0, 0.7);
+  --shadow-3: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
+  --skeleton: #1b2129;
+  --skeleton-shine: #222a33;
+}
+
+/* ── Colour roles: K1 North light, day (light, opt-in) ───────────── */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #edf0f3;             /* n1 cool paper, never #fff (C2 light read as glaring) */
+  --surface: #f7f9fa;         /* n0 */
+  --surface-sunken: #e8ecf0;  /* n2 */
+  --surface-hover: #e1e6eb;   /* n3 */
+  --surface-selected: #d9dfe5;/* n4 */
+  --surface-inverse: #131a21; /* n10 */
+  --toast-done: #5fd198;
+  --toast-needs: #ff8578;
+  --text-on-needs: #ffffff;
+  --overlay-media: rgba(11, 14, 18, 0.78);
+  --text-on-media: #ffffff;
+  --border: #d9dfe5;          /* n4 */
+  --border-strong: #c1c9d1;   /* n5 */
+  --border-field: #7b8591;    /* n6 */
+
+  --text: #131a21;            /* n10 */
+  --text-2: #4a5460;          /* n8 */
+  --text-3: #56606c;          /* n7; lowest pair: on --surface-selected 4.76 */
+  --text-inverse: #edf0f3;
+  --text-on-ink: #f7f9fa;
+
+  --ink: #131a21;
+  --ink-hover: #2b333c;
+  --ink-active: #000000;
+
+  --brand-accent: #2e65a1;
+  --brand-knock: #f7f9fa;
+  --wait: #56606c;
+
+  --active: #6443cc;
+  --active-soft: #ebe6f8;
+  --active-track: #d8cff3;
+  --needs: #a8241a;
+  --needs-soft: #f6e7e5;
+  --done: #116a46;
+  --done-soft: #dfede6;
+
+  --focus-ring: #2e65a1;
+  --scrim: rgba(0, 0, 0, 0.3);
+
+  --shadow-1: 0 1px 2px rgba(19, 26, 33, 0.05);
+  --shadow-2: 0 1px 2px rgba(19, 26, 33, 0.04), 0 10px 28px -10px rgba(19, 26, 33, 0.16);
+  --shadow-3: 0 2px 6px rgba(19, 26, 33, 0.06), 0 18px 40px -12px rgba(19, 26, 33, 0.28);
+  --skeleton: #e1e6eb;
+  --skeleton-shine: #edf0f3;
+}
+
+/* Reduced motion: nothing travels, scales, pulses or shimmers. What changes, changes with a short cross-fade
+   (--dur-fast) so the eye still sees that something happened; the hold before a decided item goes stays,
+   shortened, because it is information (it worked), not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 120ms;
+    --dur-slow: 120ms;
+    --dur-hold: 400ms;
+    --dur-calm: 120ms;
+    --dur-pulse: 0ms;
+    --dur-shimmer: 0ms;
+    --stagger: 0ms;
+    --stagger-max: 0ms;
+    --spring-snappy-dur: 120ms; --spring-soft-dur: 120ms; --spring-glide-dur: 120ms;
+    --shift: 0px; --shift-sm: 0px; --shift-lg: 0px;
+    --press-scale: 1; --press-depth: 0px;
+  }
+}
+[data-motion="reduce"] {
+  --dur-instant: 0ms; --dur-fast: 0ms; --dur-base: 120ms; --dur-slow: 120ms; --dur-hold: 400ms; --dur-calm: 120ms;
+  --dur-pulse: 0ms; --dur-shimmer: 0ms; --stagger: 0ms; --stagger-max: 0ms;
+  --spring-snappy-dur: 120ms; --spring-soft-dur: 120ms; --spring-glide-dur: 120ms;
+  --shift: 0px; --shift-sm: 0px; --shift-lg: 0px; --press-scale: 1; --press-depth: 0px;
+}

@@ -1,9 +1,9 @@
 {
   "name": "Atelier",
   "short_name": "Atelier",
-  "start_url": "/",
+  "start_url": "/#/inbox",
   "display": "standalone",
-  "background_color": "#111214",
-  "theme_color": "#111214",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+  "background_color": "#0b0e12",
+  "theme_color": "#0b0e12",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }
