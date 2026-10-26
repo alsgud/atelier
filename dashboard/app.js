@@ -295,7 +295,7 @@ async function route({ refreshing = false, wait = false } = {}) {
       if (kind === 'inbox' || !kind) return Inbox.show(a ? decodeURIComponent(a) : null, { refreshing });
       Inbox.leave();
       if (!state) return renderPageError();
-      if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c, refreshing, wait);
+      if (kind === 'p' && a) return await Project.show(decodeURIComponent(a), b || 'overview', c ? decodeURIComponent(c) : c, refreshing, wait);
       if (kind === 't' && a) return await renderTask(decodeURIComponent(a));
       if (kind === 'new') return renderNew();
       if (kind === 'projects') return renderProjects();
@@ -876,6 +876,9 @@ const Inbox = (() => {
     show, leave, pending,
     hiddenItems: () => [...S.hidden.values()].filter(h => !h.committed || (state?.queue || []).some(x => x.key === h.x.id)).map(h => ({ project: h.project, needs: h.needs })),
     localDecided: () => S.decided.filter(d => !d.committed || !(state?.decidedToday || []).length).length,
+    // For the project page's "Needs you here": the same title and kind words as the Inbox, minus decisions in their Undo window.
+    describe: q => { const x = item(q); return { title: x.title, kind: x.kind }; },
+    isHidden: key => S.hidden.has(key),
     // A hash change the Inbox handles itself: its own address updates, or another item of the open Inbox.
     ownsHash: () => {
       if (ownHash) return true;
@@ -1098,7 +1101,9 @@ const Office = (() => {
     }
   }
 
-  return { show, loading };
+  // The project page's Team facts use the same desks, so a desk and its line there never disagree.
+  const desks = p => { const keys = new Set(); return (p.team?.agents || []).map(x => deskOf(p, x, keys)); };
+  return { show, loading, desks, dotOf };
 })();
 
 const etaText = e => e ? `likely ${e.low}–${e.high} min` : '';
@@ -1164,212 +1169,464 @@ function renderSettings() {
   </div>`);
 }
 
-// ---------- project ----------
-// The last data seen for each project, so switching tabs paints at once; fresh data fills in when it arrives.
-const projectSeen = new Map();
-async function renderProject(alias, tab, sub, refreshing, wait) {
-  const hash = location.hash;
-  const seen = refreshing ? null : projectSeen.get(alias);
-  if (seen) drawProject(seen.p, tab, sub);
-  else if (!refreshing) pageLoading(`<a href="#/projects">Projects</a><span>/</span><b>${esc(alias)}</b>`);
-  const p = await get(`/api/project/${encodeURIComponent(alias)}${wait ? '?wait' : ''}`);
-  if (location.hash !== hash) return; // the owner has already moved on
-  const text = JSON.stringify(p);
-  projectSeen.set(alias, { p, text });
-  if (seen && (seen.text === text || busy())) return; // already on screen, or the owner is typing in it
-  if (refreshing && busy()) return;
-  drawProject(p, tab, sub);
-}
+// =====================================================================================================
+// Project page (D6: design/screens2/project.html; UX-6 A, UX-14 A, UX-3 A, UX-11 C). Now first: one sentence on what
+// is going on and its one button, the phase track split into the outcomes, and the figures in one line; then what
+// needs you here, the tasks in progress and the latest events. Money and facts sit beside it on the desk, under Now
+// on the middle width and in one fold on the phone. Every count and money figure is the one summary's
+// (counts().projects[alias]); the page's own read (/api/project/<alias>) brings the lists and documents.
+// A refresh replaces only the parts whose words changed: open folds, typed text, focus and scroll stay (R7).
+// =====================================================================================================
+const STAGES = ['Planning', 'Building', 'Checking', 'Review', 'Done'];
+// Mockups and evidence live on the dashboard's sibling port (their own origin), on whatever host this page uses.
+const viewUrl = r => `${location.protocol}//${location.hostname}:${r.viewPort}${r.open}`;
 
-function drawProject(p, tab, sub) {
-  const a = esc(p.alias);
-  const S = counts().projects[p.alias] || {};
-  const own = state.queue.filter(q => q.project === p.alias);
-  const step = nextStep(p, own, S.waiting);
-  const idx = PHASES.indexOf(p.phase);
-  const leadBtn = p.lead.running ? `<button class="btn ghost" data-do="lead-restart" data-project="${a}" title="Start a fresh lead session from its files">Restart lead</button>` : '';
-  const tabs = [['overview', 'Overview'], ['tasks', 'Tasks', p.tasks.filter(t => !['done', 'failed'].includes(t.status)).length], ['criteria', 'Criteria', p.criteria.length],
-    ['audits', 'Audits', p.findings.filter(f => f.status === 'open').length || ''], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings']];
-  const views = { overview: projOverview, tasks: projTasks, criteria: projCriteria, audits: projAudits, docs: projDocs, activity: projActivity, settings: projSettings };
-  legacy(`${topbar(`<a href="#/projects">Projects</a><span>/</span><b>${a}</b>`, leadBtn)}
-    <div class="page">
-      <div class="phead"><h1>${a}</h1>${githubChip(p)}<span class="chip"><span class="pdot ${p.lead.running ? 'live' : ''}"></span>${p.lead.running ? `Lead on · talk to "${a} lead" in the Claude app` : 'Lead off'}</span></div>
-      <div class="now">
-        <div><div class="k">Now</div><div class="big">${step.title}</div><div class="txt">${step.detail}</div>${step.action ? `<div class="btns">${step.action}</div>` : ''}
-          <div class="steps">${PHASES.map((ph, i) => `<span class="${i < idx ? 'done' : i === idx ? 'cur' : ''}">${ph}</span>`).join('')}</div></div>
-        <div class="stats">
-          <div class="stat"><div class="v">${S.working ?? 0}</div><div class="l">working now</div></div>
-          <div class="stat"><div class="v">${S.waiting ?? 0}</div><div class="l">waiting on you</div></div>
-          <div class="stat"><div class="v">${p.metrics.criteriaTotal ? `${p.metrics.criteriaMet}<span class="faint">/${p.metrics.criteriaTotal}</span>` : '—'}</div><div class="l">criteria met</div></div>
-          <div class="stat"><div class="v" style="${S.atLimit ? 'color:var(--red)' : ''}">${money(S.spentToday)}<span class="faint">/${money(S.dayLimit)}</span></div><div class="l">spent today · ${money(S.spentTotal)} in total, lead and audits included</div></div>
-        </div>
-      </div>
-      <nav class="tabs">${tabs.map(([k, l, c]) => `<a href="#/p/${a}/${k}" class="${k === tab ? 'on' : ''}">${l}${c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>
-      <div id="tab">${(views[tab] || projOverview)(p, sub)}</div>
-    </div>`);
-}
-
-// Whether GitHub has everything. Atelier pushes on its own every couple of minutes; this only turns red
-// when that's failing, so the owner never has to check.
-function githubChip(p) {
-  const g = p.github;
-  if (!g || p.autonomy === 'branch') return '';
-  if (g.problem) return `<span class="chip" style="color:var(--red)" title="${esc(g.problem)}">Not on GitHub: ${esc(g.problem.split(':')[0])}</span>`;
-  return `<span class="chip" title="Checked ${esc(ago(g.at))} ago">On GitHub</span>`;
-}
-
-// One plain sentence about what happens next.
-function nextStep(p, own, waiting) {
-  const a = esc(p.alias);
-  const start = `<button class="btn primary" data-do="lead-start" data-project="${a}">Start lead</button>`;
-  if (p.charter?.tampered) return { title: 'Your charter changed after you approved it', detail: 'Read it in Docs and approve it again if the change is yours.', action: `<a class="btn" href="#/p/${a}/docs/charter">Open charter</a>` };
-  if (waiting && own.length) return { title: `${waiting} decision${waiting > 1 ? 's' : ''} waiting on you`, detail: 'The team keeps going on anything that doesn\'t depend on them.', action: `<a class="btn primary" href="#/inbox/${encodeURIComponent(own[0].key)}">Review ${waiting > 1 ? 'first' : 'it'}</a>` };
-  if (!p.lead.running && p.phase !== 'build') return { title: 'Start the lead, then brief it', detail: `Then open "${a} lead" in the Claude app and describe what you want. It drafts your charter and brings it back here.`, action: start };
-  if (!p.charter && p.phase !== 'build') return { title: 'Brief the lead', detail: `Open "${a} lead" in the Claude app. Talk it through, or let it interview you.` };
-  const phaseText = { brief: 'The lead is shaping the brief with you.', spec: 'Requirements and acceptance criteria are being written.', design: 'The designer is working on the look and flows.', contracts: 'The interfaces between parts are being drafted.' };
-  if (phaseText[p.phase]) return { title: `${p.phase[0].toUpperCase()}${p.phase.slice(1)} in progress`, detail: phaseText[p.phase] + ' It comes to you for approval.', action: p.lead.running ? '' : start };
-  const n = s => p.tasks.filter(t => t.status === s).length;
-  if (n('running') || n('queued')) return { title: 'The team is building', detail: `${n('running')} working, ${n('queued')} queued. Nothing needs you.` };
-  if (p.tasks.length) return { title: 'All current work is finished', detail: p.lead.running ? 'Tell the lead what\'s next.' : 'Start the lead to plan what\'s next.', action: p.lead.running ? '' : start };
-  return { title: 'Waiting for the lead to plan the build', detail: 'Task plans come here for your approval.', action: p.lead.running ? '' : start };
-}
-
-// What a task is doing right now, in one line: the iteration underway, how long it's been going, how many
-// steps the agent has taken and its latest one, and spend against the task's budget.
-function progressLine(t) {
-  const c = t.live?.current;
-  const spend = (t.cost || 0) + (t.liveCost || 0);
-  const money2 = spend ? `${money(spend)}${t.budget ? ` of ${money(t.budget)}` : ''}` : '';
-  if (!c) return [`iteration ${t.iteration || 0} of ${t.iterations}`, money2].filter(Boolean).join(' · ');
-  return [`iteration ${c.n} of ${t.iterations}, ${c.minutes}m in`, `${c.actions} steps`, c.recent[0] || '', money2].filter(Boolean).join(' · ');
-}
-
-// Finished iterations as a row of dots (green: check passed, red: failed) plus the one underway.
+// Finished iterations as a row of dots (green: check passed, red: failed) plus the one underway (the old task page).
 function iterDots(t) {
   const h = t.live?.history || [];
   const dot = (cls, title) => `<span class="idot ${cls}" title="${esc(title)}"></span>`;
   return `<span class="idots">${h.map(x => dot(x.check === 'pass' ? 'pass' : x.check === 'fail' ? 'fail' : '', `#${x.n}: ${x.outcome}, check ${x.check}`)).join('')}${t.live?.current ? dot('now', `#${t.live.current.n}: underway`) : ''}</span>`;
 }
 
-function taskRow(t, { project = false } = {}) {
-  const s = taskStatus(t);
-  return `<a class="item ${s === 'needs-you' ? 'urgent' : ''}" href="#/t/${esc(t.id)}">
-    ${st(s, STATUS_WORD[s] || s)}<span class="id">${esc(t.id)}</span>
-    <span class="t">${esc(t.title)}<small>${s === 'running' ? esc(progressLine(t)) : `${esc(t.role || 'builder')}${project ? ` · ${esc(t.project)}` : ''}${t.reason && s !== 'done' ? ` · ${esc(t.reason)}` : ''}`}</small></span>
-    <span class="r">${iterDots(t)}${s === 'running' && t.eta ? `<br>${etaText(t.eta)}` : ''}</span></a>`;
-}
+const Project = (() => {
+  const seen = new Map(); // alias → the last read, so switching to the page paints at once
+  let parts = new Map(), pageKey = '';
+  const TABS = ['overview', 'tasks', 'outcomes', 'audits', 'docs', 'activity', 'settings'];
+  const href = (a, tab = 'overview', sub) => `#/p/${encodeURIComponent(a)}/${tab}${sub ? `/${sub}` : ''}`;
+  const dot = (k, word) => Office.dotOf(k, word);
+  // A time in the page's short form: 14:05 today, "Mon" this week, "18 Oct" before that.
+  const when = iso => {
+    const t = Date.parse(iso); if (!t) return '';
+    const d = new Date(t);
+    if (d.toDateString() === new Date().toDateString()) return hhmm(t);
+    return Date.now() - t < 6 * 864e5 ? d.toLocaleDateString('en-GB', { weekday: 'short' }) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  };
+  const day = iso => { const t = Date.parse(iso); return t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; };
+  // The status glyph is the Office's window at text size: lit while working, a tick when done (the words carry it).
+  const win = k => `<span class="p-win" data-k="${k}" aria-hidden="true"><svg viewBox="0 0 12 16"><path d="M1 15V6a5 5 0 0 1 10 0v9z"/><path class="t" d="M3.4 9.6 5.3 11.5 8.8 7.6"/></svg></span>`;
+  const moneyWords = S => `${money(S.spentToday)} of ${money(S.dayLimit)} today${S.atLimit ? ', at its limit' : S.dayLimit && S.spentToday >= 0.8 * S.dayLimit ? ', most of it used' : ''}`;
+  const SHIP = { merge: 'Straight to main after review', pr: 'Draft pull requests you merge', branch: 'Local branches only' };
+  const GATING = { strict: 'You approve every phase and task', standard: 'You approve each phase', loose: 'You approve the brief only' };
+  const SEVERITY = { high: 'important', medium: 'worth fixing', low: 'minor' };
+  const FINDING_STATE = { open: 'waiting for you', confirmed: 'you asked for a fix · with the lead', 'sent-to-lead': 'small: the auditor sent it to the lead', fixed: 'the lead fixed it · the next audit checks', dismissed: 'you said it’s fine', withdrawn: 'withdrawn: nothing was built yet' };
 
-const KIND = {
-  gate: ['gate', 'Gate'], charter: ['doc', 'Charter'], 'charter-tampered': ['alert', 'Charter changed'], github: ['alert', 'GitHub'], budget: ['alert', 'Budget'], screen: ['alert', 'Your screen'], 'screen-notice': ['alert', 'Your screen'], finding: ['alert', 'Drift'],
-  criterion: ['check', 'Outcome'], criteria: ['check', 'Outcomes'], 'owner-criterion': ['eye', 'Your judgement'], plan: ['play', 'Task plan'], question: ['help', 'Question'], dial: ['dial', 'Trust'],
-};
-
-function projOverview(p) {
-  const own = state.queue.filter(q => q.project === p.alias);
-  const active = p.tasks.filter(t => ['running', 'needs-you', 'queued', 'planned', 'review'].includes(t.status));
-  return `
-    ${own.length ? `<div class="sec">Waiting on you</div><div class="list">${own.map(x => `<a class="item urgent" href="#/inbox/${encodeURIComponent(x.key)}">${icon((KIND[x.kind] || ['inbox'])[0], 'st')}<span class="t">${esc(x.title)}<small>${(KIND[x.kind] || ['', x.kind])[1]}</small></span><span class="r">${esc(ago(x.at))}</span></a>`).join('')}</div>` : ''}
-    <div class="sec">Working now<span class="faint"> · ${counts().projects[p.alias]?.working ?? 0}</span></div>
-    ${busyList(p)}
-    <div class="sec">Tasks in progress</div>
-    ${active.length ? `<div class="list">${active.map(t => taskRow(t)).join('')}</div>` : '<div class="hint">No active tasks.</div>'}
-    <div class="sec">Recent</div>
-    <ul class="timeline">${p.events.slice(0, 8).map(e => eventLine(e, false)).join('') || '<div class="hint">Nothing yet.</div>'}</ul>`;
-}
-
-// The same busy agents the Office and sidebar count, in one plain line each.
-function busyList(p) {
-  const busy = p.team.agents.filter(x => isBusy(x.state));
-  if (!busy.length) return '<div class="hint">Nobody is working right now.</div>';
-  return `<div class="list">${busy.map(x => {
-    const who = x.kind === 'lead' ? 'Lead' : x.reviewingFor ? `Reviewer on ${esc(x.reviewingFor)}'s work` : esc(x.who[0].toUpperCase() + x.who.slice(1));
-    const sub = x.kind === 'auditor' ? esc(x.meta) : x.id ? esc(progressLine(x)) : esc(x.meta || '');
-    const inner = `${st('running')}<span class="t">${who}: ${esc(x.what)}<small>${sub}</small></span>`;
-    return x.href ? `<a class="item" href="${esc(x.href)}">${inner}</a>` : `<div class="item" style="cursor:default">${inner}</div>`;
-  }).join('')}</div>`;
-}
-
-const GROUPS = [['needs-you', 'Needs you'], ['running', 'Working'], ['review', 'In review'], ['queued', 'Queued'], ['planned', 'Waiting for your OK'], ['requested', 'Requests'], ['stalled', 'Stalled'], ['paused', 'Paused'], ['done', 'Done'], ['failed', 'Failed'], ['cancelled', 'Cancelled']];
-function projTasks(p) {
-  if (!p.tasks.length) return '<div class="empty"><b>No tasks yet</b>The lead plans tasks after your brief and spec are approved.</div>';
-  return GROUPS.map(([s, label]) => {
-    const list = p.tasks.filter(t => taskStatus(t) === s);
-    return list.length ? `<div class="group">${st(s)} ${label}<span class="n">${list.length}</span></div><div class="list">${list.map(t => taskRow(t)).join('')}</div>` : '';
-  }).join('');
-}
-
-const levelOf = c => c.level || (c.kind === 'owner' ? 'owner' : 'team');
-function projCriteria(p) {
-  if (!p.criteria.length) return '<div class="empty"><b>No acceptance criteria yet</b>You and the lead agree on a handful of outcomes during the spec phase. The lead turns them into technical checks.</div>';
-  const row = c => `<div class="item" style="cursor:default">
-    ${st(c.status)}<span class="id">${esc(c.id)}</span>
-    <span class="t" style="white-space:normal">${esc(c.statement)}<small>${esc(c.status)} · serves ${esc(c.serves)}</small></span>
-    ${c.status === 'draft' ? `<span class="btns"><button class="btn" data-do="criterion" data-verb="approve" data-project="${esc(p.alias)}" data-id="${esc(c.id)}">Approve</button></span>` : ''}
-  </div>`;
-  const live = c => !['retired'].includes(c.status);
-  const mine = p.criteria.filter(c => levelOf(c) === 'owner' && live(c));
-  const team = p.criteria.filter(c => levelOf(c) === 'team' && live(c));
-  const met = team.filter(c => c.status === 'pass').length;
-  return `<div class="sec">Your outcomes<span class="faint"> · what you'll judge the product by</span></div>
-    ${mine.length ? `<div class="list">${mine.map(row).join('')}</div>` : '<div class="hint">None yet.</div>'}
-    <details style="margin-top:18px"><summary class="sec" style="cursor:pointer">Team checks · ${met} of ${team.length} passing <span class="faint">(the lead approves these; the auditor checks them)</span></summary>
-      <div class="list">${team.map(row).join('')}</div></details>`;
-}
-
-function projAudits(p) {
-  const list = [...p.findings].reverse();
-  const run = p.team.agents.find(x => x.kind === 'auditor')?.audit;
-  const banner = run ? `<div class="box" style="margin-top:14px"><div class="label"><span class="sdot" style="background:var(--accent)"></span> Audit running</div>
-    Started ${run.startedMin} min ago · ${esc(run.stage)}${run.checkers ? ` <span class="faint">(${run.checkers} checkers each take one slice of your charter, outcomes and spec; a final pass tries to knock down every finding before you see it)</span>` : ''}</div>` : '';
-  const head = banner + `<div class="btns" style="margin:14px 0">${run ? '' : `<button class="btn" data-do="audit" data-project="${esc(p.alias)}">Run audit now</button>`}
-    <span class="hint">The auditor is your check on the whole team, the lead included. It never sees the lead's plan: it judges the finished product against your own words and reports only to you, here. (The reviewer is different: it checks each task before it merges and works for the lead.)${p.lastAudit ? ` Last run ${esc(ago(p.lastAudit.at))} ago.` : ''}</span></div>`;
-  const when = '<span class="hint" style="display:block;margin-bottom:10px">Audits start on their own once the team is building: after a few tasks are merged, or once a day while work lands.</span>';
-  if (!list.length) return head + when + '<div class="empty"><b>Nothing from the auditor</b>When it finds something only you can decide, it shows up here and in your inbox. Smaller things go straight to the lead.</div>';
-  const a = esc(p.alias);
-  const row = f => `<details class="item" style="display:block;cursor:default"><summary style="display:flex;gap:10px;align-items:center;cursor:pointer;list-style:none">
-      ${st(f.status === 'open' ? f.severity : ['fixed', 'dismissed'].includes(f.status) ? 'done' : 'queued')}<span class="t" style="white-space:normal">${esc(f.headline || f.claim)}<small>${FINDING_STATE[f.status] || esc(f.status)}${f.ownerNote ? ` · your note: “${esc(f.ownerNote)}”` : ''}</small></span></summary>
-      <div style="padding:8px 0 4px 24px">${f.impact ? md(`**If nobody fixes it:** ${f.impact}`) : ''}${findingTech(f)}
-      ${f.status === 'open' ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-do="finding" data-verdict="confirm" data-project="${a}" data-id="${esc(f.id)}">Yes, fix it</button><button class="btn" data-do="finding" data-verdict="dismiss" data-project="${a}" data-id="${esc(f.id)}">No, it's fine</button></div>` : ''}</div></details>`;
-  const group = (title, hint, xs) => xs.length ? `<div class="sec">${title}<span class="faint"> · ${hint}</span></div><div class="list">${xs.map(row).join('')}</div>` : '';
-  const by = (...s) => list.filter(f => s.includes(f.status));
-  return head + when
-    + group('Your call', 'should the team change this?', by('open'))
-    + group('Being fixed', 'the lead has these', by('confirmed', 'sent-to-lead'))
-    + group('Settled', 'fixed, or you said it\'s fine', by('fixed', 'dismissed', 'withdrawn'));
-}
-
-const FINDING_STATE = { open: 'waiting for you', confirmed: 'you asked for a fix · with the lead', 'sent-to-lead': 'small: the auditor sent it to the lead', fixed: 'the lead fixed it · the next audit checks', dismissed: 'you said it\'s fine', withdrawn: 'withdrawn: nothing was built yet' };
-// Mockups live on the dashboard's sibling port (their own origin), on whatever host this page uses.
-const viewUrl = r => `${location.protocol}//${location.hostname}:${r.viewPort}${r.open}`;
-
-// The auditor's working notes, folded away: there if you want them, not in the way.
-function findingTech(f) {
-  return `<details style="margin:8px 0"><summary class="faint" style="cursor:pointer">Technical details</summary>${md(`**What you asked for:** ${f.expected}\n\n**What the auditor found:** ${f.observed}\n\n**Evidence:** ${f.evidence}`)}</details>`;
-}
-
-const DOCS = [['charter', 'Charter'], ['rulings', 'Rulings'], ['brief', 'Brief'], ['spec', 'Spec'], ['design', 'Design'], ['contracts', 'Contracts'], ['plan', "Lead's plan"], ['ledger', "Lead's ledger"], ['messages', 'Team messages']];
-function projDocs(p, sub = 'charter') {
-  const a = esc(p.alias);
-  let body;
-  if (sub === 'charter') {
-    body = `<div class="btns" style="margin-bottom:10px"><span class="hint">${p.charter ? `Approved ${esc(ago(p.charter.approvedAt))} ago${p.charter.tampered ? ' · <span style="color:var(--red)">changed since</span>' : ''}.` : 'Not approved yet.'} Only you change this; every agent reads it.</span></div>
-      <textarea class="code" id="charter-text" aria-label="Charter">${esc(p.docs.charter)}</textarea>
-      <div class="btns"><button class="btn" data-do="charter-save" data-project="${a}">Save</button></div>
-      <div class="box decide"><div class="label">Approve in your own words</div><textarea id="d-text" aria-label="Your approval, in your own words" placeholder="e.g. Yes, this is what I want built"></textarea><button class="btn primary" data-do="charter-approve" data-project="${a}">Approve charter</button></div>`;
-  } else if (sub === 'rulings') {
-    body = `${md(p.docs.rulings || 'No rulings yet.')}<div class="box"><div class="label">Add a ruling</div><textarea id="d-text" aria-label="New ruling" placeholder="e.g. No modal dialogs: edit inline"></textarea><button class="btn" data-do="ruling" data-project="${a}">Add ruling</button></div>`;
-  } else if (sub === 'messages') {
-    body = p.messages.length ? `<div class="hint" style="margin-bottom:8px">Specialists message each other directly. Nothing here binds anyone; decisions go through the lead.</div><ul class="timeline">${p.messages.map(m => `<li><span>${st('queued')}</span><span><span class="muted">${esc(m.fromRole || m.from)} → ${esc(m.to)} · ${esc(m.type)}</span><br>${esc(m.text)}</span><span class="when">${esc(ago(m.at))}</span></li>`).join('')}</ul>` : '<div class="hint">No messages yet.</div>';
-  } else if (sub === 'design' || sub === 'contracts') {
-    const r = p.reviews?.[sub];
-    body = !r || (!r.doc && !r.open) ? `<div class="hint">No ${sub} yet.</div>`
-      : `<div class="btns" style="margin-bottom:12px">${r.open ? `<a class="btn primary" href="${esc(viewUrl(r))}" target="_blank" rel="noopener">Open the clickable screens</a>` : ''}
-          <span class="hint">${r.merged ? '' : 'Latest version from the specialist, not merged yet. '}${r.files} file${r.files === 1 ? '' : 's'}.</span></div>${md(r.doc || '')}`;
-  } else {
-    body = md(p.docs[sub] || 'Empty.');
+  // ── Now (R13): what is going on, in a sentence, and the one thing to open ──
+  function nowOf(p, S, own) {
+    const a = p.alias, top = own[0];
+    if (p.charter?.tampered) return ['Your charter changed after you approved it.', 'Read what changed, and approve it again if the change is yours.', ['Open the charter', href(a, 'docs', 'charter')]];
+    if (top?.kind === 'budget') return [`Today’s ${money(S.dayLimit).replace(/\.00$/, '')} is used, so new work waits.`, 'The tries already running finish. Nothing new starts until midnight, unless you raise today’s limit.', ['Review the budget', `#/inbox/${encodeURIComponent(top.key)}`]];
+    if (top && S.waiting) return [S.needsNow ? (S.needsNow === 1 ? 'Something here needs you now.' : `${S.needsNow} things here need you now.`) : S.waiting === 1 ? 'One decision waits for you.' : `${S.waiting} decisions wait for you.`,
+      `First: ${Inbox.describe(top).title}. The team keeps going on anything that doesn’t depend on it.`, [S.waiting === 1 ? 'Open it in the Inbox' : 'Open the first in the Inbox', `#/inbox/${encodeURIComponent(top.key)}`]];
+    if (!S.lead) return S.working ? ['The lead is off; the work already started carries on.', 'Nothing new starts until you start the lead again.', null]
+      : ['The lead is off, so nothing new starts.', `Start it with the button above, then talk to “${a} lead” in the Claude app.`, null];
+    if (!p.charter && p.phase === 'brief') return ['The lead is reading your description.', 'It drafts a charter next. You approve it in the Inbox; nothing else to do now.', null];
+    const PH = { brief: 'The lead is shaping the brief.', spec: 'The spec is being written.', design: 'The design is being drawn.', contracts: 'The contracts are being drafted.' };
+    if (PH[p.phase]) return [PH[p.phase], 'It comes to your Inbox for your OK when it is ready.', null];
+    const queued = S.tasks?.queued || 0;
+    if (S.working) return ['The team is building.', `${S.working} working${queued ? `, ${queued} queued` : ''}. Nothing needs you right now.`, null];
+    if (queued) return ['Work is queued.', `${queued} task${queued === 1 ? '' : 's'} start${queued === 1 ? 's' : ''} as soon as a teammate is free.`, null];
+    if (p.tasks.length) return ['All current work is finished.', `Tell the lead what’s next: talk to “${a} lead” in the Claude app.`, null];
+    return ['The lead is planning the build.', 'Task plans come to your Inbox for your OK.', null];
   }
-  return `<div class="docs"><nav>${DOCS.map(([k, l]) => `<a href="#/p/${a}/docs/${k}" class="${k === sub ? 'on' : ''}">${l}</a>`).join('')}</nav><div>${body}</div></div>`;
-}
+
+  const phaseTrack = (p, S) => {
+    const i = PHASES.indexOf(p.phase), o = S.outcomes || { met: 0, of: 0 };
+    return `<ol class="p-phases" aria-label="Phase: ${cap1(p.phase)}${o.of ? `, ${o.met} of ${o.of} outcomes met` : ''}">${PHASES.map((n, j) => `<li class="${j < i ? 'past' : j === i ? 'now' : ''}"${j === i ? ' aria-current="step"' : ''}>
+      <span class="bar">${j === i && o.of ? `<span class="pips">${Array.from({ length: o.of }, (_, m) => `<i${m < o.met ? ' class="met"' : ''}></i>`).join('')}</span>` : ''}</span><span class="n">${cap1(n)}</span></li>`).join('')}</ol>`;
+  };
+  const figs = S => `<p class="p-figs num">
+      <span><b>${S.working}</b> working</span>
+      ${S.needsNow ? `<span class="is-needs"><b>${S.needsNow}</b> need${S.needsNow === 1 ? 's' : ''} you now</span>` : ''}
+      <span><b>${S.waiting}</b> waiting on you</span>
+      ${S.outcomes?.of ? `<span><b>${S.outcomes.met}</b> of ${S.outcomes.of} outcomes met</span>` : ''}
+      <span${S.atLimit ? ' class="is-needs"' : ''}><b>${money(S.spentToday)}</b>${moneyWords(S).slice(money(S.spentToday).length)}</span></p>`;
+  const now = (p, S, own) => {
+    const [t, more, act] = nowOf(p, S, own);
+    return `<section class="p-now" aria-labelledby="now-h" data-r="now"><h2 class="section-label" id="now-h">Now</h2>
+      <p class="p-now-t">${esc(t)}</p><p class="lede">${esc(more)}</p>
+      ${act ? `<div class="p-now-act"><a class="btn btn-primary" href="${esc(act[1])}">${esc(act[0])}${I('chevron-right')}</a></div>` : ''}
+      ${phaseTrack(p, S)}${figs(S)}</section>`;
+  };
+
+  // ── Needs you here: the project's Inbox items, each opening the Inbox at that item ──
+  const needs = (S, own) => !own.length ? '<div data-r="needs" hidden></div>' : `<section class="p-sec" aria-labelledby="needs-h" data-r="needs">
+      <h2 class="p-h" id="needs-h">Needs you here <span class="n${S.needsNow ? ' is-needs' : ''}">${S.waiting}</span></h2>
+      <div class="p-rows">${own.map(q => { const d = Inbox.describe(q), w = q.needs ? 'Needs you now' : 'Waiting';
+        return `<a class="p-row" href="#/inbox/${encodeURIComponent(q.key)}" aria-label="${esc(`${d.title}. ${w}, ${d.kind}${q.at ? `, ${longAgo(q.at)}` : ''}`)}">${dot(q.needs ? 'needs' : '', w)}<span class="t"><b>${esc(d.title)}</b><span class="s">${esc(d.kind)}</span></span><span class="m num">${esc(longAgo(q.at))}</span></a>`; }).join('')}</div></section>`;
+
+  // ── In progress: a card per task, the Office's window as its glyph and the five stages under it ──
+  function taskView(p, t) {
+    const x = p.team.agents.find(a => a.id === t.id) || {};
+    const s = taskStatus(t), review = s === 'review' || x.kind === 'reviewer';
+    const v = { id: t.id, title: t.title, k: '', who: cap1(review ? 'reviewer' : t.role || 'builder'), stage: 1, step: '', prog: '', ago: '' };
+    if (s === 'queued') Object.assign(v, { who: 'Next', stage: 0, step: t.reason ? cap1(t.reason) : 'Starts when a teammate is free' });
+    else if (s === 'done') Object.assign(v, { k: 'done', stage: 4, step: t.reason ? cap1(t.reason) : 'Finished' });
+    else if (s === 'needs-you') v.step = 'It asked you something. Answer it on its page';
+    else if (s === 'stalled') v.step = 'Stalled. The lead decides what happens next';
+    else if (review) Object.assign(v, { k: x.state === 'reviewing' ? 'active' : '', stage: 3, step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'The reviewer is checking it' });
+    else if (s === 'running') Object.assign(v, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started on this try' });
+    else v.step = t.reason ? cap1(t.reason) : STATUS_WORD[s] || s;
+    const n = x.prog || (t.iteration ? [t.iteration, t.iterations, 'try'] : null);
+    if (n && s !== 'queued' && s !== 'done') v.prog = `Try ${n[0]} of ${n[1]}`;
+    v.ago = x.lastAt ? longAgo(x.lastAt) : s === 'done' ? longAgo(t.updated) : '';
+    v.word = v.k === 'active' ? 'Working' : v.k === 'done' ? 'Done' : s === 'needs-you' ? 'Needs you' : v.who === 'Next' ? 'Next' : STATUS_WORD[s] || 'Waiting';
+    return v;
+  }
+  const stageTrack = st => `<span class="p-stages" role="img" aria-label="Stage: ${STAGES[st]}">${STAGES.map((n, i) => `<i class="${i < st ? 'past' : i === st ? 'now' : ''}"></i>`).join('')}</span>`;
+  const card = v => `<a class="p-task" href="#/t/${encodeURIComponent(v.id)}" data-id="${esc(v.id)}" data-k="${v.k}" aria-label="${esc(`${v.title}. ${v.word}. ${v.step}. ${[v.who !== 'Next' && `${v.who}, ${STAGES[v.stage]}`, v.prog, v.ago].filter(Boolean).join(', ')}`)}">
+      ${win(v.k)}<span class="p-task-b"><span class="p-task-t">${esc(v.title)}</span><span class="p-task-s">${esc(v.step)}</span>
+      <span class="p-task-m">${stageTrack(v.stage)}<span class="w">${esc(v.who === 'Next' ? 'Next' : `${v.who} · ${STAGES[v.stage]}`)}</span><span class="num">${esc([v.prog, v.ago].filter(Boolean).join(' · '))}</span></span></span></a>`;
+  const work = (p, S) => {
+    const live = p.tasks.filter(t => ['running', 'needs-you', 'review', 'stalled'].includes(t.status));
+    const next = p.tasks.filter(t => t.status === 'queued').slice(0, 3);
+    const list = [...live, ...next].map(t => taskView(p, t));
+    return `<section class="p-sec" aria-labelledby="work-h" data-r="work"><h2 class="p-h" id="work-h">In progress</h2>
+      ${list.length ? `<div class="p-tasks">${list.map(card).join('')}</div>`
+        : `<p class="p-quiet">${S.lead ? 'Nothing is being built yet. Tasks appear here once the lead plans them.' : 'Nothing running. The lead is off, so nothing new starts.'}</p>`}</section>`;
+  };
+
+  // ── Recent: the newest few events, in words ──
+  const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || / pass|approve/.test(e.msg || '');
+  const eventWords = (p, e) => { const t = p.tasks.find(x => x.id === e.id); const w = EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' ')); return t ? `${w}: ${t.title}` : `${w}${e.msg ? `: ${e.msg}` : ''}`; };
+  const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${esc(eventWords(p, e))}</span></li>`).join('')}</ol>`;
+  const recent = p => `<section class="p-sec" aria-labelledby="rec-h" data-r="recent"><h2 class="p-h" id="rec-h">Recent</h2>
+      ${p.events.length ? feed(p, p.events.slice(0, 4)) : '<p class="p-quiet">Nothing has happened here yet.</p>'}
+      <a class="link p-more" href="${href(p.alias, 'activity')}">All activity for ${esc(p.alias)}</a></section>`;
+
+  // ── Facts (R14): money, the plan, the team, how it runs ──
+  function facts(p, S, C) {
+    const a = esc(p.alias), plan = C.plan?.fiveHour, sp = S.split || {};
+    const pct = S.dayLimit ? Math.min(100, Math.round(S.spentToday / S.dayLimit * 100)) : 0;
+    const gh = p.autonomy === 'branch' || !p.github ? '' : p.github.problem ? `<span class="is-needs">Not on GitHub</span>: ${esc(p.github.problem)}` : 'On GitHub';
+    const team = Office.desks(p);
+    return `<aside class="p-facts" aria-label="Money and facts" data-r="facts"><details class="p-factsfold" data-key="facts" open>
+      <summary><span>Money and facts</span><span class="num${S.atLimit ? ' is-needs' : ''}">${money(S.spentToday)} of ${money(S.dayLimit)} today</span>${I('chevron-down')}</summary>
+      <div class="p-facts-in">
+        <section class="p-fact" aria-labelledby="f-money"><h3 class="section-label" id="f-money">Spent on ${a}</h3>
+          <div class="meter"><div class="meter-head"><span>Today</span><b class="num">${money(S.spentToday)} <small>of ${money(S.dayLimit)}</small></b></div>
+            <div class="meter-track${S.atLimit ? ' is-full' : ''}" role="img" aria-label="${esc(moneyWords(S))}"><i style="--value:${pct}%"></i></div>
+            <span class="meter-foot${S.atLimit ? ' is-needs' : ''}">${S.atLimit ? 'At its limit: new work waits until midnight' : S.dayLimit && S.spentToday >= 0.8 * S.dayLimit ? 'Most of it used · resets at midnight' : 'Daily limit · resets at midnight'}</span></div>
+          <div class="meter-head p-total"><span>So far</span><b class="num">${money(S.spentTotal)}</b></div>
+          <details class="details p-split" data-key="split"><summary>Where it went${I('chevron-down')}</summary><div class="details-body">
+            <dl class="p-dl num"><dt>Tasks</dt><dd>${money(sp.tasks)}</dd><dt>Lead</dt><dd>${money(sp.lead)}</dd><dt>Audits</dt><dd>${money(sp.audits)}</dd></dl>
+            <span>API-equivalent cost, not a bill.</span></div></details></section>
+        <section class="p-fact" aria-labelledby="f-plan"><h3 class="section-label" id="f-plan">Your Claude plan</h3>
+          <div class="meter"><div class="meter-head"><span>5‑hour window</span><b class="num">${plan ? `${plan.used}%` : '–'} <small>used</small></b></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${plan ? Math.min(100, plan.used) : 0}%"></i></div>
+            <span class="meter-foot">${plan ? `Resets ${resetIn(plan.resetsAt)} · shared by every project` : 'Shows after the first run'}</span></div></section>
+        <section class="p-fact" aria-labelledby="f-team"><h3 class="section-label" id="f-team">Team</h3>
+          <ul class="p-team">${team.map(d => `<li>${dot(d.k === 'off' ? '' : d.k, d.word)}<b>${esc(d.role)}</b><span class="w${d.k && d.k !== 'off' ? ` is-${d.k}` : ''}">${esc(d.word)}</span></li>`).join('')}</ul>
+          <a class="link p-more" href="#/office">Open the Office</a></section>
+        <section class="p-fact" aria-labelledby="f-how"><h3 class="section-label" id="f-how">How it runs</h3>
+          <dl class="p-dl is-stack"><dt>Shipping</dt><dd>${SHIP[p.autonomy] || esc(p.autonomy)}</dd><dt>Gating</dt><dd>${GATING[p.trust] || esc(p.trust)}</dd>
+            <dt>In the Claude app</dt><dd>${S.lead ? `“${a} lead”` : 'Not running: start the lead'}</dd>${gh ? `<dt>GitHub</dt><dd>${gh}</dd>` : ''}</dl>
+          <a class="link p-more" href="${href(p.alias, 'settings')}">Change in Settings</a></section>
+      </div></details></aside>`;
+  }
+
+  // ── Tasks: grouped by status in today's order; an empty group is left out and the line under the heading says so ──
+  const GROUP = [['needs-you', 'Needs you', 'needs'], ['running', 'Working', 'active'], ['review', 'In review', 'active'], ['queued', 'Queued', ''], ['planned', 'Waiting for your OK', ''], ['requested', 'Requests', ''], ['stalled', 'Stalled', ''], ['paused', 'Paused', ''], ['done', 'Done', 'done'], ['failed', 'Failed', ''], ['cancelled', 'Cancelled', '']];
+  const TRY = { f: 'failed the check', p: 'passed', n: 'now', '': 'no check' };
+  const tries = t => {
+    const list = (t.live?.history || []).map(h => h.check === 'pass' ? 'p' : h.check === 'fail' ? 'f' : '');
+    if (t.live?.current) list.push('n');
+    return list.length ? `<ol class="t-tries" aria-label="${list.length} ${list.length === 1 ? 'try' : 'tries'} so far">${list.map((x, i) => `<li data-t="${x}" title="Try ${i + 1}: ${TRY[x]}"></li>`).join('')}</ol>` : '';
+  };
+  function tasksTab(p, S) {
+    if (!p.tasks.length) return empty('Tasks', 'No tasks yet', 'The lead plans tasks after you approve the spec. They appear here, grouped by status.');
+    const by = S.tasks || {};
+    const hidden = GROUP.filter(([s]) => !by[s]).map(([, l]) => l.toLowerCase());
+    const groups = GROUP.filter(([s]) => by[s]).map(([s, label, k]) => {
+      const rows = p.tasks.filter(t => taskStatus(t) === s).map(t => {
+        const v = taskView(p, t);
+        const sub = s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${t.reason ? ` · ${t.reason}` : ''}`;
+        const eta = s === 'running' && t.eta ? `about ${t.eta.low}–${t.eta.high} min left` : '';
+        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(t.updated)}`)}">${dot(k, label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${tries(t)}<span class="p-id">${esc(t.id)}</span>${esc(when(t.updated))}</span></a>`;
+      }).join('');
+      return `<section class="p-sec"><h3 class="p-h3">${label} <span class="n">${by[s]}</span></h3><div class="p-rows">${rows}</div></section>`;
+    }).join('');
+    return `<section class="p-sec"><h2 class="p-h">Tasks <span class="n">${p.tasks.length}</span></h2>
+      <p class="p-quiet">Grouped by status.${hidden.length ? ` Nothing is ${hidden.length > 1 ? `${hidden.slice(0, -1).join(', ')} or ${hidden.at(-1)}` : hidden[0]} right now, so ${hidden.length > 1 ? 'those groups are' : 'that group is'} hidden.` : ''}</p></section>${groups}`;
+  }
+
+  // ── Outcomes (UX-14 A): the owner's outcomes with a ring each; the team's checks folded under them ──
+  function outcomesTab(p, S) {
+    const live = p.criteria.filter(c => !['draft', 'retired', 'rejected'].includes(c.status));
+    const mine = live.filter(c => (c.level || (c.kind === 'owner' ? 'owner' : 'team')) === 'owner');
+    const checks = live.filter(c => !mine.includes(c));
+    if (!mine.length && !checks.length) return empty('Outcomes', 'No outcomes yet', 'The lead drafts them with the spec. You approve each one in the Inbox.');
+    const met = c => c.status === 'pass' || c.status === 'accepted';
+    const last = c => (c.history || []).at(-1) || {};
+    const building = c => p.tasks.find(t => ['running', 'review', 'needs-you', 'queued'].includes(t.status) && String(t.criteria || '').toUpperCase().split(/[\s,;]+/).includes(c.id));
+    const words = c => {
+      if (met(c)) return `Met ${when(last(c).at)}${c.status === 'accepted' ? ' · you accepted it' : ' · its check passed'}`;
+      if (c.status === 'awaiting-owner') return 'Waiting for your judgement in the Inbox';
+      const t = building(c);
+      if (t) return `${t.status === 'queued' ? 'Next' : 'Being built'}: ${t.title}`;
+      return c.status === 'fail' ? 'Not yet: its check is failing' : 'Not started';
+    };
+    const ring = (c, yes, no) => met(c) ? `<span class="p-ok" role="img" aria-label="${yes}">${I('check')}</span>` : `<span class="p-ok" role="img" aria-label="${no}"></span>`;
+    const row = (c, yes, no) => `<li data-met="${met(c)}">${ring(c, yes, no)}<span class="t"><b>${esc(c.statement)}</b><span class="s">${esc(c.id)} · ${esc(words(c))}</span></span></li>`;
+    const order = list => [...list.filter(c => c.status === 'fail'), ...list.filter(c => !met(c) && c.status !== 'fail'), ...list.filter(met)];
+    return `<section class="p-sec"><h2 class="p-h">Outcomes <span class="n">${S.outcomes.met} of ${S.outcomes.of} met</span></h2>
+      <p class="p-quiet">What the project must do to be finished, in the charter’s words.</p>
+      ${mine.length ? `<ul class="p-outs">${mine.map(c => row(c, 'Met', 'Not met yet')).join('')}</ul>` : '<p class="p-quiet">No outcomes of yours yet. The lead drafts them with the spec.</p>'}
+      ${checks.length ? `<details class="details p-doc" data-key="checks"><summary><span class="t"><b>Team checks</b><span class="s num">${S.checks.passing} of ${S.checks.of} passing · the tests behind the outcomes</span></span>${I('chevron-down')}</summary><div class="details-body">
+        <ul class="p-outs">${order(checks).map(c => row(c, 'Passing', 'Not passing')).join('')}</ul></div></details>` : ''}</section>`;
+  }
+
+  // ── Audits: the running audit, when the next one starts, the findings by who has them, past audits ──
+  function auditsTab(p, S) {
+    const a = esc(p.alias);
+    const run = p.team.agents.find(x => x.kind === 'auditor')?.audit;
+    const panel = run ? `<div class="p-audit" role="status" aria-label="Audit running">${win('active')}
+        <span class="t"><b>Audit running · ${run.startedMin ? `${run.startedMin} min` : 'just started'}</b><span class="s">${esc(cap1(run.stage || 'getting ready'))}</span></span>
+        ${run.checkers ? `<span class="p-stages" role="img" aria-label="${run.finished} of ${run.checkers} checkers done">${Array.from({ length: run.checkers }, (_, i) => `<i class="${i < run.finished ? 'past' : i === run.finished ? 'now' : ''}"></i>`).join('')}</span>` : ''}</div>` : '';
+    const lastLine = `${p.lastAudit ? `Last audit ${when(p.lastAudit.at)}, on what was built by then.` : 'No audit has run yet.'} ${p.auditMode === 'auto' ? 'Audits start on their own once 3 tasks have finished since the last one (or a day after work lands), or when you run one.' : 'Audits run when you or the lead start one: the lead runs one at the end of each milestone.'}`;
+    const by = (...s) => [...p.findings].reverse().filter(f => s.includes(f.status));
+    const fold = f => `<details class="details p-doc p-find" data-key="f-${esc(f.id)}"><summary><span class="t"><b>${esc(f.headline || f.claim)}</b><span class="s">${esc([cap1(SEVERITY[f.severity] || f.severity || ''), f.reversibility === 'hard' ? 'costly to change later' : '', FINDING_STATE[f.status] || f.status].filter(Boolean).join(' · '))}</span></span>${I('chevron-down')}</summary>
+      <div class="details-body">
+        ${f.impact ? `<div><span class="p-lbl">If nobody fixes it</span>${md(f.impact)}</div>` : ''}
+        ${f.ownerNote ? `<div><span class="p-lbl">Your call</span><p>“${esc(f.ownerNote)}”</p></div>` : ''}
+        <details class="details p-tech" data-key="ft-${esc(f.id)}"><summary>${I('chevron-down')}Technical details</summary><div class="details-body">${md(`**What you asked for:** ${f.expected || ''}\n\n**What the auditor found:** ${f.observed || ''}\n\n**Evidence:** ${f.evidence || ''}`)}</div></details>
+        ${f.status === 'open' ? `<div class="field"><label class="field-label" for="fn-${esc(f.id)}">Note <span class="faint">(optional)</span></label><textarea class="input" id="fn-${esc(f.id)}" rows="2" placeholder="Why, in a few words"></textarea></div>
+          <div class="p-act"><button class="btn btn-primary" type="button" data-pa="finding" data-verdict="confirm" data-id="${esc(f.id)}">Yes, fix it</button><button class="btn btn-secondary" type="button" data-pa="finding" data-verdict="dismiss" data-id="${esc(f.id)}">No, it’s fine</button></div>` : ''}
+      </div></details>`;
+    const group = (title, list) => list.length ? `<section class="p-sec"><h3 class="p-h3">${title} <span class="n">${list.length}</span></h3><div class="p-docs">${list.map(fold).join('')}</div></section>` : '';
+    const past = p.events.filter(e => e.type === 'audit');
+    const head = `<section class="p-sec"><h2 class="p-h">Audits</h2>${panel}<p class="p-quiet">${esc(lastLine)}</p>
+      <div class="p-act"><button class="btn btn-secondary" type="button" data-pa="audit"${run ? ' disabled' : ''}>${I('finding')}Run an audit now…</button></div></section>`;
+    if (!p.findings.length && !run && !p.lastAudit) return head + `<p class="p-empty"><b>Nothing from the auditor yet</b><span>Audits start once there is something built to check. What they find that only you can decide comes to your Inbox.</span></p>`;
+    return head + group('Your call', by('open')) + group('Being fixed', by('confirmed', 'sent-to-lead')) + group('Settled', by('fixed', 'dismissed', 'withdrawn'))
+      + (past.length ? `<section class="p-sec"><h3 class="p-h3">Past audits</h3>${feed(p, past.slice(0, 6))}</section>` : '')
+      + '<p class="p-quiet">The auditor is your check on the whole team, the lead included: it judges what’s built against your own words and reports only to you. The reviewer is different: it checks each task before it ships.</p>';
+  }
+
+  // ── Docs: one list of folds; #/p/<alias>/docs/<key> opens one. Long documents render only when opened. ──
+  const gateLine = (p, ph) => {
+    const g = p.gates?.[ph];
+    if (!g) return 'Not written yet';
+    if (g.status === 'approved') return `Approved by ${/^delegated to the lead/i.test(g.quote || '') ? 'the lead' : 'you'} ${day(g.at)}`;
+    if (g.status === 'requested') return 'Waiting for your OK in the Inbox';
+    if (g.status === 'skipped') return `Skipped ${day(g.at)}`;
+    return cap1(g.status);
+  };
+  const lazy = new Map(); // fold key → body html, made when the fold opens
+  function docsTab(p, sub) {
+    const a = esc(p.alias);
+    const doc = (key, t, s, body, { red = false, big = false } = {}) => {
+      if (big) lazy.set(`doc-${key}`, body);
+      const open = sub === key;
+      return `<details class="details p-doc" data-doc="${key}" data-key="doc-${key}"${open ? ' open' : ''}><summary><span class="t"><b>${t}</b><span class="s${red ? ' is-needs' : ''}">${s}</span></span>${I('chevron-down')}</summary><div class="details-body"${big ? ' data-lazy' : ''}>${big && !open ? '' : typeof body === 'function' ? body() : body}</div></details>`;
+    };
+    const ch = p.charter;
+    const charter = `<form class="p-charter" data-pa-form="charter-save">
+        <div class="field"><label class="field-label" for="ch-text">The charter, in your words</label>
+          <textarea class="input p-chtext" id="ch-text" rows="9" aria-describedby="ch-h">${esc(p.docs.charter)}</textarea>
+          <span class="field-help" id="ch-h">The team works from this. A change after you approved it asks you to approve again.</span></div>
+        <div class="p-act"><button class="btn btn-secondary" type="submit" data-ch-save disabled>Save changes</button></div></form>
+      ${ch && !ch.tampered ? `<div class="p-approved"><span class="p-lbl">You approved it ${day(ch.approvedAt)}</span>${ch.quote ? `<p>“${esc(ch.quote)}”</p>` : ''}</div>` : ''}
+      ${!ch || ch.tampered ? `<form class="p-chapprove" data-pa-form="charter-approve">
+        <div class="field"><label class="field-label" for="ch-q">Approve in your own words</label><textarea class="input" id="ch-q" rows="2" placeholder="Say in a few words what you approve" aria-describedby="ch-qe"></textarea><span class="field-error" id="ch-qe" hidden>${I('alert')}Say in a few words what you approve, so the team knows what you read.</span></div>
+        <div class="p-act"><button class="btn btn-primary" type="submit">Approve the charter</button></div></form>` : ''}`;
+    const rulings = `${p.rulings?.length ? `<ol class="p-rulings">${p.rulings.map(r => `<li><b class="num">${esc(r.n)}</b><span class="t"><span>${esc(r.text)}</span>${r.note ? `<span class="s">${esc(r.note)}</span>` : ''}</span></li>`).join('')}</ol>` : '<p class="p-quiet">No rulings yet.</p>'}
+      <form class="p-ruling" data-pa-form="ruling">
+        <div class="field"><label class="field-label" for="r-new">Add a ruling</label><textarea class="input" id="r-new" rows="2" placeholder="For example: no modal dialogs, edit in place" aria-describedby="r-h"></textarea><span class="field-help" id="r-h">Every agent on ${a} follows it from their next step.</span></div>
+        <div class="p-act"><button class="btn btn-secondary" type="submit" data-r-add disabled>Add the ruling</button></div></form>`;
+    const review = ph => () => {
+      const r = p.reviews?.[ph];
+      if (!r || (!r.doc && !r.open)) return `<p class="p-quiet">No ${ph} yet.</p>`;
+      return `<p class="p-meta">${r.merged ? 'Merged into the project' : 'The latest version, not merged yet'}, ${r.files} file${r.files === 1 ? '' : 's'}${r.open ? ` · <a class="link" href="${esc(viewUrl(r))}" target="_blank" rel="noopener">${ph === 'design' ? 'Open the clickable screens' : 'Open it'}${I('external')}</a>` : ''}</p>${md(r.doc || '')}`;
+    };
+    const rv = ph => { const r = p.reviews?.[ph]; return r && (r.doc || r.open) ? `${gateLine(p, ph)} · ${r.merged ? 'merged' : 'not merged yet'} · ${r.files} file${r.files === 1 ? '' : 's'}` : gateLine(p, ph); };
+    const msgs = () => p.messages.length ? `<p class="p-quiet">Specialists message each other directly. Nothing here binds anyone; decisions go through the lead.</p><ol class="p-msgs">${p.messages.map(m => `<li><span class="p-msg-h"><b>${esc(cap1(m.fromRole || m.from))}</b> to <b>${esc(cap1(m.to))}</b> · ${esc(m.type)}<time class="num" datetime="${esc(m.at)}">${esc(when(m.at))}</time></span><span>${esc(m.text)}</span></li>`).join('')}</ol>` : '<p class="p-quiet">No messages yet.</p>';
+    const text = (k, none) => () => p.docs[k]?.trim() ? md(p.docs[k]) : `<p class="p-quiet">${none}</p>`;
+    lazy.clear();
+    return `<section class="p-sec"><h2 class="p-h">Documents</h2><div class="p-docs">
+      ${doc('charter', 'Charter', ch ? ch.tampered ? 'Changed after you approved it · approve it again' : `Approved by you ${day(ch.approvedAt)} · unchanged since` : p.docs.charter?.trim() ? 'Not approved yet' : 'Not written yet', charter, { red: !!ch?.tampered })}
+      ${doc('rulings', `Rulings${p.rulings?.length ? ` <span class="n num">${p.rulings.length}</span>` : ''}`, 'Your decisions the team follows, newest last', rulings)}
+      ${doc('brief', 'Brief', gateLine(p, 'brief'), text('brief', 'No brief yet.'), { big: true })}
+      ${doc('spec', 'Spec', gateLine(p, 'spec'), text('spec', 'No spec yet.'), { big: true })}
+      ${doc('design', 'Design', rv('design'), review('design'), { big: true })}
+      ${doc('contracts', 'Contracts', rv('contracts'), review('contracts'), { big: true })}
+      ${doc('plan', 'Lead’s plan', 'What the lead plans next', text('plan', 'No plan yet.'), { big: true })}
+      ${doc('ledger', 'Lead’s ledger', 'What the lead decided without you', text('ledger', 'Nothing yet.'), { big: true })}
+      ${doc('messages', 'Team messages', p.messages.length ? `${p.messages.length === 100 ? 'The latest 100' : p.messages.length} message${p.messages.length === 1 ? '' : 's'}` : 'None yet', msgs, { big: true })}
+    </div></section>`;
+  }
+
+  const empty = (h, t, m) => `<section class="p-sec"><h2 class="p-h">${h}</h2><p class="p-empty"><b>${t}</b><span>${m}</span></p></section>`;
+
+  // ── Head and tabs ──
+  const head = (p, S) => {
+    const a = esc(p.alias);
+    const gh = p.github?.problem && p.autonomy !== 'branch' ? `<span class="p-gh" title="${esc(p.github.problem)}">${I('blocked')}Not on GitHub</span>` : '';
+    const lead = S.lead
+      ? `<span class="p-lead">${dot('active', 'Lead on')}<span>Lead on</span></span>
+         <div class="p-menu"><button class="btn btn-secondary" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lead-menu" data-pa="menu">Lead${I('chevron-down')}</button>
+           <div class="p-pop" id="lead-menu" hidden><button type="button" data-pa="restart">${I('refresh')}<span>Restart the lead<small>It picks up where it left off</small></span></button><button type="button" data-pa="stop">${I('x')}<span>Stop the lead…<small>Running tasks finish first</small></span></button></div></div>`
+      : `<span class="p-lead is-off">${dot('', 'Lead off')}<span>Lead off</span></span><button class="btn btn-secondary" type="button" data-pa="start">${I('play')}Start the lead</button>`;
+    return `<header class="hf-head" data-r="head"><a class="back" href="#/projects">${I('chevron-left')}<span>Projects</span></a><h1>${a}</h1>${gh}${lead}<span class="end">${liveLine()}</span></header>`;
+  };
+  const tabs = (a, tab, S) => `<nav class="tabs p-tabs" aria-label="${esc(a)}" data-r="tabs">${[
+    ['overview', 'Overview'], ['tasks', 'Tasks', S?.tasksOpen || ''], ['outcomes', 'Outcomes', S?.outcomes?.of ? `${S.outcomes.met}/${S.outcomes.of}` : ''], ['audits', 'Audits', S?.findingsOpen || ''], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings'],
+  ].map(([k, t, c]) => `<a class="tab" href="${href(a, k)}"${tab === k ? ' aria-current="page"' : ''}>${t}${c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}</nav>`;
+
+  // ── Mounting and patching ──
+  const dialogs = a => `<dialog class="p-dialog" id="p-stop" aria-labelledby="pstop-t" aria-describedby="pstop-d"><h2 id="pstop-t">Stop the lead for ${esc(a)}?</h2>
+      <p id="pstop-d">Nothing new starts until you start it again. Running tasks finish the try they are on.</p>
+      <div class="p-dialog-act"><button class="btn btn-secondary" type="button" value="keep" autofocus>Keep it running</button><button class="btn btn-danger" type="button" value="go">Stop the lead</button></div></dialog>
+    <dialog class="p-dialog" id="p-audit" aria-labelledby="paud-t" aria-describedby="paud-d"><h2 id="paud-t">Run an audit of ${esc(a)} now?</h2>
+      <p id="paud-d">Independent checkers look over what’s built so far, against your charter, outcomes and spec. It costs from today’s spend. Anything only you can decide comes to your Inbox.</p>
+      <div class="p-dialog-act"><button class="btn btn-secondary" type="button" value="keep" autofocus>Not now</button><button class="btn btn-primary" type="button" value="go">Run the audit</button></div></dialog>`;
+
+  // A region whose words changed replaces the one on screen; folds the owner opened stay open, typed text stays,
+  // and a region the owner is typing in or has a menu open in waits for the next refresh.
+  function patch(root, regions) {
+    for (const [r, html] of regions) {
+      if (parts.get(r) === html) continue;
+      const old = root.querySelector(`[data-r="${r}"]`);
+      if (!old) continue;
+      if (old.contains(document.activeElement) && /^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement.tagName)) continue;
+      if (old.querySelector('.p-pop:not([hidden])')) continue;
+      const tpl = document.createElement('template'); tpl.innerHTML = html;
+      const el = tpl.content.firstElementChild;
+      old.querySelectorAll('details[data-key]').forEach(d => { const n = el.querySelector(`details[data-key="${CSS.escape(d.dataset.key)}"]`); if (n) n.open = d.open; });
+      old.querySelectorAll('textarea[id]').forEach(t => { const n = el.querySelector(`#${CSS.escape(t.id)}`); if (n && t.value !== t.defaultValue) n.value = t.value; });
+      fillLazy(el);
+      old.replaceWith(el);
+      parts.set(r, html);
+    }
+  }
+  const fillLazy = root => root.querySelectorAll('details[open] > [data-lazy]').forEach(b => { if (!b.childElementCount) b.innerHTML = lazy.get(b.parentElement.dataset.key)?.() || ''; });
+
+  function draw(p, tab, sub) {
+    const C = counts(), a = p.alias;
+    const S = C.projects[a] || { waiting: 0, needsNow: 0, working: 0, spentToday: 0, dayLimit: 0, spentTotal: 0, tasks: {}, outcomes: { met: 0, of: 0 }, checks: { passing: 0, of: 0 } };
+    const own = state.queue.filter(q => q.project === a && !Inbox.isHidden(q.key));
+    const regions = [['head', head(p, S)], ['tabs', tabs(a, tab, S)]];
+    let body;
+    if (tab === 'overview') {
+      const r = [['now', now(p, S, own)], ['facts', facts(p, S, C)], ['needs', needs(S, own)], ['work', work(p, S)], ['recent', recent(p)]];
+      regions.push(...r);
+      body = `<div class="p-grid${failedAt ? ' is-stale' : ''}">${r[0][1]}${r[1][1]}<div class="p-col">${r[2][1]}${r[3][1]}${r[4][1]}</div></div>`;
+    } else {
+      const html = tab === 'tasks' ? tasksTab(p, S) : tab === 'outcomes' ? outcomesTab(p, S) : tab === 'audits' ? auditsTab(p, S) : tab === 'docs' ? docsTab(p, sub)
+        : `<div class="legacy">${tab === 'activity' ? projActivity(p) : projSettings(p)}</div>`;
+      const one = `<div class="p-col p-list" data-r="list">${html}</div>`;
+      regions.push(['list', one]);
+      body = one;
+    }
+    const key = `${a}/${tab}/${tab === 'docs' ? sub || '' : ''}`;
+    const view = $('view');
+    const root = view.querySelector(':scope > .project');
+    if (root && root.dataset.key === key) return patch(root, regions);
+    view.innerHTML = `<div class="project" data-key="${esc(key)}">${regions[0][1]}${regions[1][1]}<div class="hf-body">${body}</div>${dialogs(a)}</div>`;
+    parts = new Map(regions); pageKey = key;
+    const f = view.querySelector('details[data-key="facts"]');
+    if (f && isPhone()) f.open = false;
+    fillLazy(view);
+    if (sub && tab === 'docs') view.querySelector(`details[data-doc="${CSS.escape(sub)}"]`)?.scrollIntoView({ block: 'start' });
+  }
+
+  // Before the first read: Now, facts and two sections as skeletons, counts hidden (States).
+  function loading(a, tab) {
+    const sk = (w, h) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
+    $('view').innerHTML = `<div class="project" data-key=""><header class="hf-head"><a class="back" href="#/projects">${I('chevron-left')}<span>Projects</span></a><h1>${esc(a)}</h1><span class="end">${liveLine()}</span></header>${tabs(a, tab, null)}
+      <div class="hf-body"><div class="p-grid" aria-busy="true" aria-label="Loading ${esc(a)}">
+        <section class="p-now">${sk('48px', 12)}${sk('70%', 28)}${sk('90%', 16)}${sk('100%', 28)}</section>
+        <aside class="p-facts"><div class="p-facts-in p-skel">${sk('100%', 120)}${sk('100%', 72)}</div></aside>
+        <div class="p-col">${[3, 2].map(n => `<section class="p-sec">${sk('120px', 16)}${Array.from({ length: n }, () => sk('100%', 44)).join('')}</section>`).join('')}</div></div></div></div>`;
+    pageKey = '';
+  }
+  function error(a, tab) {
+    $('view').innerHTML = `<div class="project" data-key=""><header class="hf-head"><a class="back" href="#/projects">${I('chevron-left')}<span>Projects</span></a><h1>${esc(a)}</h1><span class="end">${liveLine()}</span></header>${tabs(a, tab, null)}<div class="hf-body">${loadError(`The ${a} page`)}</div></div>`;
+    pageKey = '';
+  }
+
+  async function show(a, tab, sub, refreshing, wait) {
+    if (tab === 'criteria') tab = 'outcomes';
+    if (!TABS.includes(tab)) tab = 'overview';
+    const hash = location.hash;
+    const had = seen.get(a);
+    if (had && !(refreshing && pageKey.startsWith(`${a}/`))) draw(had, tab, sub);
+    else if (!had) loading(a, tab);
+    let p;
+    try { p = await get(`/api/project/${encodeURIComponent(a)}${wait ? '?wait' : ''}`); } catch (e) {
+      if (e.message === 'signed out') throw e;
+      if (location.hash === hash && !had) error(a, tab);
+      return;
+    }
+    if (location.hash !== hash) return; // the owner has already moved on
+    seen.set(a, p);
+    draw(p, tab, sub);
+  }
+
+  // ── Acting in place: the lead menu, the confirms, audits, findings, charter and rulings ──
+  const pa = () => location.hash.split('/')[2] ? decodeURIComponent(location.hash.split('/')[2]) : '';
+  const menu = () => [document.querySelector('.project [data-pa="menu"]'), $('lead-menu')];
+  const closeMenu = () => { const [b, pop] = menu(); if (pop && !pop.hidden) { pop.hidden = true; b.setAttribute('aria-expanded', 'false'); } };
+  async function run(btn, body, done, busyText) {
+    const was = btn?.innerHTML;
+    if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); if (busyText) btn.textContent = busyText; }
+    const r = await act(body, done);
+    if (btn && btn.isConnected) { btn.disabled = false; btn.removeAttribute('aria-busy'); if (busyText) btn.innerHTML = was; }
+    return r;
+  }
+  function confirmIn(id, go) {
+    const d = $(id); if (!d) return;
+    const back = document.activeElement;
+    d.querySelectorAll('button').forEach(b => { b.onclick = () => { d.close(); if (b.value === 'go') go(); else back?.focus?.(); }; });
+    d.showModal();
+  }
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.project')) return closeMenu();
+    const b = e.target.closest('[data-pa]');
+    const [mb, pop] = menu();
+    if (pop && !pop.hidden && !pop.contains(e.target) && b !== mb) closeMenu();
+    if (!b) return;
+    const a = pa();
+    switch (b.dataset.pa) {
+      case 'menu': e.stopPropagation(); pop.hidden = !pop.hidden; b.setAttribute('aria-expanded', String(!pop.hidden)); if (!pop.hidden) pop.querySelector('button').focus(); break;
+      case 'restart': closeMenu(); mb?.focus(); run(null, { action: 'lead-restart', project: a }, `Restarting the lead for ${a}`); break;
+      case 'stop': closeMenu(); confirmIn('p-stop', () => { mb?.focus(); run(mb, { action: 'lead-stop', project: a }, `Stopped the lead for ${a}`, 'Stopping…'); }); break;
+      case 'start': run(b, { action: 'lead-start', project: a }, `Starting the lead for ${a} in a terminal on this PC`, 'Starting…'); break;
+      case 'audit': confirmIn('p-audit', () => { b.focus(); run(b, { action: 'audit', project: a }, `Started an audit of ${a}`, 'Starting…'); }); break;
+      case 'finding': {
+        const note = ($(`fn-${b.dataset.id}`)?.value || '').trim();
+        run(b, { action: 'finding', project: a, id: b.dataset.id, verdict: b.dataset.verdict, note }, b.dataset.verdict === 'confirm' ? 'Asked the team to fix it' : 'Marked it fine');
+        break;
+      }
+    }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { const [b, pop] = menu(); if (pop && !pop.hidden) { closeMenu(); b.focus(); } } });
+  document.addEventListener('toggle', e => { const d = e.target; if (d.matches?.('.project details[open]')) fillLazy(d.parentElement); }, true);
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.id === 'ch-text') { const s = document.querySelector('[data-ch-save]'); if (s) s.disabled = t.value === t.defaultValue; }
+    if (t.id === 'r-new') { const s = document.querySelector('[data-r-add]'); if (s) s.disabled = !t.value.trim(); }
+    if (t.id === 'ch-q' && t.value.trim()) { $('ch-qe').hidden = true; t.removeAttribute('aria-invalid'); }
+  });
+  document.addEventListener('submit', async e => {
+    const f = e.target.closest('[data-pa-form]');
+    if (!f) return;
+    e.preventDefault();
+    const a = pa(), btn = f.querySelector('[type="submit"]'), ta = f.querySelector('textarea');
+    const v = ta.value.trim();
+    if (f.dataset.paForm === 'charter-approve' && !v) { $('ch-qe').hidden = false; ta.setAttribute('aria-invalid', 'true'); return ta.focus(); }
+    if (!v) return;
+    const body = f.dataset.paForm === 'charter-save' ? { action: 'charter-save', project: a, text: ta.value }
+      : f.dataset.paForm === 'charter-approve' ? { action: 'charter-approve', project: a, quote: v } : { action: 'ruling', project: a, text: v };
+    const done = { 'charter-save': 'Saved the charter', 'charter-approve': `Approved the charter for ${a}`, ruling: `Added the ruling for ${a}` }[f.dataset.paForm];
+    ta.blur();
+    const r = await run(btn, body, done);
+    // The refresh may have replaced the form: settle the field that is on screen now, not the one sent.
+    const cur = $(ta.id);
+    if (r !== null && cur) { if (f.dataset.paForm === 'charter-save') cur.defaultValue = cur.value = ta.value; else cur.value = cur.defaultValue = ''; }
+  });
+  addEventListener('resize', () => { if (!isPhone()) document.querySelectorAll('.project details[data-key="facts"]').forEach(d => { d.open = true; }); });
+
+  return { show };
+})();
 
 function projActivity(p) {
   return `<ul class="timeline" style="margin-top:12px">${p.events.map(e => eventLine(e)).join('') || '<div class="hint">Nothing yet.</div>'}</ul>`;
