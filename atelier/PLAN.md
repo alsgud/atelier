@@ -35,8 +35,8 @@ Rough split (to be re-priced from real costs after the design task):
 | 6umt | designer | D5: UX research + walkthrough with numbered decisions ($22, 8 it) | R-8 | running |
 | — | designer | D6: every screen high-fi in N1 + K1 dark-first, from D5 answers (old D4 brief below + R-3 motion) | owner answers UX decisions | not started |
 | 5u8q | frontend | Slice 1: shell + summary endpoint + Inbox (17 it, $90) | design gate (approved 2026-10-26) | APPROVED round 2, on atelier/5u8q, owner to merge |
-| 66eq | frontend | Slice 2: Office, project + task pages, plus slice 1 follow-ups (17 it, $90), base atelier/5u8q | slice 1 | queued |
-| — | frontend | Slice 3: office, new project, settings | slice 2 | not started |
+| 66eq | frontend | Slice 2: Office, project + task pages, plus slice 1 follow-ups (17 it, $90), base atelier/5u8q | slice 1 (merged by owner 21:33) | APPROVED round 3, on atelier/66eq, owner to merge |
+| xhen | frontend | Slice 3: Projects, Activity, New project, Settings, palette, states, inventory sweep, plus slice 1-2 follow-ups (17 it, $90), base atelier/66eq | slice 2 | running |
 | — | auditor | End-of-milestone audit | slice 3 | not started |
 
 ## Ready-to-send briefs

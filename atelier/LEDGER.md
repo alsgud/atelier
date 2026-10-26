@@ -2,6 +2,9 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## Slice 2 done 2026-10-26 ~23:00
+- 66eq APPROVED round 3. Lead checked office-1440-dark on real data: matches the mockup. Owner to merge atelier/66eq. xhen slice 3 started on base atelier/66eq with all reviewer follow-ups. After xhen: second-port try (R25), owner tries it, audit (`atelier audit atelier-ui run --bg`), file the contracts (owner OK pending).
+
 ## 2026-10-26 21:36
 - Owner merged 5u8q (slice 1 live) and raised Atelier's plan ceilings to 90% (5h) / 90% (week). A paced runner sleeps to its fixed time and ignores new ceilings, so the lead stopped and resumed 66eq once. 66eq round 1 review: changes; builder fixing.
 
