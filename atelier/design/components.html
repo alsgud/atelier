@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier · Components</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  /* Sheet layout only (not product CSS). */
+  body { padding: var(--space-10) var(--space-8) var(--space-16); }
+  .sheet { max-width: 1180px; margin: 0 auto; display: grid; gap: var(--space-12); }
+  .sheet-head { display: flex; align-items: flex-end; gap: var(--space-6); border-bottom: var(--border-width) solid var(--border); padding-bottom: var(--space-6); }
+  .sheet-head h1 { font-family: var(--font-display); font-weight: var(--weight-regular); font-size: var(--text-2xl); line-height: var(--leading-2xl); letter-spacing: var(--tracking-display); }
+  .sheet-head p { color: var(--text-2); max-width: 60ch; margin-top: var(--space-2); }
+  .sheet-head nav { margin-left: auto; display: flex; gap: var(--space-2); }
+  section > h2 { font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-semibold); }
+  section > p.why { color: var(--text-2); margin-top: var(--space-1); max-width: 72ch; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-6) var(--space-5); margin-top: var(--space-5); align-items: flex-start; }
+  .cell { display: grid; gap: var(--space-2); justify-items: start; }
+  .cell > .field, .cell > .choices, .cell > .details, .cell > .dl { width: 100%; }
+  .cell > .lbl { font-size: var(--text-xs); color: var(--text-3); font-family: var(--font-mono); }
+  .panel { background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); }
+  .panel.sunk { background: var(--surface-sunken); }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); margin-top: var(--space-5); }
+  .sw { border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+  .sw i { display: block; height: 48px; }
+  .sw div { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+  .sw b { display: block; font-size: var(--text-sm); font-weight: var(--weight-medium); }
+  .sw span { color: var(--text-2); font-family: var(--font-mono); }
+  .typespec { display: grid; grid-template-columns: 160px 1fr; gap: var(--space-3) var(--space-6); margin-top: var(--space-5); align-items: baseline; }
+  .typespec .lbl { font-size: var(--text-xs); color: var(--text-3); font-family: var(--font-mono); }
+  .spacing { display: flex; gap: var(--space-3); align-items: flex-end; margin-top: var(--space-5); flex-wrap: wrap; }
+  .spacing div { display: grid; gap: var(--space-1); justify-items: center; font-size: var(--text-xs); color: var(--text-3); font-family: var(--font-mono); }
+  .spacing i { display: block; background: var(--active-track); border: 1px solid var(--active); }
+  .elev { display: flex; gap: var(--space-6); margin-top: var(--space-5); flex-wrap: wrap; }
+  .elev div { width: 160px; height: 96px; border-radius: var(--radius-md); background: var(--surface); display: grid; place-items: center; font-size: var(--text-xs); color: var(--text-2); font-family: var(--font-mono); border: var(--border-width) solid var(--border); }
+  .w-320 { width: 320px; } .w-344 { width: var(--size-queue); } .w-480 { width: 480px; } .w-640 { width: 640px; }
+  .toast-static { position: static; transform: none; width: 420px; }
+  .demo-phone { width: 390px; border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  @media (max-width: 720px) { body { padding: var(--space-6) var(--space-4); } .sheet-head { flex-wrap: wrap; } .sheet-head nav { margin-left: 0; } .w-480, .w-640, .toast-static, .demo-phone { width: 100%; } .typespec { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <header class="sheet-head">
+    <div>
+      <span class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Atelier</span>
+      <h1>Components</h1>
+      <p>Everything the Inbox is built from, in every state. Values come from <code>tokens.css</code>; classes from <code>components.css</code>. Colour means something: lilac is working, red needs you or went wrong, green is done. Everything else is a warm neutral.</p>
+    </div>
+    <nav aria-label="Sheet options"><a class="btn btn-secondary" id="themeLink" href="?theme=dark">Dark</a><a class="btn btn-ghost" href="screens/inbox.html">Inbox screen</a></nav>
+  </header>
+
+  <section>
+    <h2>Colour roles</h2>
+    <p class="why">Roles, not hex: a screen asks for “text-2” or “needs”, never a colour. All text pairs measured at 4.5:1 or better in both themes (table in DESIGN.md).</p>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <section>
+    <h2>Type</h2>
+    <p class="why">One sans for the interface, one display serif for the single thing that matters on the screen. Nothing loads from the internet.</p>
+    <div class="typespec">
+      <span class="lbl">display 2xl · 40/46 serif</span><span class="empty-title">Nothing needs you.</span>
+      <span class="lbl">display xl · 30/36 serif</span><span class="title-display">Approve the look of Replay</span>
+      <span class="lbl">lg · 20/28 semibold</span><span style="font-size:var(--text-lg);line-height:var(--leading-lg);font-weight:var(--weight-semibold)">Working now</span>
+      <span class="lbl">md · 16/24 · reading</span><span class="lede">The designer drew 13 screens in the gamer style you asked for. These three carry the most.</span>
+      <span class="lbl">base · 14/20 · UI</span><span>Should hidden clips stay out of Throwbacks too?</span>
+      <span class="lbl">sm · 13/18 · meta</span><span class="muted" style="font-size:var(--text-sm)">replay · frontend · 2 min ago</span>
+      <span class="lbl">xs · 12/16 · captions</span><span class="faint" style="font-size:var(--text-xs)">Resets in 2 h 10 min</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spacing, radii, elevation</h2>
+    <p class="why">A 4 px grid. Three surfaces lift: the decision dock (2), toasts and menus (3); everything else is flat with hairlines.</p>
+    <div class="spacing" id="spacing"></div>
+    <div class="elev">
+      <div style="border-radius:var(--radius-sm)">radius-sm 6</div>
+      <div>radius-md 10</div>
+      <div style="border-radius:var(--radius-lg);box-shadow:var(--shadow-2);border-color:transparent">radius-lg 14 · shadow-2</div>
+      <div style="box-shadow:var(--shadow-3);border-color:transparent">shadow-3</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Buttons</h2>
+    <p class="why">Primary is ink, not a colour, so colour stays a signal. One primary per dock. Phone size is 44 px tall.</p>
+    <div class="row" id="buttons"></div>
+  </section>
+
+  <section>
+    <h2>Text field and choices</h2>
+    <p class="why">Fields have a 3:1 border so you can find them. A question's suggested answers are a radio list, not a row of pills.</p>
+    <div class="row">
+      <div class="cell w-320"><span class="lbl">default</span><div class="field"><label class="field-label" for="f1">Your answer</label><textarea class="input" id="f1" rows="2" placeholder="Write your own answer"></textarea></div></div>
+      <div class="cell w-320"><span class="lbl">hover</span><div class="field"><label class="field-label" for="f2">Your answer</label><textarea class="input is-hover" id="f2" rows="2" placeholder="Write your own answer"></textarea></div></div>
+      <div class="cell w-320"><span class="lbl">focus</span><div class="field"><label class="field-label" for="f3">Your answer</label><textarea class="input is-focus" id="f3" rows="2">Keep them out, same rule as the feed</textarea></div></div>
+      <div class="cell w-320"><span class="lbl">error</span><div class="field"><label class="field-label" for="f4">Why are you rejecting it? <span class="faint">Goes to the lead as a ruling</span></label><textarea class="input" id="f4" rows="2" aria-invalid="true" aria-describedby="f4e"></textarea><span class="field-error" id="f4e"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>Say what's wrong so the team can fix it.</span></div></div>
+      <div class="cell w-320"><span class="lbl">disabled (while sending)</span><div class="field"><label class="field-label" for="f5">Your answer</label><textarea class="input" id="f5" rows="2" disabled>Keep them out, same rule as the feed</textarea><span class="field-help">Sending…</span></div></div>
+      <div class="cell w-320"><span class="lbl">choices · one picked · one focused</span>
+        <fieldset class="choices"><legend class="sr-only">Suggested answers</legend>
+          <label class="choice"><input type="radio" name="c1" checked> Yes, keep them out</label>
+          <label class="choice is-hover"><input type="radio" name="c1" class="is-focus"> No, include them</label>
+        </fieldset></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Navigation</h2>
+    <p class="why">Desktop: a sidebar (≥ 1280 px). Tablet: a top bar with underline tabs. Phone: a bottom tab bar. The Inbox count turns red only when something needs you now; nothing else in the chrome is coloured except a working project's lilac dot.</p>
+    <div class="row">
+      <div class="cell"><span class="lbl">sidebar · current, hover, focus, counts</span><div class="panel sunk" style="padding:0;background:var(--bg)"><div id="sidebarDemo"></div></div></div>
+      <div class="cell" style="flex:1;min-width:320px"><span class="lbl">tablet top bar</span><div class="panel" style="padding:0;overflow:hidden;width:100%"><div id="topbarDemo"></div></div>
+        <span class="lbl" style="margin-top:var(--space-5)">phone tab bar · items need you / nothing urgent</span>
+        <div class="demo-phone" id="tabbarDemo"></div><div class="demo-phone" id="tabbarDemo2"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Queue item</h2>
+    <p class="why">One plain sentence, the project and the age. A kind glyph lets you tell a design from a question at a glance; a red dot only on what needs you now. Selection is neutral, because lilac means working.</p>
+    <div class="row" id="queue"></div>
+  </section>
+
+  <section>
+    <h2>Working now</h2>
+    <p class="why">Lilac, live, and a progress figure that means something (“1,240 of 1,800 clips”, not “iteration 2 of 6”).</p>
+    <div class="row"><div class="cell w-344"><span class="lbl">default · hover · quiet (no progress figure)</span><div class="panel" id="agents" style="padding:var(--space-2)"></div></div></div>
+  </section>
+
+  <section>
+    <h2>Preview frame</h2>
+    <p class="why">The real thing, never a drawn stand-in. Opens the full page from the view port in a new tab. States: default, hover, focus, recording, loading, couldn't load.</p>
+    <div class="row" id="frames"></div>
+  </section>
+
+  <section>
+    <h2>Decision dock</h2>
+    <p class="why">Where every decision happens. Sticks to the bottom of the item on desktop and above the tab bar on the phone, so the buttons are always in reach.</p>
+    <div class="row" id="docks"></div>
+  </section>
+
+  <section>
+    <h2>Toasts and banner</h2>
+    <p class="why">After a decision: what happened, and Undo for 6 seconds. Errors keep what you typed and offer Retry.</p>
+    <div class="row">
+      <div class="cell"><span class="lbl">success with undo</span><div class="toast toast-success toast-static" role="status"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span class="toast-text">Approved. Next: Should hidden clips stay out of Throwbacks?</span><button class="toast-action">Undo</button></div></div>
+      <div class="cell"><span class="lbl">neutral · action focused</span><div class="toast toast-static" role="status"><span class="toast-text">Raised replay's limit to $60 for today.</span><button class="toast-action is-focus">Undo</button></div></div>
+      <div class="cell"><span class="lbl">error with retry</span><div class="toast toast-error toast-static" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><span class="toast-text">Couldn't reach Atelier. Your answer is kept.</span><button class="toast-action">Retry</button></div></div>
+      <div class="cell w-640"><span class="lbl">banner · inbox didn't load</span><div class="banner" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><span>The Inbox didn't load. Trying again in 15 s.</span><span class="spacer"></span><button class="btn btn-secondary">Try now</button></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Empty state</h2>
+    <p class="why">Inbox zero is the goal, so it is calm: a serif line, one sentence, nothing red. What the team is doing sits below it.</p>
+    <div class="row"><div class="cell"><span class="lbl">inbox zero</span><div class="panel" style="padding:var(--space-8)"><div class="empty"><span class="empty-mark"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>All caught up</span><h3 class="empty-title">Nothing needs you.</h3><p>Three agents are working. Anything that needs you will show up here.</p></div></div></div>
+      <div class="cell w-344"><span class="lbl">decided today (ledger)</span><div class="panel" style="padding:var(--space-2)"><div class="ledger" id="ledger"></div></div></div></div>
+  </section>
+
+  <section>
+    <h2>Item parts</h2>
+    <p class="why">Pieces of a focused decision: pager, eyebrow, details, quote, facts, keyboard hints.</p>
+    <div class="row">
+      <div class="cell w-640"><span class="lbl">pager + eyebrow (needs you now) + title</span>
+        <div class="pager"><button class="btn btn-ghost btn-icon btn-sm" aria-label="Previous"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg></button><button class="btn btn-ghost btn-icon btn-sm is-hover" aria-label="Next"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg></button><span class="of">1 of 7</span><span class="hint"><span class="kbd">J</span><span class="kbd">K</span> next, previous</span></div>
+        <div class="eyebrow" style="margin-top:var(--space-4)"><span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span><span class="sep">·</span><span class="kind"><svg class="icon" aria-hidden="true"><use href="#i-finding"/></svg>From the auditor</span><span class="sep">·</span><span>replay</span><span class="sep">·</span><span>25 min ago</span></div>
+        <h3 class="title-display" style="margin-top:var(--space-2)">Some of your clips may need a paid Windows add-on to play</h3></div>
+      <div class="cell w-480"><span class="lbl">details closed / open</span>
+        <details class="details"><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>Technical details</summary></details>
+        <details class="details" open><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>Technical details</summary><div class="details-body"><span>Criterion <code>AC-34</code>: H.264, HEVC and AV1 play with no paid codec extension.</span><span>The spike measured with <code>hwdec=no</code>; the app spec still lets HEVC fall back to Windows' decoder.</span></div></details></div>
+      <div class="cell w-480"><span class="lbl">quote</span><blockquote class="quote" style="margin:0">Throwbacks shows clips from this week in past years. Hidden clips already stay out of the feed. Should Throwbacks follow the same rule?<footer>Frontend, building the Throwbacks row</footer></blockquote></div>
+      <div class="cell w-480"><span class="lbl">facts</span><dl class="facts"><dt>You asked for</dt><dd>Medal and Outplayed clips, free components only</dd><dt>The auditor found</dt><dd>HEVC clips play only with Microsoft's $0.99 add-on</dd></dl></div>
+    </div>
+  </section>
+</main>
+
+<script src="icons.js"></script>
+<script>
+const P = new URLSearchParams(location.search);
+const theme = P.get('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.dataset.theme = theme;
+const tl = document.getElementById('themeLink');
+tl.href = '?theme=' + (theme === 'dark' ? 'light' : 'dark'); tl.textContent = theme === 'dark' ? 'Light' : 'Dark';
+const I = (n, c) => icon(n, c);
+
+// Colour roles
+const ROLES = [['bg', 'Canvas'], ['surface', 'Surface'], ['surface-sunken', 'Sunken'], ['surface-hover', 'Hover'], ['surface-selected', 'Selected'], ['border', 'Hairline'], ['border-field', 'Field border'], ['text', 'Text'], ['text-2', 'Text 2 · secondary'], ['text-3', 'Text 3 · meta'], ['ink', 'Ink · primary action'], ['active', 'Active · working'], ['active-soft', 'Active wash'], ['needs', 'Needs you · wrong'], ['needs-soft', 'Needs wash'], ['done', 'Done'], ['done-soft', 'Done wash'], ['surface-inverse', 'Inverse · toast']];
+const cs = getComputedStyle(document.documentElement);
+document.getElementById('swatches').innerHTML = ROLES.map(([k, n]) => `<div class="sw"><i style="background:var(--${k})"></i><div><b>${n}</b><span>--${k} ${cs.getPropertyValue('--' + k).trim()}</span></div></div>`).join('');
+document.getElementById('spacing').innerHTML = [['1', 4], ['2', 8], ['3', 12], ['4', 16], ['5', 20], ['6', 24], ['8', 32], ['10', 40], ['12', 48], ['16', 64]].map(([k, v]) => `<div><i style="width:${v}px;height:${v}px"></i>space-${k}<br>${v}</div>`).join('');
+
+// Buttons in every state
+const B = (cls, label, extra = '') => `<button class="btn ${cls}" ${extra}>${label}</button>`;
+const states = [['default', ''], ['hover', 'is-hover'], ['focus', 'is-focus'], ['pressed', 'is-active'], ['disabled', '', 'disabled'], ['loading', '', 'aria-busy="true"']];
+const variants = [['primary', 'btn-primary', 'Approve design', 'Approving…'], ['secondary', 'btn-secondary', 'Skip this phase', 'Skipping…'], ['ghost', 'btn-ghost', 'Budget settings', 'Opening…'], ['danger (confirm only)', 'btn-danger', 'Stop the lead', 'Stopping…']];
+document.getElementById('buttons').innerHTML = variants.map(([n, c, l, busy]) => `<div class="cell"><span class="lbl">${n}</span><div style="display:flex;gap:var(--space-3);flex-wrap:wrap">${states.map(([s, sc, ex]) => `<div class="cell"><span class="lbl">${s}</span>${B(c + ' ' + sc, s === 'loading' ? busy : l, ex || '')}</div>`).join('')}</div></div>`).join('')
+  + `<div class="cell"><span class="lbl">phone 44 px</span><div style="display:flex;gap:var(--space-2)">${B('btn-primary btn-lg', 'Accept')}${B('btn-secondary btn-lg', 'Reject')}</div></div>`
+  + `<div class="cell"><span class="lbl">icon only (labelled) · with shortcut</span><div style="display:flex;gap:var(--space-2);align-items:center">${B('btn-secondary btn-icon', I('chevron-left'), 'aria-label="Previous item"')}${B('btn-secondary btn-icon is-focus', I('chevron-right'), 'aria-label="Next item"')}${B('btn-primary', 'Send answer <span class="kbd">Ctrl ↵</span>')}</div></div>`;
+
+// Navigation
+const mark = '<span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
+document.getElementById('sidebarDemo').innerHTML = `<aside class="sidebar" style="min-height:520px">
+  <span class="brand">${mark}Atelier</span>
+  <nav class="nav" aria-label="Main">
+    <a class="nav-item" aria-current="page" href="#">${I('inbox')}Inbox<span class="count is-needs">7</span></a>
+    <a class="nav-item is-hover" href="#">${I('office')}Office<span class="count is-active">3 working</span></a>
+    <a class="nav-item is-focus" href="#">${I('activity')}Activity</a>
+  </nav>
+  <nav class="nav" aria-label="Projects"><span class="nav-label">Projects</span>
+    <a class="nav-item" href="#"><span class="dot dot-active"></span>replay<span class="count">4</span></a>
+    <a class="nav-item" href="#"><span class="dot dot-active"></span>atelier-ui<span class="count">1</span></a>
+    <a class="nav-item" href="#"><span class="dot"></span>dodge<span class="count">2</span></a>
+    <a class="nav-item" href="#">${I('plus')}New project</a>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="meter"><div class="meter-head"><span>Claude plan</span><b>41%</b></div><div class="meter-track"><i style="--value:41%"></i></div><span class="meter-foot">Resets in 2 h 10 min</span></div>
+    <div class="meter"><div class="meter-head"><span>Spent today</span><b>$52.60</b></div><span class="meter-foot">replay has hit its $40 limit</span></div>
+  </div></aside>`;
+document.getElementById('topbarDemo').innerHTML = `<div class="topbar"><span class="brand">${mark}Atelier</span><nav class="tabs" aria-label="Main"><a class="tab" aria-current="page" href="#">Inbox <span class="count is-needs">7</span></a><a class="tab is-hover" href="#">Office</a><a class="tab" href="#">Projects</a><a class="tab is-focus" href="#">Activity</a></nav><span class="topbar-status"><span>Plan <b>41%</b></span><span>Today <b>$52.60</b></span></span></div>`;
+const tabbar = (n, quiet) => `<nav class="tabbar" aria-label="Main"><a aria-current="page" href="#">${I('inbox')}Inbox${n ? `<span class="badge-n ${quiet ? 'is-quiet' : ''}" aria-label="${n} waiting">${n}</span>` : ''}</a><a href="#">${I('office')}Office</a><a href="#">${I('projects')}Projects</a><a href="#">${I('activity')}Activity</a></nav>`;
+document.getElementById('tabbarDemo').innerHTML = tabbar(7);
+document.getElementById('tabbarDemo2').innerHTML = tabbar(3, true);
+
+// Queue items
+const Q = (title, meta, age, glyph, opts = {}) => `<a href="#" class="qitem ${opts.cls || ''}" ${opts.current ? 'aria-current="true"' : ''}><span class="qitem-glyph">${I(glyph)}</span><span class="qitem-title">${title}</span><span class="qitem-side">${opts.needs ? '<span class="dot dot-needs" aria-label="Needs you now"></span>' : ''}<span class="qitem-age">${age}</span></span><span class="qitem-meta">${meta}</span></a>`;
+const qcell = (lbl, html) => `<div class="cell w-344"><span class="lbl">${lbl}</span><div class="panel" style="padding:var(--space-2);width:100%">${html}</div></div>`;
+document.getElementById('queue').innerHTML =
+  qcell('default · needs you now', Q('Some of your clips may need a paid Windows add-on', 'replay <span class="sep">·</span> from the auditor', '25m', 'finding', { needs: true }))
+  + qcell('default', Q('Should hidden clips stay out of Throwbacks too?', 'replay <span class="sep">·</span> question', '2h', 'question'))
+  + qcell('hover', Q('Play a round and say whether dodging feels fair', 'dodge <span class="sep">·</span> your judgement', '3h', 'proof', { cls: 'is-hover' }))
+  + qcell('selected (open)', Q('Approve the look of Replay', 'replay <span class="sep">·</span> design', '2h', 'design', { current: true }))
+  + qcell('focus', Q('Start the play-through and build task', 'dodge <span class="sep">·</span> task plan', '1d', 'plan', { cls: 'is-focus' }))
+  + qcell('decided (then collapses out)', Q('Approved the look of Replay', 'replay <span class="sep">·</span> just now', 'now', 'check', { cls: 'is-done' }))
+  + qcell('loading', `<div class="qitem is-skeleton"><span class="skeleton" style="width:28px;height:28px"></span><span class="skeleton" style="height:12px;width:80%;margin-top:4px"></span><span></span><span class="qitem-meta"><span class="skeleton" style="height:10px;width:40%;margin-top:4px"></span></span></div>`)
+  + qcell('group headings', `<div class="queue-group"><div class="queue-head is-needs"><span>Needs you now</span><span class="n">2</span></div></div><div class="queue-group" style="margin-top:var(--space-3)"><div class="queue-head"><span>When you have a minute</span><span class="n">5</span></div></div>`);
+
+// Agents
+const A = (what, meta, prog, value, cls = '') => `<a href="#" class="agent ${cls}"><span class="agent-dot"><span class="dot dot-active is-live"></span></span><span class="agent-what">${what}</span><span class="agent-meta">${meta}</span>${prog ? `<span class="agent-progress"><span class="track"><i style="--value:${value}"></i></span>${prog}</span>` : ''}</a>`;
+document.getElementById('agents').innerHTML = A('Indexing clip thumbnails', 'replay · backend · 1 min ago', '1,240 of 1,800 clips', '69%')
+  + A('Building the trim editor', 'replay · frontend · added the drag handles', 'step 4 of 6 · about 20 min left', '62%', 'is-hover')
+  + A('Drawing the Inbox in direction B', 'atelier-ui · designer · just now', '', '');
+
+// Frames
+const F = (img, cap, opts = {}) => `<div class="cell" style="width:${opts.w || 300}px"><span class="lbl">${opts.lbl}</span><a href="#" class="frame ${opts.cls || ''}" style="width:100%" aria-label="${cap}, opens in a new tab"><span class="frame-img">${opts.broken ? `${I('image', 'icon-lg')}<span>Couldn't load this picture.</span><span class="link">Open it instead</span>` : opts.loading ? '' : `<img src="${img}" alt="">`}${opts.play ? `<span class="play">${I('play')}${opts.play}</span>` : ''}</span><span class="frame-cap"><b>${cap}</b><span>Open ${I('external')}</span></span></a></div>`;
+document.getElementById('frames').innerHTML =
+  F('screens/img/replay-home.png', 'Home', { lbl: 'default · desktop design' })
+  + F('screens/img/replay-trim.png', 'Cut clips', { lbl: 'hover', cls: 'is-hover' })
+  + F('screens/img/replay-feed.png', 'Feed · phone', { lbl: 'focus · phone ratio', cls: 'is-phone is-focus', w: 140 })
+  + F('screens/img/dodge-play.png', 'A round, mid-spiral', { lbl: 'proof with recording', play: '0:42' })
+  + F('', 'Results', { lbl: 'loading', cls: 'is-loading' })
+  + F('', 'Results', { lbl: "couldn't load", cls: 'is-broken', broken: true });
+
+// Docks
+const D = (lbl, inner, cls = '') => `<div class="cell w-640"><span class="lbl">${lbl}</span><div class="dock ${cls}" style="width:100%">${inner}</div></div>`;
+const note = (ph, v = '', extra = '') => `<textarea class="input" rows="1" aria-label="${ph}" placeholder="${ph}" ${extra}>${v}</textarea>`;
+document.getElementById('docks').innerHTML =
+  D('ready · note optional', `${note('Add a note for the lead (optional)')}<div class="dock-row">${B('btn-primary', 'Yes, fix it')}${B('btn-secondary', "No, it's fine")}<span class="dock-hint"><span class="kbd">Ctrl ↵</span> fix it</span></div>`)
+  + D('needs your words (Approve stays enabled; an empty note is caught on click, see the error below)', `${note('Your decision, in your own words')}<div class="dock-row">${B('btn-primary', 'Approve design')}${B('btn-secondary', 'Skip this phase')}<span class="dock-hint"><span class="kbd">Ctrl ↵</span> to send</span></div>`)
+  + D('sending', `${note('Your decision', 'Go with it. Keep the orange for actions only.', 'disabled')}<div class="dock-row">${B('btn-primary', 'Approving…', 'aria-busy="true"')}${B('btn-secondary', 'Skip this phase', 'disabled')}</div>`)
+  + D("couldn't send · words kept", `${note('Your decision', 'Go with it. Keep the orange for actions only.')}<div class="dock-row">${B('btn-primary', 'Try again')}${B('btn-secondary', 'Skip this phase')}<span class="dock-msg is-error">${I('alert')}Couldn't reach Atelier. Nothing was sent.</span></div>`)
+  + D('sent (about a second, then the next item slides in; Undo is in the toast)', `<div class="dock-row"><span class="dock-msg is-done">${I('check')}Approved. The designer starts on the rest.</span></div>`, 'is-sent')
+  + D('approving with no note (error)', `<div class="field">${note('Your decision, in your own words', '', 'aria-invalid="true"')}<span class="field-error">${I('alert')}Say what you approve in a few words. It goes to the designer.</span></div><div class="dock-row">${B('btn-primary', 'Approve design')}${B('btn-secondary', 'Skip this phase')}</div>`)
+  + D('rejecting needs a note (error)', `<div class="field">${note('Why are you rejecting it?', '', 'aria-invalid="true"')}<span class="field-error">${I('alert')}Say what's wrong so the team can fix it.</span></div><div class="dock-row">${B('btn-primary', 'Accept')}${B('btn-secondary', 'Reject')}</div>`);
+
+// Ledger
+document.getElementById('ledger').innerHTML = [['Approved the look of Dodge', 'dodge', '40m'], ['Asked the team to fix the paid add-on problem', 'replay', '1h'], ['Answered: keep hidden clips out of Throwbacks', 'replay', '2h']]
+  .map(([w, p, a]) => `<a href="#" class="ledger-row">${I('check')}<span class="what">${w}</span><span class="qitem-age">${a}</span><span class="meta">${p}</span></a>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+/* Projects list: one card per project, a list ≤ 960. The project's Now sentence in the serif is the card's headline, so
+   the list reads as three sentences; colour keeps its meanings (lilac lead on / working, red needs you now / at the limit). */
+.pj-list { display: grid; gap: var(--space-3); max-width: 960px; width: 100%; }
+.pj { display: grid; gap: var(--space-2); padding: var(--space-5) var(--space-6); border: var(--border-width) solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text);
+  transition: border-color var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy), box-shadow var(--dur-base); }
+.pj:hover { border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.pj:active { transform: scale(0.99); transition-duration: var(--dur-instant); }
+.pj:focus-visible { outline-offset: 2px; }
+.pj-top { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }
+.pj-name { display: inline-flex; align-items: baseline; gap: var(--space-3); }
+.pj-name b { font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-semibold); letter-spacing: -0.01em; }
+.pj-wait { margin-left: auto; font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
+.pj-wait .is-needs { color: var(--needs); font-weight: var(--weight-medium); }
+.pj-now { font-family: var(--font-display); font-weight: var(--weight-regular); font-size: var(--text-lg); line-height: var(--leading-lg); letter-spacing: var(--tracking-display); text-wrap: pretty; max-width: 52ch; }
+.pj-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) 0; margin-top: var(--space-1); font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
+.pj-foot > span + span::before { content: "·"; color: var(--text-3); padding: 0 var(--space-2); }
+.pj-foot b { color: var(--text); font-weight: var(--weight-medium); }
+.pj-money.is-needs { color: var(--needs); }
+.pj-ph { display: inline-flex; align-items: center; gap: var(--space-2); }
+/* The phase track at text size: five 14 × 4 bars, past --text-3, the current one --text */
+.pj-phase { display: inline-flex; gap: 2px; }
+.pj-phase i { width: 14px; height: 4px; border-radius: var(--radius-full); background: var(--surface-selected); }
+.pj-phase i.past { background: var(--text-3); }
+.pj-phase i.now { background: var(--text); width: 22px; }
+.is-stale .strip i[data-k="active"] { opacity: 0.4; }
+.pj.is-skeleton { gap: var(--space-3); }
+.pj.is-skeleton:hover { transform: none; box-shadow: none; border-color: var(--border); }
+.pj.is-skeleton .skeleton { display: block; }
+.hf-head .pj-new .icon { width: 16px; height: 16px; }
+
+@media (max-width: 767px) {
+  .pj { padding: var(--space-4); }
+  .pj-wait { margin-left: 0; flex-basis: 100%; order: 3; }
+  .pj-top .strip { margin-left: auto; }
+  .pj-now { font-size: var(--text-md); line-height: var(--leading-md); }
+  /* Phone: the quiet line stacks; a wrapped line would start with a stray dot */
+  .pj-foot { display: grid; gap: var(--space-1); }
+  .pj-foot > span + span::before { content: none; }
+  /* Phone head: title and New project on one line, the summary under them; the top bar's spend is the freshness cue */
+  .hf-head h1 { order: 1; flex-basis: auto; }
+  .hf-head .end { order: 2; flex-basis: auto; margin-left: auto; }
+  .hf-head .hf-sum { order: 3; flex-basis: 100%; }
+  .hf-head .hf-live[data-live] { display: none; }
+  .hf-head .hf-live[role="status"] { order: 4; }
+  .hf-head .pj-new { height: var(--size-control-lg); }
+}

@@ -1,0 +1,15 @@
+/* Sign in: a 400 card centred on the page background; on the phone it is the page (no card edge), top-aligned so the
+   keyboard never covers the button. Tokens and components.css parts only. */
+.l-wrap { min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6) var(--space-4); background: var(--bg); }
+.l-card { width: min(400px, 100%); display: grid; gap: var(--space-5); padding: var(--space-8); border-radius: var(--radius-lg); background: var(--surface); border: var(--border-width) solid var(--border); box-shadow: var(--shadow-2); animation: p-in var(--dur-slow) var(--ease-enter); }
+.l-mark { display: block; line-height: 0; color: var(--text); }
+.l-card h1 { margin: 0; font-family: var(--font-display); font-size: var(--text-2xl); line-height: var(--leading-2xl); font-weight: var(--weight-regular); }
+.l-lede { margin: calc(-1 * var(--space-2)) 0 0; color: var(--text-2); }
+.l-card code { font-family: var(--font-mono); font-size: 0.92em; color: var(--text); }
+.l-card .input { min-height: var(--size-control-lg); font-family: var(--font-mono); letter-spacing: 0.04em; }
+.l-go { height: var(--size-control-lg); width: 100%; justify-content: center; }
+@keyframes p-in { from { opacity: 0; transform: translateY(4px); } }
+@media (max-width: 767px) {
+  .l-wrap { place-items: start center; padding-top: var(--space-12); }
+  .l-card { padding: 0; background: none; border: 0; box-shadow: none; }
+}

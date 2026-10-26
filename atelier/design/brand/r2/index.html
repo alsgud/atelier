@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" data-scheme="k1" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier brand, round 2 · pick a mark and a dark-first scheme</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../components.css">
+<link rel="stylesheet" href="../schemes.css">
+<link rel="stylesheet" href="schemes-k.css">
+<link rel="stylesheet" href="../brand.css">
+<link rel="stylesheet" href="r2.css">
+</head>
+<body class="pick pick-r2">
+<nav class="pick-nav" aria-label="Sections"><div>
+  <a href="#refs">References</a><a href="#logos">Marks N1–N11</a><a href="#colours">Colours K1–K3</a><a href="#contrast">Contrast</a><a href="#combos">Combos 1–3</a><a href="#pick">Top pick</a><a href="#theme-switch" id="theme-link">Light page</a>
+</div></nav>
+<main class="pick-wrap">
+  <header class="pick-head">
+    <h1>Round 2: the mark, and North light after dark</h1>
+    <p>From your notes on round 1: the marks grow out of L8 Line panes and L12 One line, each with one idea you can read at a glance; North light is now dark first, with a softer light mode; every screen uses the Y1 sidebar. Flow’s motion is unchanged.</p>
+    <p class="reply">Reply with, for example, <code>N3 + K1</code> or <code>Combo 1</code>. Mixing is fine: <code>Combo 2, but N1</code>. Round 1 is still at <a href="../index.html">brand/index.html</a>.</p>
+  </header>
+
+  <section class="pick-sec" id="refs" aria-labelledby="refs-h">
+    <header><h2 id="refs-h">What I looked at first</h2>
+      <p>Public pages only. What each does well, and what to stay away from. Nothing here was copied.</p></header>
+    <div class="refs" id="ref-list"></div>
+  </section>
+
+  <section class="pick-sec" id="logos" aria-labelledby="logos-h">
+    <header><h2 id="logos-h">Marks</h2>
+      <p>Eleven marks. Each has its one-line idea, sizes from 128 to 16 px (the browser tab) in dark and light, the lockup, and a crop of the real Inbox sidebar in dark. Where a mark gets busy small, it has its own small cut, used at 20 px and under.</p></header>
+    <div id="families"></div>
+    <div class="family">
+      <div class="concept-head"><h3>Sketched and set aside</h3><p>Drawn, looked at small and large, and dropped before refining, so you can see what else was tried.</p></div>
+      <ul class="aside-list" id="aside"></ul>
+    </div>
+  </section>
+
+  <section class="pick-sec" id="colours" aria-labelledby="colours-h">
+    <header><h2 id="colours-h">Colour schemes</h2>
+      <p>Dark is the main mode and the default; each scheme also has a light mode that stays off white. The brand accent is only on the mark and the focus ring. On content, colour still means only working (lilac), done (green) and needs you (red); waiting is neutral.</p></header>
+    <div id="schemes"></div>
+  </section>
+
+  <section class="pick-sec" id="contrast" aria-labelledby="contrast-h">
+    <header><h2 id="contrast-h">Contrast</h2>
+      <p>Measured from the colours on this page as it loads, not typed in. Text needs 4.5:1 (WCAG AA); rings, borders and progress fills need 3:1.</p></header>
+    <p id="contrast-sum" class="tradeoff"></p>
+    <div id="contrast-tables"></div>
+  </section>
+
+  <section class="pick-sec" id="combos" aria-labelledby="combos-h">
+    <header><h2 id="combos-h">Combinations</h2>
+      <p>Three whole looks, each a mark and a scheme, all in the Y1 sidebar layout you chose. Each is the full Inbox in dark at 1440 and 390, and light at 390, so you can see whether light suits the phone better. Each has a recorded demo of the same journey (open an item, decide, undo, check the Office, clear the inbox) with its key frames.</p>
+      <p>Expect the three to look close at first glance: colour on the page still only means needs you, working or done, so a scheme shows in the temperature of the greys and in the mark's light. Compare the sidebars and the light phones, where the difference is clearest.</p></header>
+    <div id="combo-list"></div>
+  </section>
+
+  <section class="pick-sec" id="pick" aria-labelledby="pick-h">
+    <header><h2 id="pick-h">Top pick</h2></header>
+    <div id="top-pick"></div>
+  </section>
+</main>
+<script src="marks.js"></script>
+<script>
+const P = new URLSearchParams(location.search), D = document.documentElement;
+const PAGE = P.get('theme') === 'light' ? 'light' : 'dark';
+D.dataset.theme = PAGE;
+const tl = document.getElementById('theme-link');
+tl.textContent = PAGE === 'dark' ? 'See this page in light' : 'See this page in dark';
+tl.href = PAGE === 'dark' ? '?theme=light' : '?';
+
+/* ── References (images in design/references/brand/r2/ and ../) ── */
+const REFS = [
+  { img: 'r2/arc.png', name: 'Arc', take: 'One letter drawn as a single soft ribbon whose ends are cut crisp: the curve gives warmth, the cut gives precision.', avoid: 'Its multicolour gradient, and an A made of overlapping loops (round 1’s thread already read as a weird A).' },
+  { img: 'r2/sawtooth.png', name: 'Saw-tooth roofs', take: 'The real north-light building: curved roofs that turn their glass away from direct sun. A true story behind the name (N9).', avoid: 'The generic factory pictogram on the same page: flat teeth and a chimney.' },
+  { img: 'r2/fanlight.png', name: 'Fanlight and arched windows', take: 'The arch, the keystone and the panes as an architect draws them: crisp lines inside a smooth curve (N1–N3, N10).', avoid: 'The sunburst: at 32 px a fanlight is a sunrise (set aside).' },
+  { img: 'r2/nib.png', name: 'Pen nibs', take: 'A nib is curves on the shoulders and a hard point at the tip, with a breather hole that is already an arch (N11).', avoid: 'Feather quills and ink blots: stationery-shop clip art.' },
+  { img: 'r2/italic.png', name: 'Broad-pen writing', take: 'Thick and thin in one stroke, chisel-cut ends: the hand that makes the a (N4).', avoid: 'Flourishes and swashes: they turn to noise at 16 px.' },
+  { img: 'r2/linear-dark.png', name: 'Linear, dark', take: 'Dark first done calmly: a near-black with a trace of blue, raised surfaces one small step lighter, hairline borders, white type at two weights.', avoid: 'Its pure-white primary button glare; we keep our ink button but at the ramp’s top, not #fff.' },
+  { img: 'r2/vercel-dark.png', name: 'Vercel, dark', take: 'One mark, lit, on black: a mark carries a dark page when everything else is quiet.', avoid: 'Pure #000 with glow: harsh on OLED phones and too theatrical for a working tool.' },
+  { img: 'r2/raycast-dark.png', name: 'Raycast, dark', take: 'A deep neutral with one saturated accent that belongs to the brand.', avoid: 'Red as the brand colour: red means “needs you” here.' },
+];
+document.getElementById('ref-list').innerHTML = REFS.map(r => `<figure class="ref"><img src="../../references/brand/${r.img}" alt="${r.name}: public page, captured headless" width="1440" height="900" loading="lazy"><figcaption><b>${r.name}.</b> Take: ${r.take} Avoid: ${r.avoid}</figcaption></figure>`).join('');
+
+/* ── Marks ── */
+const cardSizes = (id, t) => `<div class="sizes" data-scheme="k1" data-theme="${t}">
+    <figure>${mark2(id, 32)}<figcaption>32</figcaption></figure>
+    <figure>${mark2(id, 16)}<figcaption>16</figcaption></figure>
+    <figure><span class="favtab">${mark2(id, 16)}(7) Inbox</span><figcaption>tab, ${t}</figcaption></figure>
+  </div>`;
+document.getElementById('families').innerHTML = Object.entries(MARK_FAMILIES).map(([key, f]) => {
+  const cards = MARKS.filter(m => m.family === key).map(m => `
+    <article class="card" id="${m.id}" aria-labelledby="${m.id}-h">
+      <div class="card-head"><h4 class="card-id" id="${m.id}-h">${m.id}</h4><span class="card-name">${m.name}</span></div>
+      <p class="card-idea">${m.idea}</p>
+      <div class="tile hero-tile" data-scheme="k1" data-theme="dark">${mark2(m.id, 128, `${m.id} ${m.name}, 128 px, on dark`)}</div>
+      <div class="size-pair">${cardSizes(m.id, 'dark')}${cardSizes(m.id, 'light')}</div>
+      ${m.small ? '<p class="small-cut">Has a small cut for 20 px and under: heavier lines, fewer details.</p>' : ''}
+      <div class="lockups">
+        <div class="tile" data-scheme="k1" data-theme="dark">${lockup2(m.id, 22)}</div>
+        <div class="tile" data-scheme="k1" data-theme="light">${lockup2(m.id, 22)}</div>
+      </div>
+      <div class="bar-shots">
+        <img class="bar-shot" src="img/bar/${m.id}-1440.png" alt="${m.id} at the top of the Inbox sidebar, dark, 1440 px" width="248" height="108" loading="lazy" style="max-width:248px">
+        <img class="bar-shot" src="img/bar/${m.id}-390.png" alt="${m.id} in the Inbox top bar on a phone, dark, 390 px" width="390" height="52" loading="lazy" style="max-width:390px">
+        <span class="tile-cap">In the app, dark: the sidebar at 1440, the top bar at 390. <a href="app/inbox.html?logo=${m.id}&scheme=k1">Open it live</a></span>
+      </div>
+    </article>`).join('');
+  return `<div class="family"><div class="concept-head"><h3>${f.name}</h3><p>${f.note}</p></div><div class="cards">${cards}</div></div>`;
+}).join('');
+document.getElementById('aside').innerHTML = SKETCHES.map((s, i) => `<li>${sketchSVG(i, 48)}<div><b>${s.name}</b><p>${s.why}</p></div></li>`).join('');
+
+/* ── Schemes ── */
+const SCHEMES = [
+  { id: 'k1', name: 'North light, night', mood: 'C4 turned to its dark side: a slate near-black with a trace of blue, a moonlit slate-blue mark. Light mode is C4’s cool paper, softened.', accent: '#8fb6e6 dark, #2e65a1 light' },
+  { id: 'k2', name: 'Night sky', mood: 'Cooler and deeper: the navy of the sky over the skylight, a starlight mark. The most “night” of the three; light mode leans blue.', accent: '#a9c8f5 dark, #2f5ea8 light' },
+  { id: 'k3', name: 'Slate and aurora', mood: 'A deep neutral slate with almost no blue, and a soft aurora-cyan mark. The most neutral surfaces, the most distinct accent.', accent: '#7fd3e3 dark, #1c6c7c light' },
+];
+const meanings = `
+  <span class="meaning"><span class="dot-wait" role="img" aria-label="Waiting"></span><b>Waiting</b><code>--wait</code></span>
+  <span class="meaning"><span class="dot dot-active"></span><b style="color:var(--active)">Working</b><code>--active</code></span>
+  <span class="meaning"><span class="dot dot-done"></span><b style="color:var(--done)">Done</b><code>--done</code></span>
+  <span class="meaning"><span class="dot dot-needs"></span><b style="color:var(--needs)">Needs you</b><code>--needs</code></span>`;
+const panel = (s, t) => `<div class="scheme-panel" data-scheme="${s.id}" data-theme="${t}">
+    <div class="sample-row" style="justify-content:space-between">${lockup2('N1', 20)}<span class="accent-chip"><i></i>Accent · ${t}</span></div>
+    <div><div class="ramp" role="img" aria-label="Neutral ramp, 11 steps, ${t}">${Array.from({ length: 11 }, (_, i) => `<i style="background:var(--n${i})"></i>`).join('')}</div>
+      <div class="ramp-cap"><span>n0</span><span>n5</span><span>n10</span></div></div>
+    <div class="meanings">${meanings}</div>
+    <div class="sample" inert>
+      <div class="eyebrow"><span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span><span class="sep">·</span><span>replay</span><span class="sep">·</span><span>25 min ago</span></div>
+      <h4 class="title-display">Some of your clips may need a paid Windows add-on to play</h4>
+      <div class="agent-progress" style="display:grid;gap:4px"><span class="track" style="display:block;height:3px;border-radius:9px;background:var(--active-track);overflow:hidden"><i style="display:block;height:100%;width:69%;background:var(--active)"></i></span><span style="font-size:var(--text-xs);color:var(--text-3)">Thumbnails · 1,240 of 1,800 clips</span></div>
+      <div class="sample-row"><button class="btn btn-primary" type="button">Yes, fix it</button><button class="btn btn-secondary" type="button">No, it’s fine</button><span style="color:var(--done);font-size:var(--text-sm)">✓ Approved the look of Replay</span></div>
+    </div>
+  </div>`;
+document.getElementById('schemes').innerHTML = SCHEMES.map(s => `
+  <article class="scheme" id="${s.id.toUpperCase()}" aria-labelledby="${s.id}-h">
+    <div class="concept-head"><h3 id="${s.id}-h">${s.id.toUpperCase()} ${s.name}</h3><p>${s.mood}</p><span class="pairs">Accent ${s.accent}: mark and focus ring only.</span></div>
+    <div class="scheme-themes">${panel(s, 'dark')}${panel(s, 'light')}</div>
+  </article>`).join('');
+
+/* ── Contrast, measured from the computed colours (same pairs as round 1) ── */
+const lum = c => { const [r, g, b] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const rgb = h => { h = h.trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const ratio = (a, b) => { const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const PAIRS_C = [
+  ...[['text', 'Text'], ['text-2', 'Text 2'], ['text-3', 'Meta']].flatMap(([f, n]) => [['surface', 'surface'], ['bg', 'canvas'], ['surface-sunken', 'sunken'], ['surface-hover', 'hover'], ['surface-selected', 'selected']].map(([b, m]) => [f, b, 4.5, `${n} on ${m}`])),
+  ...[['active', 'Working'], ['done', 'Done'], ['needs', 'Needs you']].flatMap(([f, n]) => [[f, 'surface', 4.5, `${n} on surface`], [f, 'bg', 4.5, `${n} on canvas`], [f, 'surface-sunken', 4.5, `${n} on sunken`], [f, 'surface-hover', 4.5, `${n} on hover`], [f, 'surface-selected', 4.5, `${n} on selected`], [f, `${f}-soft`, 4.5, `${n} on its wash`]]),
+  ['text', 'active-soft', 4.5, 'Text on working wash'], ['text', 'done-soft', 4.5, 'Text on done wash'], ['text', 'needs-soft', 4.5, 'Text on needs wash'],
+  ['text-on-ink', 'ink', 4.5, 'Primary button label'], ['text-inverse', 'surface-inverse', 4.5, 'Toast text'],
+  ['toast-done', 'surface-inverse', 4.5, 'Toast “done” word'], ['toast-needs', 'surface-inverse', 4.5, 'Toast “needs” word'], ['text-on-needs', 'needs', 4.5, 'Count on red badge'],
+  ['wait', 'surface', 3, 'Waiting ring'], ['border-field', 'surface', 3, 'Field border'], ['brand-accent', 'surface', 3, 'Focus ring, mark accent'], ['brand-accent', 'bg', 3, 'Focus ring on canvas'], ['active', 'active-track', 3, 'Progress fill on track'],
+];
+let all = 0, bad = 0;
+document.getElementById('contrast-tables').innerHTML = SCHEMES.map((s, si) => {
+  const res = ['dark', 'light'].map(t => {
+    const probe = document.createElement('div'); probe.dataset.scheme = s.id; probe.dataset.theme = t; probe.hidden = true; document.body.append(probe);
+    const cs = getComputedStyle(probe), v = k => cs.getPropertyValue(`--${k}`).trim();
+    const r = PAIRS_C.map(([f, b, min, what]) => ({ what, f: v(f), b: v(b), r: ratio(v(f), v(b)), min }));
+    probe.remove(); return r;
+  });
+  const rows = PAIRS_C.map((p, i) => {
+    const cell = x => { all++; const ok = x.r >= x.min; if (!ok) bad++; return `<td><span class="sw" style="background:${x.b};color:${x.f}">Aa</span>${x.f} on ${x.b}</td><td class="r ${ok ? 'pass' : 'fail'}">${x.r.toFixed(2)}${ok ? '' : ' fails'}</td>`; };
+    return `<tr><th scope="row">${p[3]}</th><td class="r">${p[2]}:1</td>${cell(res[0][i])}${cell(res[1][i])}</tr>`;
+  }).join('');
+  const low = t => Math.min(...res[t].filter(x => x.min === 4.5).map(x => x.r)).toFixed(2);
+  return `<details class="more" id="contrast-${s.id}"${si === 0 ? ' open' : ''}><summary>${s.id.toUpperCase()} ${s.name}: ${PAIRS_C.length * 2} pairs, lowest text pair ${low(0)}:1 dark, ${low(1)}:1 light</summary><div class="contrast" role="region" tabindex="0" aria-label="${s.id.toUpperCase()} contrast table, scrolls sideways"><table>
+    <thead><tr><th scope="col">Pair</th><th scope="col">Needs</th><th scope="col">Dark</th><th scope="col">Ratio</th><th scope="col">Light</th><th scope="col">Ratio</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+}).join('');
+document.getElementById('contrast-sum').innerHTML = `<b>${all} pairs measured across K1–K3, dark and light: ${bad ? `${bad} below AA` : 'all pass AA'}.</b>`;
+
+/* ── Combinations (keep in sync with runs/ysk4/tools/combos-r2.mjs) ── */
+const COMBOS = [
+  { id: '1', name: 'North light, night', logo: 'N1', scheme: 'K1', top: true,
+    why: 'The window and the light it throws: the name, the mark and the colours tell one story, and the slate-blue light is the only brand colour on a calm, near-black page.',
+    watch: 'At 16 px the light patch is two pixels high; the small cut thickens it, and N3 (the same window on a tile) is the app icon if you want one solid shape.' },
+  { id: '2', name: 'Night sky', logo: 'N6', scheme: 'K2',
+    why: 'The most typographic look: a classic two-storey a in one line with its lit ball terminal, on the deepest, bluest dark.',
+    watch: 'A letter carries less story than the window; the navy light mode is the most coloured of the three.' },
+  { id: '3', name: 'Slate and aurora', logo: 'N11', scheme: 'K3',
+    why: 'The maker’s hand: a nib whose breather hole is the studio’s arched window, lit cyan on neutral slate.',
+    watch: 'Cyan sits nearer to the done green than slate blue does (they never share a role, but they share a screen); a nib leans “writing app”.' },
+];
+const MARK_NAME = Object.fromEntries(MARKS.map(m => [m.id, m.name]));
+const SCHEME_NAME = Object.fromEntries(SCHEMES.map(s => [s.id.toUpperCase(), s.name]));
+document.getElementById('combo-list').innerHTML = COMBOS.map(c => {
+  const live = `app/inbox.html?logo=${c.logo}&scheme=${c.scheme.toLowerCase()}`;
+  const label = `Combo ${c.id} ${c.name}, ${c.logo} + ${c.scheme}`;
+  const img = (w, t) => `img/combo/${c.id}-${w}-${t}.png`;
+  return `<article class="scheme" id="combo-${c.id}" aria-labelledby="combo-${c.id}-h">
+    <div class="concept-head combo-head"><h3 id="combo-${c.id}-h">Combo ${c.id} ${c.name}${c.top ? '<span class="pick-badge">Top pick</span>' : ''}</h3>
+      <ul class="recipe" aria-label="Made of">
+        <li><a href="#${c.logo}"><b>${c.logo}</b>${MARK_NAME[c.logo]}</a></li>
+        <li><a href="#${c.scheme}"><b>${c.scheme}</b>${SCHEME_NAME[c.scheme]}</a></li>
+        <li><a href="#combos"><b>Y1</b>Sidebar</a></li>
+      </ul>
+      <p class="tradeoff"><b>Why:</b> ${c.why}</p><p class="tradeoff"><b>Watch for:</b> ${c.watch}</p></div>
+    <div class="shots-3">
+      <figure class="shot"><img src="${img(1440, 'dark')}" alt="${label}, Inbox at 1440 px, dark" width="1440" height="900" loading="lazy"><figcaption class="tile-cap">1440 · dark · <a href="${live}">Open it live</a></figcaption></figure>
+      <figure class="shot"><img src="${img(390, 'dark')}" alt="${label}, Inbox on a phone, 390 px, dark" width="390" height="844" loading="lazy"><figcaption class="tile-cap">Phone · dark</figcaption></figure>
+      <figure class="shot"><img src="${img(390, 'light')}" alt="${label}, Inbox on a phone, 390 px, light" width="390" height="844" loading="lazy"><figcaption class="tile-cap">Phone · light · <a href="${live}&theme=light">Open it live</a></figcaption></figure>
+    </div>
+    <p class="combo-sub">Demo: the same journey on desktop and on the phone, dark</p>
+    <div class="shots-2">
+      <figure class="shot"><video controls muted playsinline preload="none" poster="${img(1440, 'dark')}" width="1440" height="900" aria-label="${label}: demo on desktop, dark"><source src="img/combo/combo-${c.id}-desktop-dark.webm" type="video/webm"></video>
+        <figcaption class="tile-cap">Desktop, dark · <a href="img/combo/contact-${c.id}-desktop-dark.png">Key frames</a></figcaption></figure>
+      <figure class="shot"><video controls muted playsinline preload="none" poster="${img(390, 'dark')}" width="390" height="844" aria-label="${label}: demo on a phone, dark"><source src="img/combo/combo-${c.id}-phone-dark.webm" type="video/webm"></video>
+        <figcaption class="tile-cap">Phone, dark · <a href="img/combo/contact-${c.id}-phone-dark.png">Key frames</a></figcaption></figure>
+    </div>
+    ${c.top ? `<p class="combo-sub">Top pick on the phone: dark and light side by side, same moment</p>
+    <div class="shots-3" style="grid-template-columns:repeat(2,minmax(0,280px))">
+      <figure class="shot"><img src="img/combo/${c.id}-phone-pair-dark.png" alt="${label}: the phone mid-decision, dark" width="390" height="844" loading="lazy"><figcaption class="tile-cap">Dark</figcaption></figure>
+      <figure class="shot"><img src="img/combo/${c.id}-phone-pair-light.png" alt="${label}: the phone mid-decision, light" width="390" height="844" loading="lazy"><figcaption class="tile-cap">Light</figcaption></figure>
+    </div>` : ''}
+  </article>`;
+}).join('');
+document.getElementById('top-pick').innerHTML = `<div class="top-pick">
+  <span class="eyebrow-pick">My recommendation</span>
+  <h3 class="title-display">Combo 1: N1 Window and its light + K1 North light, night</h3>
+  <ol id="why-top">
+    <li>N1 keeps what you liked in L8 from afar and adds the one thing it lacked: the patch of light on the floor, a crisp shape under a soft arch, which says “the light is on, the work is going on” at a glance.</li>
+    <li>K1 is C4 made dark first, so the slate-blue light in the mark is the only brand colour on a calm near-black page, and colour on content still only means working, done or needs you.</li>
+    <li>Name, mark and colour tell one story (an atelier’s north light), and N3, the same window on a tile, is ready as the app icon without a second idea.</li>
+  </ol>
+  <p class="tradeoff">On the phone, dark is the better default for checking in at night and on OLED screens; the light mode is there and soft enough to use outdoors, so I would follow the phone’s setting after the first run.</p>
+</div>`;
+</script>
+</body>
+</html>

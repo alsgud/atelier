@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier · Direction B · One at a time</title>
+<!--
+  Direction B, "One at a time". Static mockup of the Inbox; self-contained (no external URLs).
+  The Inbox is a queue you work through: one decision fills the page with the work itself shown large,
+  the decision sits in a dock under your thumb, and the rest of the queue and the team's live progress
+  wait in a quiet rail beside it (on the phone, one item per screen with next and previous).
+  URL options: ?theme=light|dark  ?state=empty  ?open=<item id>  ?shot (hides the mockup switcher)
+-->
+<style>
+:root {
+  --bg: #f7f7f8; --surface: #ffffff; --sunken: #efeff2; --hover: #ececf0;
+  --line: #e4e4e9; --line-strong: #d2d2d9;
+  --text: #16161b; --text-2: #3b3c44; --muted: #676872; --faint: #6e6f79;
+  --lilac: #685dc0; --lilac-soft: #eeecfa;
+  --red: #c42d28; --red-soft: #fcefee;
+  --green: #2b7c4e;
+  --ink: #16161b; --on-ink: #ffffff;
+  --shadow: 0 1px 2px rgba(20,20,30,.04), 0 12px 40px rgba(20,20,30,.07);
+  --r-s: 8px; --r-m: 14px;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "SF Pro Text", Roboto, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "SF Pro Display", Roboto, sans-serif;
+  --mono: "Cascadia Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  color-scheme: light;
+}
+:root[data-theme=dark] {
+  --bg: #0d0e10; --surface: #15161a; --sunken: #101114; --hover: #1c1d22;
+  --line: #23242a; --line-strong: #31333a;
+  --text: #ededf1; --text-2: #c7c8cf; --muted: #9b9da7; --faint: #8a8c96;
+  --lilac: #b8aff0; --lilac-soft: #24213a;
+  --red: #ff7b72; --red-soft: #3a1c1b;
+  --green: #63c991;
+  --ink: #ededf1; --on-ink: #111114;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 40px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+a { color: inherit; text-decoration: none; }
+button, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px; border-radius: 4px; }
+svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- top bar: navigation and the day's status in one line ---------- */
+.bar { height: 56px; display: flex; align-items: center; gap: 28px; padding: 0 32px; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 3; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; }
+.brand b { width: 22px; height: 22px; border-radius: 7px; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; font-size: 12px; }
+.bar nav { display: flex; gap: 4px; }
+.bar nav a { height: 32px; padding: 0 12px; border-radius: var(--r-s); display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+.bar nav a:hover { color: var(--text); background: var(--hover); }
+.bar nav a.on { color: var(--text); font-weight: 500; background: var(--hover); }
+.bar nav .n { color: var(--red); font-weight: 600; font-size: 12.5px; }
+.pulse { margin-left: auto; display: flex; gap: 22px; color: var(--muted); font-size: 13px; }
+.pulse b { color: var(--text-2); font-weight: 500; }
+.live { width: 7px; height: 7px; border-radius: 50%; background: var(--lilac); display: inline-block; margin-right: 7px; vertical-align: 1px; }
+@media (prefers-reduced-motion: no-preference) { .live { animation: breathe 2.4s ease-in-out infinite; } }
+@keyframes breathe { 50% { opacity: .35; } }
+
+/* ---------- stage: the decision in front, the queue beside ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 56px; max-width: 1240px; margin: 0 auto; padding: 32px 40px 60px; }
+.pager { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; margin-bottom: 26px; }
+.pager .arr { width: 30px; height: 30px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; color: var(--text-2); cursor: pointer; }
+.pager .arr:hover { background: var(--hover); }
+.pager .keys { margin-left: auto; color: var(--faint); font-size: 12px; }
+kbd { font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; margin: 0 2px; }
+.eyebrow { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.eyebrow.urgent { color: var(--red); }
+.focus h1 { font: 600 28px/1.25 var(--display); letter-spacing: -.012em; margin: 0 0 12px; max-width: 26ch; text-wrap: balance; }
+.focus p { font-size: 15px; line-height: 1.6; color: var(--text-2); margin: 0 0 22px; max-width: 60ch; }
+.focus p b { color: var(--text); font-weight: 600; }
+
+.work { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 14px; }
+.work.three { grid-template-columns: repeat(3, minmax(0, 200px)); }
+.shot { display: block; }
+.shot .frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--sunken); box-shadow: var(--shadow); }
+.shot:hover .frame { border-color: var(--line-strong); }
+.shot .cap { display: flex; justify-content: space-between; padding: 9px 2px 0; font-size: 13px; color: var(--muted); }
+.shot .cap b { color: var(--text); font-weight: 500; }
+.links { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 4px 0 30px; font-size: 13.5px; }
+.links a { display: inline-flex; gap: 7px; align-items: center; color: var(--text-2); border-bottom: 1px solid var(--line-strong); }
+details.tech { margin: -10px 0 26px; color: var(--muted); font-size: 13.5px; }
+details.tech summary { cursor: pointer; width: max-content; }
+details.tech div { padding-top: 8px; color: var(--text-2); display: grid; gap: 6px; max-width: 62ch; }
+
+/* little pictures of the work: schematic, not real screenshots */
+.pic { aspect-ratio: 16 / 10; display: grid; grid-template-columns: 22% 1fr; gap: 6%; padding: 7%; }
+.pic .sb { background: var(--line); border-radius: 3px; }
+.pic .ln { display: grid; align-content: start; gap: 9%; }
+.pic .ln i { display: block; height: 7px; border-radius: 3px; background: var(--line-strong); }
+.pic .ln i.r { box-shadow: -10px 0 0 -2px var(--red); margin-left: 10px; }
+.pic .ln i.box { height: 40px; background: var(--surface); border: 1px solid var(--line-strong); }
+.pic.focus { grid-template-columns: 1fr 30%; }
+.pic.focus .big { display: grid; align-content: start; gap: 8%; }
+.pic.focus .big i { display: block; border-radius: 3px; background: var(--line-strong); height: 9px; }
+.pic.focus .big .hero { height: 56px; background: var(--surface); border: 1px solid var(--line-strong); }
+.phone { aspect-ratio: 9 / 16; display: grid; align-content: end; padding: 12px; gap: 7px; position: relative; overflow: hidden; background: #121216; }
+.phone::before { content: ""; position: absolute; inset: 0; background: var(--g); }
+.phone > * { position: relative; }
+.phone .t { color: #fff; font-size: 12.5px; font-weight: 600; line-height: 1.25; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.phone .t small { display: block; font-weight: 400; opacity: .8; }
+.phone .bar2 { height: 3px; background: rgba(255,255,255,.3); border-radius: 2px; }
+.phone .bar2 i { display: block; height: 100%; width: var(--w); background: #fff; border-radius: 2px; }
+
+/* the decision dock */
+.dock { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 14px; box-shadow: var(--shadow); display: grid; gap: 12px; }
+.dock textarea { width: 100%; min-height: 46px; resize: vertical; border: 0; background: none; padding: 4px 4px 0; line-height: 1.5; font-size: 14.5px; }
+.dock textarea::placeholder { color: var(--faint); }
+.dock textarea:focus { outline: none; }
+.dock .quick { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0 4px; font-size: 13.5px; }
+.dock .quick button { border: 0; background: none; padding: 0; color: var(--text-2); border-bottom: 1px dashed var(--line-strong); cursor: pointer; }
+.btns { display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; }
+.btns.solo { border-top: 0; padding-top: 0; }
+.btn { height: 38px; padding: 0 16px; border-radius: var(--r-s); border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.btn.primary:hover { opacity: .88; }
+.btn.quiet { border-color: transparent; background: none; color: var(--muted); }
+.btn.quiet:hover { color: var(--text); background: var(--hover); }
+.btns .later { margin-left: auto; }
+
+/* ---------- rail ---------- */
+.rail { display: grid; align-content: start; gap: 30px; padding-top: 4px; }
+.rail h2 { font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 0 0 6px; display: flex; justify-content: space-between; }
+.q { list-style: none; margin: 0; padding: 0; }
+.q a { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 4px 10px; padding: 8px 10px 8px 8px; border-radius: var(--r-s); position: relative; }
+.q a:hover { background: var(--hover); }
+.q a .m { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; }
+.q a.urgent .m { background: var(--red); }
+.q a .s { color: var(--text-2); font-size: 13.5px; line-height: 1.4; }
+.q a .p { grid-column: 2; color: var(--faint); font-size: 12px; }
+.q a.on { background: var(--surface); box-shadow: inset 2px 0 0 var(--lilac), 0 0 0 1px var(--line); }
+.q a.on .s { color: var(--text); font-weight: 500; }
+.q a.done .s { color: var(--muted); }
+.agent { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 2px 10px; padding: 8px 10px 8px 8px; }
+.agent .live { margin: 7px 0 0; }
+.agent .s { font-size: 13.5px; color: var(--text-2); }
+.agent .p { grid-column: 2; color: var(--muted); font-size: 12.5px; }
+.agent .track { grid-column: 2; height: 3px; border-radius: 2px; background: var(--line); margin-top: 6px; overflow: hidden; }
+.agent .track i { display: block; height: 100%; width: var(--w); background: var(--lilac); border-radius: 2px; }
+.money { display: grid; gap: 6px; font-size: 13px; color: var(--muted); padding: 0 10px 0 8px; }
+.money div { display: flex; justify-content: space-between; }
+.money b { color: var(--text-2); font-weight: 500; }
+
+/* ---------- empty ---------- */
+.calm h1 { font: 600 34px/1.2 var(--display); letter-spacing: -.015em; margin: 36px 0 10px; }
+.calm > p { font-size: 15.5px; color: var(--muted); margin: 0 0 40px; }
+.calm .sec { font-size: 12.5px; color: var(--muted); margin: 0 0 8px; }
+.calm .agent { padding: 14px 0; border-top: 1px solid var(--line); grid-template-columns: 8px minmax(0, 1fr) auto; }
+.calm .agent .s { font-size: 15px; color: var(--text); }
+.calm .agent .p, .calm .agent .track { grid-column: 2; }
+.calm .agent .when { grid-row: 1; grid-column: 3; color: var(--faint); font-size: 12.5px; }
+.st { width: 14px; height: 14px; margin-top: 3px; }
+
+/* ---------- phone ---------- */
+.ptop, .tabbar { display: none; }
+@media (max-width: 720px) {
+  .bar, .rail { display: none; }
+  .stage { display: block; padding: 0 18px 150px; }
+  .ptop { display: flex; align-items: center; gap: 6px; height: 56px; padding: 0 8px 0 4px; position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line); z-index: 3; }
+  .ptop .back { height: 44px; display: inline-flex; align-items: center; gap: 2px; padding: 0 8px; font-weight: 600; font-size: 16px; }
+  .ptop .back .n { color: var(--red); font-size: 13px; margin-left: 6px; }
+  .ptop .of { margin-left: auto; color: var(--muted); font-size: 13px; }
+  .ptop .arr { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--text-2); }
+  .pager { display: none; }
+  .eyebrow { margin: 20px 0 8px; }
+  .focus h1 { font-size: 23px; }
+  .focus p { font-size: 15px; }
+  .work, .work.three { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -18px 12px; padding: 0 18px 4px; }
+  .work .shot { flex: 0 0 64%; scroll-snap-align: start; }
+  .work.three .shot { flex-basis: 44%; }
+  .links { margin-bottom: 8px; }
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; border-radius: 18px 18px 0 0; border-bottom: 0; padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); max-width: none; z-index: 4; }
+  .dock textarea { min-height: 40px; font-size: 15px; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; }
+  .btns.solo { grid-template-columns: 1fr; }
+  .btn { height: 48px; }
+  .btns .later { display: none; }
+  .dock .quick button { min-height: 44px; }
+  .calm h1 { font-size: 28px; margin-top: 28px; }
+  .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; bottom: 0; left: 0; right: 0; height: calc(60px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--line); z-index: 3; }
+  .tabbar a { display: grid; place-items: center; align-content: center; gap: 3px; font-size: 11.5px; color: var(--muted); }
+  .tabbar a.on { color: var(--text); font-weight: 500; }
+  .tabbar svg.i { width: 20px; height: 20px; }
+  .focusing .tabbar { display: none; }
+  .shotmode .dock, .shotmode .tabbar { position: relative; }
+  .shotmode .dock { margin: 16px -18px 0; }
+  .shotmode .stage { padding-bottom: 20px; }
+}
+
+.mock { position: fixed; right: 14px; bottom: 14px; display: flex; gap: 4px; padding: 4px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; font-size: 12px; box-shadow: var(--shadow); z-index: 9; }
+.mock a { padding: 3px 8px; border-radius: 5px; color: var(--muted); }
+.mock a:hover { background: var(--hover); color: var(--text); }
+@media (max-width: 720px) { .mock { display: none; } }
+@media (prefers-reduced-motion: no-preference) { .focus > * { animation: in .18s ease-out both; } }
+@keyframes in { from { opacity: 0; transform: translateY(4px); } }
+</style>
+</head>
+<body>
+<header class="bar" id="bar"></header>
+<div class="ptop" id="ptop"></div>
+<main class="stage">
+  <section class="focus" id="focus" aria-live="polite"></section>
+  <aside class="rail" id="rail"></aside>
+</main>
+<nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+<nav class="mock" id="mock" aria-label="Mockup views"></nav>
+
+<script>
+const P = new URLSearchParams(location.search);
+const theme = P.get('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.dataset.theme = theme;
+const empty = P.get('state') === 'empty';
+const phone = matchMedia('(max-width: 720px)').matches;
+
+const ICON = {
+  inbox: '<path d="M4 13h4l1.5 2.5h5L16 13h4M4 13l2.4-7.2A1 1 0 0 1 7.35 5h9.3a1 1 0 0 1 .95.8L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/>',
+  office: '<path d="M3 20h18M5 20V10h14v10M9 10V7a3 3 0 0 1 6 0v3"/>',
+  activity: '<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',
+  projects: '<path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h4l2 2h7A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/>',
+  prev: '<path d="M14.5 6 8.5 12l6 6"/>', next: '<path d="M9.5 6l6 6-6 6"/>',
+  ext: '<path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5"/>', play: '<path d="M8 5.5v13l10.5-6.5z"/>',
+};
+const icon = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+const done = '<svg class="st" viewBox="0 0 14 14" role="img" aria-label="Done"><circle cx="7" cy="7" r="6.2" fill="var(--green)"/><path d="M4.3 7.2l1.9 1.9 3.6-3.8" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const pics = {
+  list: '<div class="pic"><span class="sb"></span><span class="ln"><i class="r" style="width:70%"></i><i style="width:84%"></i><i class="box"></i><i style="width:62%"></i><i style="width:76%"></i></span></div>',
+  focus: '<div class="pic focus"><span class="big"><i style="width:40%"></i><i style="width:80%;height:12px"></i><i class="hero"></i><i style="width:55%"></i></span><span class="ln"><i style="width:90%"></i><i style="width:70%"></i><i style="width:80%"></i></span></div>',
+  clip: (t, s, g, w) => `<div class="phone" style="--g:${g}"><div class="t">${t}<small>${s}</small></div><div class="bar2"><i style="--w:${w}"></i></div></div>`,
+};
+
+const ITEMS = [
+  { id: 'finding', urgent: true, kind: 'From the auditor', title: 'Your high-quality clips might not play without a paid Windows add-on', project: 'replay', age: '25m ago',
+    body: `<p><b>Important, and costly to change later.</b> If nobody fixes it, clips you record in Medal's newer formats (HEVC or AV1) could show "unsupported" instead of playing.</p>
+      <details class="tech"><summary>Technical details</summary><div><span><b>What you asked for:</b> full support for Medal and Outplayed, free components only.</span><span><b>What the auditor found:</b> the spec lets these formats rely on Windows' own decoders, and HEVC needs a $0.99 add-on from the Microsoft Store.</span></div></details>`,
+    dock: `<textarea rows="1" aria-label="Note for the lead" placeholder="Anything to add? (optional, goes to the lead)"></textarea>
+      <div class="btns"><button class="btn primary">Yes, fix it</button><button class="btn">No, it's fine</button><button class="btn quiet later">Later</button></div>` },
+  { id: 'budget', urgent: true, kind: 'Budget', title: "Replay has used today's $40 budget, so new work is paused", project: 'replay', age: '1h ago',
+    body: `<p>The lead used $6.20 of it. Raise today's limit to keep the team going now. Or do nothing: work resumes on its own at midnight.</p>`,
+    dock: `<div class="btns solo"><button class="btn primary">Raise today to $60</button><a class="btn quiet" href="#">Budget settings</a><button class="btn quiet later">Later</button></div>` },
+  { id: 'gate', kind: 'Design', title: 'Approve the design for the new dashboard', project: 'atelier-ui', age: '2h ago',
+    body: `<p>Two directions for the Inbox, each on desktop and phone, in light and dark. Pick one and the designer draws every screen in it.</p>
+      <div class="work">
+        <a class="shot" href="#"><div class="frame">${pics.list}</div><div class="cap"><b>A · The list</b><span>Open ↗</span></div></a>
+        <a class="shot" href="#"><div class="frame">${pics.focus}</div><div class="cap"><b>B · One at a time</b><span>Open ↗</span></div></a>
+      </div>
+      <div class="links"><a href="#">${icon('ext')}Open the clickable screens</a><a href="#">Read the design notes</a></div>`,
+    dock: `<textarea rows="2" aria-label="Your decision, in your own words" placeholder="Your decision, in your own words. e.g. Go with B, but keep the queue visible on the phone"></textarea>
+      <div class="btns"><button class="btn primary">Approve design</button><button class="btn">Skip this phase</button><button class="btn quiet later">Later</button></div>` },
+  { id: 'question', kind: 'Question', title: 'Should hidden clips stay out of Throwbacks too?', project: 'replay', age: '2h ago',
+    body: `<p>From the frontend, working on Throwbacks: "Throwbacks shows clips from this week in past years. Hidden clips already stay out of the shorts feed and out of sight when you show the app to others. Should Throwbacks follow the same rule?"</p>`,
+    dock: `<div class="quick"><button>Yes, keep them out</button><button>No, include them</button></div><textarea rows="1" aria-label="Your answer" placeholder="Or write your own answer"></textarea>
+      <div class="btns"><button class="btn primary">Send answer</button><a class="btn quiet" href="#">Open the task</a><button class="btn quiet later">Later</button></div>` },
+  { id: 'proof', kind: 'Your judgement', title: 'Try the shorts feed and say whether it feels instant', project: 'replay', age: '3h ago',
+    body: `<p>Shown working: it scrolled through 200 of your Medal clips, and each one started in under a quarter of a second.</p>
+      <div class="work three">
+        <a class="shot" href="#"><div class="frame">${pics.clip('1v4 clutch on Ascent', 'Valorant · March 2024', 'linear-gradient(160deg,#3a2f6b,#b0435a)', '62%')}</div><div class="cap"><b>The feed</b></div></a>
+        <a class="shot" href="#"><div class="frame">${pics.clip('Last-second Baron steal', 'League · Oct 2023', 'linear-gradient(160deg,#173a4a,#3f7d6b)', '18%')}</div><div class="cap"><b>Next clip</b></div></a>
+        <a class="shot" href="#"><div class="frame">${pics.clip('Throwback: two years ago', 'Apex · Oct 2024', 'linear-gradient(160deg,#4a2a1a,#c07a3a)', '84%')}</div><div class="cap"><b>Throwback</b></div></a>
+      </div>
+      <div class="links"><a href="#">${icon('play')}Recording, 0:42</a><a href="#">Run log</a></div>`,
+    dock: `<textarea rows="1" aria-label="Note" placeholder="If you reject it, say what's wrong"></textarea>
+      <div class="btns"><button class="btn primary">Accept</button><button class="btn">Reject</button><button class="btn quiet later">Later</button></div>` },
+  { id: 'outcome', kind: 'Outcome', title: 'Approve an outcome: it works well on your phone, not just your desk', project: 'atelier-ui', age: '5h ago',
+    body: `<p>"It works well on my phone, not just on my desk." The lead turns it into checks: 360 px wide, no sideways scrolling, buttons big enough to tap.</p>`,
+    dock: `<div class="btns solo"><button class="btn primary">Approve</button><button class="btn">Retire it</button><button class="btn quiet later">Later</button></div>` },
+  { id: 'plan', kind: 'Task plan', title: 'Start the Dodge game shell: controls, scoring, pause and countdown', project: 'dodge', age: '1 day ago',
+    body: `<p>The gameplay builder makes the playable frame of the game. Up to 6 rounds of work, about $15.</p>`,
+    dock: `<div class="btns solo"><button class="btn primary">Approve plan</button><a class="btn quiet" href="#">Read the brief</a><button class="btn quiet later">Later</button></div>` },
+];
+const items = empty ? [] : ITEMS;
+let openId = P.get('open') || (phone ? 'proof' : 'gate');
+const urgent = items.filter(x => x.urgent).length;
+const AGENTS = empty
+  ? [['Building the trim editor', 'replay · frontend · latest: added the drag handles, now testing on 3 clips', '70%', 'now'],
+     ['Indexing clip thumbnails', 'replay · backend · 1,240 of 1,800 clips', '68%', '1m ago'],
+     ['Drawing every screen in direction B', 'atelier-ui · designer · 4 of 9 screens', '44%', 'now']]
+  : [['Building the trim editor', 'replay · frontend · 14 min in', '70%'],
+     ['Indexing clip thumbnails', 'replay · backend · 6 min in', '68%']];
+
+document.getElementById('bar').innerHTML = `
+  <span class="brand"><b>A</b>Atelier</span>
+  <nav aria-label="Main"><a class="on" href="#">Inbox${items.length ? `<span class="n">${items.length}</span>` : ''}</a><a href="#">Office</a><a href="#">Projects</a><a href="#">Activity</a></nav>
+  <span class="pulse"><span><span class="live"></span><b>${AGENTS.length}</b> working</span><span>Plan <b>41%</b> used · resets in 2h 10m</span><span>Today <b>${empty ? '$31.80' : '$52.60'}</b></span></span>`;
+
+function draw() {
+  const i = items.findIndex(x => x.id === openId);
+  const x = items[i];
+  document.body.classList.toggle('focusing', !!x);
+  document.getElementById('ptop').innerHTML = x
+    ? `<a class="back" href="#">${icon('prev')}Inbox${urgent ? '' : ''}</a><span class="of">${i + 1} of ${items.length}</span>
+       <button class="arr" data-go="-1" aria-label="Previous">${icon('prev')}</button><button class="arr" data-go="1" aria-label="Next">${icon('next')}</button>`
+    : `<span class="back">Inbox</span>`;
+  document.getElementById('focus').innerHTML = x ? `
+    <div class="pager"><button class="arr" data-go="-1" aria-label="Previous">${icon('prev')}</button><button class="arr" data-go="1" aria-label="Next">${icon('next')}</button>
+      <span>${i + 1} of ${items.length} waiting on you</span><span class="keys"><kbd>J</kbd><kbd>K</kbd> next and previous · <kbd>L</kbd> later</span></div>
+    <div class="eyebrow ${x.urgent ? 'urgent' : ''}">${x.kind} · ${x.project} · ${x.age}</div>
+    <h1>${x.title}</h1>
+    ${x.body}
+    <div class="dock">${x.dock}</div>` : `
+    <div class="calm">
+      <h1>Nothing needs you.</h1>
+      <p>The team is working and nothing is stuck. You can leave this be.</p>
+      <div class="sec">Working now</div>
+      ${AGENTS.map(([s, p, w, when]) => `<div class="agent"><span class="live"></span><span class="s">${s}</span><span class="when">${when}</span><span class="p">${p}</span><span class="track"><i style="--w:${w}"></i></span></div>`).join('')}
+    </div>`;
+  document.getElementById('rail').innerHTML = x ? `
+    <section><h2><span>Waiting on you</span><span>${items.length}</span></h2><ul class="q">${items.map(y => `<li><a href="#" data-id="${y.id}" class="${y.urgent ? 'urgent' : ''} ${y.id === x.id ? 'on' : ''}" ${y.id === x.id ? 'aria-current="true"' : ''}><span class="m"></span><span class="s">${y.title}</span><span class="p">${y.project} · ${y.age}</span></a></li>`).join('')}</ul></section>
+    <section><h2>Working now</h2>${AGENTS.map(([s, p, w]) => `<div class="agent"><span class="live"></span><span class="s">${s}</span><span class="p">${p}</span><span class="track"><i style="--w:${w}"></i></span></div>`).join('')}</section>
+    <section><h2>Spent today</h2><div class="money"><div><span>replay</span><b>$40.00 of $40</b></div><div><span>atelier-ui</span><b>$12.60 of $40</b></div></div></section>` : `
+    <section><h2>You decided today</h2><ul class="q">
+      <li><a href="#" class="done"><span>${done}</span><span class="s">Approved the design for the new dashboard</span><span class="p">atelier-ui · 40m ago</span></a></li>
+      <li><a href="#" class="done"><span>${done}</span><span class="s">Asked the team to fix the paid add-on problem</span><span class="p">replay · 1h ago</span></a></li></ul></section>
+    <section><h2>Spent today</h2><div class="money"><div><span>replay</span><b>$19.20 of $40</b></div><div><span>atelier-ui</span><b>$12.60 of $40</b></div></div></section>`;
+}
+draw();
+
+// Next / previous / jump from the queue (mockup behaviour).
+document.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]'), pick = e.target.closest('.q a[data-id]');
+  if (!go && !pick) return;
+  e.preventDefault();
+  const i = items.findIndex(x => x.id === openId);
+  openId = pick ? pick.dataset.id : items[(i + Number(go.dataset.go) + items.length) % items.length].id;
+  draw();
+});
+document.addEventListener('keydown', e => {
+  if (['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName) || !items.length) return;
+  const d = { j: 1, k: -1, l: 1 }[e.key]; if (!d) return;
+  const i = items.findIndex(x => x.id === openId);
+  openId = items[(i + d + items.length) % items.length].id; draw();
+});
+
+document.getElementById('tabbar').innerHTML = `<a class="on" href="#">${icon('inbox')}Inbox</a><a href="#">${icon('office')}Office</a><a href="#">${icon('projects')}Projects</a><a href="#">${icon('activity')}Activity</a>`;
+
+if (P.has('shot')) { document.getElementById('mock').remove(); document.body.classList.add('shotmode'); }
+else {
+  const link = (k, v, l) => { const q = new URLSearchParams(P); v === null ? q.delete(k) : q.set(k, v); return `<a href="?${q}">${l}</a>`; };
+  document.getElementById('mock').innerHTML = link('theme', theme === 'dark' ? 'light' : 'dark', theme === 'dark' ? 'Light' : 'Dark') + link('state', empty ? null : 'empty', empty ? 'With items' : 'Empty');
+}
+</script>
+</body>
+</html>

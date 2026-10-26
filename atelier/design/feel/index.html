@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier · Inbox in three feels</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<style>
+  body { background: var(--bg); }
+  main { max-width: 1320px; margin: 0 auto; padding: var(--space-10) var(--space-6) var(--space-16); display: grid; gap: var(--space-8); }
+  h1 { font-family: var(--font-display); font-weight: var(--weight-regular); font-size: var(--text-2xl); line-height: var(--leading-2xl); letter-spacing: var(--tracking-display); margin-left: -0.035em; }
+  .lede { margin-top: var(--space-3); max-width: 70ch; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .bar .spacer { flex: 1; }
+  .seg { display: inline-flex; padding: 2px; border-radius: var(--radius-sm); background: var(--surface-sunken); border: var(--border-width) solid var(--border); }
+  .seg button { height: 32px; padding: 0 var(--space-3); border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--text-2); font-weight: var(--weight-medium); }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); align-items: start; }
+  .grid.is-desktop { grid-template-columns: 1fr; }
+  .feel { display: grid; gap: var(--space-3); }
+  .feel video { width: 100%; display: block; border-radius: var(--radius-lg); border: var(--border-width) solid var(--border); box-shadow: var(--shadow-2); background: var(--surface); }
+  .grid:not(.is-desktop) .feel video { max-width: 390px; margin: 0 auto; }
+  .feel h2 { font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-semibold); display: flex; align-items: baseline; gap: var(--space-2); }
+  .feel h2 .rec { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--done); }
+  .feel p { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); max-width: 52ch; }
+  .feel .links { gap: var(--space-1) var(--space-4); }
+  .rec-box { padding: var(--space-5) var(--space-6); border-radius: var(--radius-lg); background: var(--surface); border: var(--border-width) solid var(--border); box-shadow: var(--shadow-1); display: grid; gap: var(--space-2); max-width: 80ch; }
+  .rec-box h2 { font-size: var(--text-base); font-weight: var(--weight-semibold); }
+  .rec-box p { color: var(--text-2); }
+  @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Atelier</span>
+    <h1 style="margin-top:var(--space-4)">The Inbox, in three feels</h1>
+    <p class="lede">Same layout, same content, same journey: open, scan, open the design, decide with a note, the next item arrives, undo, a Working now tick, a tab switch, then everything down to inbox zero. Only the motion and the finish differ. Press play once; all three start together.</p>
+  </header>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Recording">
+      <button aria-pressed="true" data-form="phone">Phone · 390</button>
+      <button aria-pressed="false" data-form="desktop">Desktop · 1440</button>
+    </div>
+    <button class="btn btn-primary" id="play">Play all three</button>
+    <button class="btn btn-secondary" id="restart">From the start</button>
+    <span class="spacer"></span>
+    <a class="btn btn-ghost" href="../index.html">Design index</a>
+  </div>
+  <section class="grid" id="grid" aria-label="The three feels"></section>
+  <aside class="rec-box" aria-label="Recommendation">
+    <h2>Recommendation: Flow</h2>
+    <p id="recommend"></p>
+  </aside>
+</main>
+<script>
+const FEELS = [
+  ['calm', 'Calm', 'Things stay where they are; what changes, fades. 4 px of travel at most, no springs. The old leaves fast, the new lands slowly. Hover and press change colour only.'],
+  ['flow', 'Flow', 'Every item is a thing with a place. Decide and its title flies down into Decided today while the next rises out of the queue; Undo flies it back. Springs. On the phone the item slides like a card.'],
+  ['crisp', 'Crisp', 'Every action clicks. Presses have depth, ticks stamp in, rows snap with a 2 % overshoot, counts roll, and live progress gets one sheen per update. Short and exact.'],
+];
+document.getElementById('recommend').textContent = 'Flow makes the Inbox feel like a place: you see where a decision goes and where the next one comes from, which is what “one at a time” is about. Its motion is spent on the moments that carry meaning (deciding, undoing, moving between items), while the work you read, the dock and the chrome never move, so it stays calm between actions. Calm is the safe fallback if Flow feels busy after a week of daily use; Crisp feels more like a tool than a studio.';
+const grid = document.getElementById('grid');
+let form = 'phone';
+function draw() {
+  grid.className = 'grid' + (form === 'desktop' ? ' is-desktop' : '');
+  grid.innerHTML = FEELS.map(([id, name, line]) => `<article class="feel">
+    <h2>${name}${id === 'flow' ? '<span class="rec">Recommended</span>' : ''}</h2>
+    <video src="${id}/demo-${form}.webm" muted playsinline preload="auto" controls aria-label="${name}, ${form} demo"></video>
+    <p>${line}</p>
+    <div class="links"><a href="${id}/inbox.html">Try it</a><a href="${id}/inbox.html?motion=reduce">Reduced motion</a><a href="${id}/contact-${form}.png">Key frames</a><a href="${id}/demo-${form === 'phone' ? 'desktop' : 'phone'}.webm">${form === 'phone' ? 'Desktop' : 'Phone'} video</a></div>
+  </article>`).join('');
+}
+draw();
+const vids = () => [...grid.querySelectorAll('video')];
+document.getElementById('play').onclick = () => { const v = vids(); const t = Math.min(...v.map(x => x.currentTime)); v.forEach(x => { x.currentTime = t; x.play(); }); };
+document.getElementById('restart').onclick = () => vids().forEach(x => { x.currentTime = 0; x.play(); });
+document.querySelectorAll('[data-form]').forEach(b => b.onclick = () => {
+  form = b.dataset.form; document.querySelectorAll('[data-form]').forEach(x => x.setAttribute('aria-pressed', x === b)); draw();
+});
+const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.dataset.theme = t;
+</script>
+</body>
+</html>

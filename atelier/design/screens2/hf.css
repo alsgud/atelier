@@ -1,0 +1,107 @@
+/* D6 high-fi screens: the shell (Y1 sidebar ≥ 1280, 64 px rail 768–1279, top bar + tab bar < 768) and the parts
+   every screen shares. Built only from tokens.css and components.css; screen-specific rules live in each screen's
+   own block below, named by the screen. New shared parts are logged in DESIGN.md › Screens (D6) › Sheet additions. */
+html, body { background: var(--bg); }
+body { color: var(--text); font-family: var(--font-sans); font-size: var(--text-base); line-height: var(--leading-base); margin: 0; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+.num, .hf-sum, .count { font-variant-numeric: tabular-nums; }
+.icon { stroke-width: 1.75; }
+.lockup { display: inline-flex; align-items: center; gap: 0.5em; color: var(--text); line-height: 1; white-space: nowrap; }
+.lockup .wm { font-weight: var(--weight-semibold); letter-spacing: -0.02em; }
+.skip { position: absolute; left: var(--space-2); top: -60px; z-index: 60; }
+.skip:focus { top: var(--space-2); }
+
+/* ── Shell ── */
+.hf { min-height: 100vh; display: grid; grid-template-columns: var(--size-sidebar) minmax(0, 1fr); }
+.hf-side { position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.hf-side .nav-item .count { transition: opacity var(--dur-fast); }
+.hf-rail, .hf-top, .hf-tabs { display: none; }
+.hf-rail { flex-direction: column; align-items: center; gap: var(--space-1); padding: var(--space-3) 0; width: 64px; position: sticky; top: 0; height: 100vh; border-right: var(--border-width) solid var(--border); }
+.hf-rail .brand { display: grid; place-items: center; height: 44px; margin-bottom: var(--space-2); }
+.hf-rail a { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius-sm); color: var(--text-2); transition: background-color var(--dur-fast), color var(--dur-fast); }
+.hf-rail a:hover { background: var(--surface-hover); color: var(--text); }
+.hf-rail a[aria-current="page"] { background: var(--surface-selected); color: var(--text); }
+.hf-rail .rc { position: absolute; top: 3px; right: 1px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: var(--radius-full); font-size: 10px; line-height: 16px; text-align: center; font-weight: var(--weight-semibold); background: var(--surface-selected); color: var(--text-2); }
+.hf-rail .rc.is-needs { background: var(--needs); color: var(--text-on-needs); }
+.hf-rail .rc.is-active { background: var(--active-soft); color: var(--active); }
+.hf-rail .ini { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-2); }
+.hf-rail .ini + .dot { position: absolute; bottom: 7px; right: 7px; width: 6px; height: 6px; }
+.hf-rail hr { width: 32px; border: 0; border-top: var(--border-width) solid var(--border); margin: var(--space-2) 0; }
+.hf-rail .push { margin-top: auto; }
+.hf-top { align-items: center; gap: var(--space-2); height: var(--size-topbar); padding: 0 var(--space-1) 0 var(--space-4); border-bottom: var(--border-width) solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 20; }
+.hf-top .brand { display: inline-flex; align-items: center; min-height: 44px; }
+.hf-top .spend { margin-left: auto; font-size: var(--text-sm); color: var(--text-2); display: flex; align-items: center; gap: var(--space-1); min-height: 44px; padding: 0 var(--space-2); }
+.hf-top .spend b { color: var(--text); font-weight: var(--weight-medium); }
+.hf-top .gear { display: grid; place-items: center; width: 44px; height: 44px; color: var(--text-2); border-radius: var(--radius-sm); }
+.hf-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; }
+
+/* The app panel (desk: inset 8, radius 14) */
+.hf-main { margin: var(--space-2) var(--space-2) var(--space-2) 0; min-height: calc(100vh - 2 * var(--space-2)); background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); display: flex; flex-direction: column; min-width: 0; }
+.hf-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); min-height: var(--size-topbar); padding: var(--space-2) var(--space-8); border-bottom: var(--border-width) solid var(--border); position: sticky; top: 0; z-index: 10; background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.hf-head h1 { font-size: var(--text-base); line-height: var(--leading-base); font-weight: var(--weight-semibold); margin: 0; }
+.hf-sum { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.hf-sum .is-needs { color: var(--needs); font-weight: var(--weight-medium); }
+.hf-sum .is-active { color: var(--active); }
+.hf-head .end { margin-left: auto; display: flex; gap: var(--space-2); align-items: center; }
+.hf-head .back { color: var(--text-2); font-size: var(--text-sm); display: inline-flex; align-items: center; gap: var(--space-1); }
+.hf-head .back:hover { color: var(--text); }
+/* The live line: how fresh the page is. Neutral always; it never alarms (§5 states). */
+.hf-live { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); white-space: nowrap; }
+.hf-live .icon { width: 14px; height: 14px; }
+.hf-body { flex: 1; padding: var(--space-8); display: grid; gap: var(--space-8); align-content: start; }
+
+/* A neutral notice inside the page: it retries by itself, so it is not red (§5: red only if the owner must act). */
+.hf-notice { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-sunken); border: var(--border-width) solid var(--border); color: var(--text); }
+.hf-notice > .icon { color: var(--text-2); }
+.hf-notice .t { flex: 1; min-width: 200px; }
+.hf-notice .t small { display: block; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+
+/* Empty: one serif line, one sentence, at most one action */
+.hf-empty { display: grid; justify-items: start; gap: var(--space-3); max-width: 520px; padding: var(--space-10) 0; }
+.hf-empty h2 { font-family: var(--font-display); font-weight: var(--weight-regular); font-size: var(--text-xl); line-height: var(--leading-xl); letter-spacing: var(--tracking-display); margin: 0; }
+.hf-empty p { margin: 0 0 var(--space-2); color: var(--text-2); font-size: var(--text-md); line-height: var(--leading-md); }
+
+/* Mockup flag (not product UI): says the page is provisional on the recommended UX answers; hidden in ?shot and ?demo */
+.mock-flag { align-self: flex-start; margin: 0 var(--space-8) var(--space-6); display: inline-flex; gap: var(--space-1-5); align-items: center; font: var(--weight-medium) 11px/16px var(--font-mono); letter-spacing: .02em; color: var(--brand-accent); background: var(--bg); border: var(--border-width) dashed color-mix(in srgb, var(--brand-accent) 55%, transparent); border-radius: var(--radius-xs); padding: 2px var(--space-2); }
+.is-shot .mock-flag, .is-demo .mock-flag { display: none; }
+
+/* Live figures change in place: the new value rises 4 px (Flow, §6 "live figures"). */
+.is-tick { animation: hf-tick var(--dur-slow) var(--ease-enter); display: inline-block; }
+@keyframes hf-tick { from { opacity: 0; transform: translateY(var(--shift-sm)); } }
+
+/* The floor's windows, one per desk: the glance before the desks (aria-hidden; the sentence says the same) */
+.strip { display: inline-flex; gap: 3px; align-items: flex-end; }
+.strip i { width: 9px; height: 12px; border-radius: 4.5px 4.5px 1px 1px; background: var(--surface-selected); transition: background-color var(--dur-slow) var(--ease-enter); }
+.strip i[data-k="active"] { background: var(--active); }
+.strip i[data-k="done"] { background: var(--done); }
+.strip i[data-k="needs"] { background: var(--surface-selected); box-shadow: inset 0 -3px 0 var(--needs); }
+.strip i[data-k="off"] { background: transparent; box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+/* ── Middle 768–1279: rail, panel full bleed (UX-7 A) ── */
+@media (max-width: 1279px) {
+  .hf { grid-template-columns: 64px minmax(0, 1fr); }
+  .hf-side { display: none; }
+  .hf-rail { display: flex; }
+  .hf-main { margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .hf-head { padding: var(--space-2) var(--space-6); border-radius: 0; }
+  .hf-body { padding: var(--space-6); }
+  .mock-flag { margin: 0 var(--space-6) var(--space-6); }
+}
+/* ── Phone < 768: top bar, one column, tab bar ── */
+@media (max-width: 767px) {
+  .hf { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom)); }
+  .hf-rail { display: none; }
+  .hf-top { display: flex; }
+  .hf-tabs { display: grid; }
+  .hf-head { padding: var(--space-2) var(--space-4); position: static; }
+  .hf-head .back { min-height: var(--size-control-lg); }
+  .hf-body { padding: var(--space-5) var(--space-4) var(--space-10); gap: var(--space-6); }
+  .hf-empty { padding: var(--space-6) 0; }
+  .hf-empty .btn { height: var(--size-control-lg); }
+  .hf-notice .btn { height: var(--size-control-lg); }
+  .mock-flag { margin: 0 var(--space-4) var(--space-6); }
+}
+/* Full-page screenshots (?shot): bars that stick sit in flow so they don't land mid-image */
+.is-shot .hf-top, .is-shot .hf-tabs, .is-shot .hf-side, .is-shot .hf-rail, .is-shot .hf-head { position: relative; top: auto; bottom: auto; }
+.is-shot .hf-side, .is-shot .hf-rail { height: auto; min-height: 100vh; }
+.is-shot .hf { padding-bottom: 0; }

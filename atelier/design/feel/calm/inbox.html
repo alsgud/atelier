@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inbox · Atelier · Calm</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../components.css">
+<link rel="stylesheet" href="../shared/feel.css">
+<style>
+/* ── CALM: things stay where they are; what changes, fades. ───────────────────────────────
+   Travel is --shift-sm (4 px) at most. No springs, no scale. The old goes first and quickly
+   (--dur-fast, --ease-exit), the new arrives slower (--dur-slow, --ease-enter): calm is a slow landing,
+   not a slow departure. Hover and press change colour only. */
+:root { --dur-pulse: 3200ms; }
+@media (prefers-reduced-motion: reduce) { :root { --dur-pulse: 0ms; } }
+[data-motion="reduce"] { --dur-pulse: 0ms; }
+
+/* Press and hover: colour, never movement. Hover eases in a touch slower than D2 (--dur-base). */
+.btn:is(:active, .is-active):not(:disabled) { transform: none; }
+.btn, .nav-item, .qitem, .agent, .ledger-row, .tab, .links a, .choice { transition-duration: var(--dur-base); }
+.qitem:hover, .agent:hover, .ledger-row:hover { background: color-mix(in srgb, var(--surface-hover) 70%, transparent); }
+.frame:hover .frame-img { box-shadow: var(--shadow-1); border-color: var(--border-strong); }
+
+/* Focus: the ring fades in rather than snapping. Only the ring: the control itself stays at full opacity. */
+@keyframes calm-ring { from { outline-color: transparent; box-shadow: 0 0 0 0 transparent; } }
+:focus-visible { animation: calm-ring var(--dur-base) var(--ease-out); }
+
+/* The decided row: the green wash eases in, the tick fades in. */
+.qitem { transition: background-color var(--dur-slow) var(--ease-out); }
+.dock.is-sent .tick { animation: calm-fade var(--dur-slow) var(--ease-out) both; }
+.dock.is-sent .dock-msg { animation: calm-fade var(--dur-slow) var(--ease-out) both; }
+
+/* Working now: the bar fills slowly; the figure fades to its new value. */
+.agent-progress .track i { transition: transform 1200ms var(--ease-move); }
+.agent.is-tick .fig { animation: calm-fade var(--dur-slow) var(--ease-out); }
+
+/* Toast: fades up 4 px; leaves by fading. */
+.toast { animation: calm-rise var(--dur-slow) var(--ease-enter) both; }
+.toast.is-leaving { animation: calm-out var(--dur-base) var(--ease-exit) both; }
+
+/* Validation: the field's red border fades in; nothing shakes. */
+.input[aria-invalid="true"] { animation: calm-fade var(--dur-base) var(--ease-out); }
+
+/* ── Choreography (view transitions) ── */
+::view-transition-group(ih), ::view-transition-group(ib), ::view-transition-group(page), ::view-transition-group(empty), ::view-transition-group(zero-work) { animation: none; }
+::view-transition-old(ih), ::view-transition-old(ib), ::view-transition-old(page) { animation: calm-out var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(ih), ::view-transition-new(page) { animation: calm-rise var(--dur-slow) var(--ease-enter) 80ms both; }
+::view-transition-new(ib) { animation: calm-rise var(--dur-slow) var(--ease-enter) calc(80ms + var(--stagger)) both; }
+/* The dock stays; its words cross-fade. */
+::view-transition-group(dock) { animation: none; }
+::view-transition-old(dock) { animation: calm-out var(--dur-fast) var(--ease-exit) both; }
+::view-transition-new(dock) { animation: calm-fade var(--dur-slow) var(--ease-enter) 80ms both; }
+/* Queue: a decided row fades where it is; the rows below close the gap, unhurried. */
+/* The leaving row is gone (--dur-fast) before any row starts to move onto its place. */
+::view-transition-group(*.row) { animation-duration: var(--dur-slow); animation-timing-function: var(--ease-move); animation-delay: var(--dur-fast); }
+::view-transition-old(*.row):only-child { animation: calm-out var(--dur-fast) var(--ease-exit) both; }
+/* A new row fades in where it lands only once the rows around it have settled (--dur-fast + --dur-slow):
+   earlier, it showed under the header that was still sliding down onto it. */
+::view-transition-new(*.row):only-child { animation: calm-fade var(--dur-slow) var(--ease-enter) calc(var(--dur-fast) + var(--dur-slow)) both; }
+/* Inbox zero: the one slow moment. The line settles in, then the working agents, a beat later. */
+::view-transition-new(empty) { animation: calm-rise var(--dur-calm) var(--ease-enter) 120ms both; }
+::view-transition-new(zero-work) { animation: calm-fade var(--dur-calm) var(--ease-enter) calc(120ms + var(--stagger-max)) both; }
+
+@keyframes calm-fade { from { opacity: 0; } }
+@keyframes calm-rise { from { opacity: 0; transform: translateY(var(--shift-sm)); } }
+@keyframes calm-out { to { opacity: 0; } }
+</style>
+</head>
+<body>
+<a class="btn btn-primary skip" href="#ttl">Skip to the decision</a>
+<div class="shell" id="shell">
+  <aside class="sidebar shell-side" id="side" aria-label="Atelier"></aside>
+  <header class="topbar shell-top" id="top"></header>
+  <main class="shell-main" id="main"></main>
+  <nav class="tabbar shell-tabs" id="tabs" aria-label="Main"></nav>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="mock" id="mock"></div>
+<script>window.FEEL = { name: 'calm', morph: false };</script>
+<script src="../../icons.js"></script>
+<script src="../shared/inbox.js"></script>
+</body>
+</html>

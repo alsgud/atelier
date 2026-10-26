@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Atelier · How the dashboard works, before it gets drawn</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="ux.css">
+</head>
+<body>
+<a class="skip btn btn-secondary" href="#main">Skip to the walkthrough</a>
+<div class="ux">
+  <nav class="toc" aria-label="Contents">
+    <span id="lockup-toc"></span>
+    <ol>
+      <li><a href="#read">How to answer</a></li>
+      <li><a href="#research">1 · Research</a></li>
+      <li><a href="#ia">2 · Site map and navigation</a></li>
+      <li><a href="#flows">3 · Journeys</a></li>
+      <li><a href="#layout">4 · Layout system</a></li>
+      <li><a href="#info">5 · Information design</a></li>
+      <li><a href="#patterns">6 · Interaction patterns</a></li>
+      <li><a href="#wireframes">7 · Wireframes</a></li>
+      <li><a href="#decisions">8 · Your decisions</a></li>
+    </ol>
+  </nav>
+
+  <main id="main">
+    <header class="hero">
+      <span id="lockup-hero"></span>
+      <h1>How the dashboard works, before it gets drawn</h1>
+      <p class="lede">You picked the look: the window and its light, North light at night, the sidebar, dark by default. Before any more screens, this page walks through how the whole dashboard behaves: who it’s for, where everything lives, how each journey goes, and how every screen is laid out. It ends with numbered decisions. Read it top to bottom and answer them in one reply.</p>
+      <p class="meta-line">Design task D5 · 26 Oct 2026 · low-fi on purpose: structure first, high-fi after your answers</p>
+      <section class="short" aria-labelledby="short-h">
+        <h2 id="short-h">In short</h2>
+        <ul>
+          <li>The Inbox opens first, everywhere: the top decision shown large, the rest waiting beside it.</li>
+          <li>Two levels only: things across all projects, then one page per project and one per task.</li>
+          <li>A status is a dot and one word from a list of four; red only when you are needed.</li>
+          <li>Money and plan usage sit quietly in the sidebar and the phone’s top bar, not on every page.</li>
+          <li>Decisions happen at once with Undo; only the irreversible asks you to confirm.</li>
+        </ul>
+        <p>About 25 minutes to read. Every decision has a recommendation, so “all as recommended” is a full answer.</p>
+        <a class="btn btn-secondary" href="#decisions">Go to the 15 decisions</a>
+      </section>
+    </header>
+
+    <section class="sec" id="read" aria-labelledby="read-h">
+      <div class="sec-head"><h2 id="read-h">How to answer</h2></div>
+      <div class="prose">
+        <p>Every place where your taste or priorities matter is marked with a code like <a class="dref" href="#ux-1">UX-1</a>. They are collected in <a href="#decisions">section 8</a>, each with two or three options and my recommendation. Reply with one line per decision, for example <strong>“UX-1 A, UX-2 B, UX-5 A but call it steps”</strong>. Anything you don’t mention, I take as my recommendation.</p>
+        <p>Nothing here changes what the dashboard can do: every function today is kept (95 of 95 lines of the inventory are placed in <a href="#ia-map">the site map</a>), and the actions behind the buttons stay the same.</p>
+      </div>
+      <ol class="toc-inline" aria-label="Contents">
+        <li><a href="#research"><span class="n">1</span>Research: who it’s for and what others do</a></li>
+        <li><a href="#ia"><span class="n">2</span>Site map and navigation</a></li>
+        <li><a href="#flows"><span class="n">3</span>Seven journeys, step by step</a></li>
+        <li><a href="#layout"><span class="n">4</span>Layout system</a></li>
+        <li><a href="#info"><span class="n">5</span>Information design</a></li>
+        <li><a href="#patterns"><span class="n">6</span>Interaction patterns</a></li>
+        <li><a href="#wireframes"><span class="n">7</span>Wireframes of every screen</a></li>
+        <li><a href="#decisions"><span class="n">8</span>Your decisions</a></li>
+      </ol>
+    </section>
+
+    <!-- ───────────────────────── 1 RESEARCH ───────────────────────── -->
+    <section class="sec" id="research" aria-labelledby="research-h">
+      <div class="sec-head"><span class="sec-num">1</span><h2 id="research-h">Who it’s for, and what the best tools already do</h2></div>
+      <div class="prose">
+        <p><strong>You</strong> run a team of AI agents across several projects the way a senior manager runs a team: you set direction, read plain summaries, make the few calls only you can make, and rarely debug. You look in for a minute between other things, at your desk and on your phone. The dashboard is worth it only if managing the team costs you less time than doing the work yourself.</p>
+      </div>
+      <div class="panel">
+        <h3 style="margin:0">The jobs you hire the dashboard for</h3>
+        <ul class="jobs">
+          <li><span class="code">J1</span><div><b>Check in and decide.</b> <span>Does anything need me? If so, see it and decide in one or two taps. Most visits are this.</span></div></li>
+          <li><span class="code">J2</span><div><b>See what the team is doing.</b> <span>Who is working on what, is anyone stuck, is the work real.</span></div></li>
+          <li><span class="code">J3</span><div><b>Start a project.</b> <span>Name it, give the lead a brief, choose how much you want to approve, go.</span></div></li>
+          <li><span class="code">J4</span><div><b>Watch a task and its proof.</b> <span>What is it doing now, how far along, and show me it works.</span></div></li>
+          <li><span class="code">J5</span><div><b>Control spend.</b> <span>What did today cost, how close to the limit, how much of my own Claude plan is left.</span></div></li>
+          <li><span class="code">J6</span><div><b>Review a design or a milestone.</b> <span>Look at the thing itself, approve in my words or send it back.</span></div></li>
+          <li><span class="code">J7</span><div><b>Recover when something fails.</b> <span>What broke, what it costs me, the one thing to do about it.</span></div></li>
+          <li><span class="code">J8</span><div><b>Correct the lead.</b> <span>Answer, overrule, write a ruling, restart it when it drifts.</span></div></li>
+        </ul>
+      </div>
+
+      <h3 id="research-refs">References board</h3>
+      <div class="prose"><p>Captured headless from each product’s public pages and docs (Mobbin still needs a paid plan, ruling R-2). Each card says what to take, what to avoid, and which job it informs. The D2 board (Linear inbox, Vercel Geist, GitHub PR, Cursor, Devin, Superhuman) still stands; these add consoles, run history, approvals and phones.</p></div>
+      <div class="refs" id="refs"></div>
+
+      <h3 id="research-synthesis">What the research says</h3>
+      <div class="panel">
+        <ol class="insights">
+          <li><b>One queue, triaged by urgency, that you can empty.</b><p>Linear’s inbox splits “Priority” from “Other”; GitHub and Superhuman sell zero as the goal. Filters and rule builders (GitHub’s notification filters, Linear’s triage rules) are for teams with thousands of items; you have tens.</p><p class="so">So: one Inbox, two groups (Needs you now · When you have a minute), no filters, a calm zero. <span class="from">J1</span></p></li>
+          <li><b>Status is a dot and a word, from a short fixed list.</b><p>Vercel uses five (Ready, Error, Building, Queued, Canceled), GitHub four. Nobody explains a status in a paragraph.</p><p class="so">So: four meanings everywhere: <em>Working</em> (lilac), <em>Needs you</em> (red), <em>Done</em> (green), and neutral for <em>Waiting</em>, <em>Stopped</em>, <em>Off</em>. Each task, desk and project uses the same words. <span class="from">J2 J4</span></p></li>
+          <li><b>Progress is a shape you can see, not a counter.</b><p>GitHub’s run graph shows jobs as boxes with durations; Devin’s progress tab lists steps with a replay timeline. “Iteration 0 of 6” says nothing (your pain point 3).</p><p class="so">So: a task shows its <em>stage</em> (Planning, Building, Checking, Review, Done), the latest step in a sentence, and “last active 2 min ago”. <a class="dref" href="#ux-5">UX-5</a> <span class="from">J4</span></p></li>
+          <li><b>Failures open at the failure, everything else folded.</b><p>GitHub Actions opens the failed step’s log and folds the green ones.</p><p class="so">So: a failed task opens on what went wrong, in one sentence, with what the lead is doing about it; the log tail sits under Details. <span class="from">J7</span></p></li>
+          <li><b>Approving shows the thing, and asks for words only when you say no.</b><p>GitHub’s PR review puts the state beside the title and the verdict in one place; a comment is optional to approve and expected to request changes.</p><p class="so">So: the Inbox item shows the design, proof or question itself; rejecting asks for a note, approving a gate asks for a few words (as today, they go to the designer). <span class="from">J6</span></p></li>
+          <li><b>Confirm only what can’t be undone; undo the rest.</b><p>Vercel’s redeploy dialog names exactly what will happen and where. Linear never confirms a triage action: it offers undo.</p><p class="so">So: decisions are instant with Undo in the toast; stopping a lead, cancelling a task and running an audit (it spends money) ask first, in one sentence. <a class="dref" href="#ux-10">UX-10</a> <span class="from">J1 J7</span></p></li>
+          <li><b>The phone is a companion, not the desktop squeezed.</b><p>Linear calls its app “the portable companion”: inbox, quick actions, swipes. GitHub Mobile shows agent sessions as a list with a status line.</p><p class="so">So: on the phone, Inbox, Office, project Now and the task page are first-class; Settings and Docs work but are laid out for the desk. <a class="dref" href="#ux-2">UX-2</a> <span class="from">J1 J2</span></p></li>
+          <li><b>Agents are teammates with a place, not log streams.</b><p>Linear shows an agent as an assignee in the issue’s properties, with its updates in the activity. Devin’s session is a page you can come back to.</p><p class="so">So: every agent has a desk in the Office and every task has a page; you never read raw logs unless you open Details. <a class="dref" href="#ux-8">UX-8</a> <span class="from">J2</span></p></li>
+          <li><b>History is a list: status, one line, time.</b><p>Zapier’s Zap history, n8n executions and Vercel deployments all read the same way, filterable by status.</p><p class="so">So: Activity is one feed by day with a project filter and “Only problems”. <a class="dref" href="#ux-13">UX-13</a> <span class="from">J2 J7</span></p></li>
+          <li><b>Keyboard first on the desk.</b><p>Raycast and Linear: one palette (⌘K) to go anywhere or do anything, single keys for the common moves.</p><p class="so">So: ⌘K to jump to any project, task or setting; J/K, Enter, Z (undo), G then I/O/P/A to move. <span class="from">J1</span></p></li>
+        </ol>
+      </div>
+      <div class="prose"><p><strong>What to avoid, all together:</strong> filter builders, avatars on every row, IDs and branch names in the first line, three-pane log views, status pills in five colours, marketing gradients and glass, and settings pages that are walls of toggles.</p></div>
+    </section>
+
+    <!-- ───────────────────────── 2 SITE MAP ───────────────────────── -->
+    <section class="sec" id="ia" aria-labelledby="ia-h">
+      <div class="sec-head"><span class="sec-num">2</span><h2 id="ia-h">Where everything lives</h2></div>
+      <div class="prose">
+        <p>Two levels, like Linear and Vercel: <strong>global</strong> screens across all projects (Inbox, Office, Projects, Activity, Settings) and <strong>per project</strong> pages, each with its tasks. The Inbox is home: it opens first, every time. <a class="dref" href="#ux-1">UX-1</a></p>
+      </div>
+
+      <div class="map" id="sitemap">
+        <div class="map-col">
+          <h4>Global <small>every project</small></h4>
+          <ul>
+            <li><b>Inbox</b><span>Home. Everything waiting on you, the top item open, decide in place.</span><code>#/inbox · #/inbox/&lt;item&gt;</code></li>
+            <li><b>Office</b><span>Who is working on what, one floor per project, busiest first.</span><code>#/office</code></li>
+            <li><b>Projects</b><span>Every project in one sentence; New project.</span><code>#/projects</code></li>
+            <li><b>Activity</b><span>What happened, by day, all projects; filter by project or problems.</span><code>#/activity</code></li>
+            <li><b>New project</b><span>One short form.</span><code>#/new</code></li>
+            <li><b>Settings</b><span>Your Claude plan limits, appearance, this device, about. <a class="dref" href="#ux-3">UX-3</a></span><code>#/settings</code></li>
+          </ul>
+        </div>
+        <div class="map-col">
+          <h4>A project <small>#/p/&lt;project&gt;</small></h4>
+          <ul>
+            <li><b>Header</b><span>Name, lead on or off with its menu (Start, Restart, Stop), GitHub only when it’s wrong.</span></li>
+            <li><b>Now</b><span>Needs you here, working now, the phase track, the next step. <a class="dref" href="#ux-6">UX-6</a></span></li>
+            <li><b>Money</b><span>Spent today of the daily budget, total so far.</span></li>
+            <li><b>Tabs</b><span>Overview · Tasks · Outcomes · Audits · Docs · Activity · Settings</span>
+              <ul>
+                <li><b>Docs</b><span>Charter, Rulings, Brief, Spec, Plan, Ledger, Design, Contracts, Team messages</span></li>
+                <li><b>Settings</b><span>Approvals, Reading, Gating, Reporting, Shipping, Budgets, Team, Lead, Numbers</span></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div class="map-col">
+          <h4>A task <small>#/t/&lt;task&gt;</small></h4>
+          <ul>
+            <li><b>Status</b><span>Dot, word, reason in one sentence.</span></li>
+            <li><b>Now</b><span>Latest step, stage, last active, spend of its budget.</span></li>
+            <li><b>Proof</b><span>Screenshots large, recording, run log tail.</span></li>
+            <li><b>Dock</b><span>Only when it needs you: answer, approve the plan.</span></li>
+            <li><b>History, Notes, Facts</b><span>Folded: timeline, review, progress notes, decisions, brief, last check, files, PR.</span></li>
+          </ul>
+        </div>
+        <div class="map-col">
+          <h4>Around every screen</h4>
+          <ul>
+            <li><b>Sign in</b><span>Paste the token once per device.</span><code>#/login</code></li>
+            <li><b>⌘K palette</b><span>Jump to any project, task, doc or setting.</span></li>
+            <li><b>Toasts</b><span>What happened, with Undo where possible.</span></li>
+            <li><b>View port</b><span>Agent-made pages and proof open in a new tab, never on the dashboard’s own origin.</span></li>
+            <li><b>Stale, offline, error</b><span>One quiet line in the page; the chrome stays.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Navigation</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <h4>Desk: the Y1 sidebar (≥ 1280 px)</h4>
+          <div class="nav-model" id="nav-desk"></div>
+          <p class="cap">240 px. Top: the lockup. Then the three global places with their counts, then your projects (lead dot and waiting count), then New project. The foot holds the only money on the screen: your plan and today’s spend, and the Settings gear. <a class="dref" href="#ux-9">UX-9</a></p>
+        </div>
+        <div class="panel">
+          <h4>Phone: top bar and tab bar (&lt; 768 px)</h4>
+          <div class="nav-model" id="nav-phone"></div>
+          <p class="cap">Four tabs under the thumb: Inbox, Office, Projects, Activity (as today). The top bar keeps the mark, today’s spend as plain text (tap for plan and spend) and Settings. Between the two, 768–1279 px, the sidebar folds to a 64 px rail. <a class="dref" href="#ux-2">UX-2</a> <a class="dref" href="#ux-7">UX-7</a></p>
+        </div>
+      </div>
+
+      <h3>Global or per project</h3>
+      <div class="tbl-wrap" role="region" aria-label="Global or per project, table" tabindex="0">
+        <table class="tbl">
+          <thead><tr><th scope="col">Thing</th><th scope="col">Lives</th><th scope="col">Why</th></tr></thead>
+          <tbody>
+            <tr><td>Inbox, Office, Activity</td><td>Global, with the project named on every row</td><td>You check in once, not once per project</td></tr>
+            <tr><td>Your Claude plan (usage, reset, pause limits)</td><td>Global: sidebar foot; limits in Settings › Plan</td><td>One plan covers every project</td></tr>
+            <tr><td>Spend today</td><td>Global in the sidebar foot; per project on its page</td><td>Same figure, from one summary (R2): the project share adds up to the total</td></tr>
+            <tr><td>Daily and per-task budget</td><td>Per project: Settings › Budgets</td><td>Each project has its own budget today</td></tr>
+            <tr><td>Approvals, gating, reporting, shipping, team</td><td>Per project: Settings</td><td>They are per project today</td></tr>
+            <tr><td>Appearance (dark, light, follow the device)</td><td>Global: Settings › Appearance</td><td>It is about you and the device, not a project</td></tr>
+            <tr><td>Lead start, restart, stop</td><td>Per project: header menu (and Settings › Lead)</td><td>One lead per project</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="ia-map">Every function today, and where it lives now</h3>
+      <p class="check-line" id="ia-count"></p>
+      <details class="fold" id="ia-fold">
+      <summary>Show all 95 lines, with what changes</summary>
+      <div class="tbl-wrap" role="region" aria-label="Inventory map, table" tabindex="0">
+        <table class="tbl tbl-stack" id="ia-table">
+          <thead><tr><th scope="col">Today (inventory)</th><th scope="col">In the redesign</th><th scope="col">What changes</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      </details>
+    </section>
+
+    <!-- ───────────────────────── 3 JOURNEYS ───────────────────────── -->
+    <section class="sec" id="flows" aria-labelledby="flows-h">
+      <div class="sec-head"><span class="sec-num">3</span><h2 id="flows-h">Seven journeys, step by step</h2></div>
+      <div class="prose">
+        <p>Each journey lists the screens it passes through, the state each one is in, what you do there and what it costs you in taps. Under each, <strong>what can go wrong</strong>: where it branches off, what you see, and where it leads. A tap is a press that changes something; reading costs nothing.</p>
+      </div>
+      <div class="tbl-wrap" role="region" aria-label="Journeys at a glance, table" tabindex="0">
+        <table class="tbl" id="flows-index">
+          <thead><tr><th scope="col">Journey</th><th scope="col">For</th><th scope="col">Cost</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="flows" id="flows-list"></div>
+    </section>
+
+    <!-- ───────────────────────── 4 LAYOUT ───────────────────────── -->
+    <section class="sec" id="layout" aria-labelledby="layout-h">
+      <div class="sec-head"><span class="sec-num">4</span><h2 id="layout-h">Layout system</h2></div>
+      <div class="prose">
+        <p>No twelve-column grid. Every screen is <strong>one fluid column with a reading limit</strong>, plus at most one fixed column beside it: the Inbox queue, or a task’s facts. Three widths only (desk, middle, phone), so each screen has one plan per width and nothing in between to guess. <em>Why</em>: dashboards with many columns ask you to scan; this one asks you to read one thing and decide.</p>
+      </div>
+
+      <figure class="shot bp-figure" id="bp-figure"></figure>
+
+      <h3>Measurements</h3>
+      <div class="tbl-wrap" role="region" aria-label="Layout measurements, table" tabindex="0">
+        <table class="tbl tbl-stack">
+          <thead><tr><th scope="col">Part</th><th scope="col">Desk ≥ 1280</th><th scope="col">Middle 768–1279</th><th scope="col">Phone &lt; 768</th></tr></thead>
+          <tbody>
+            <tr><td>Navigation</td><td data-k="Desk:">Sidebar 240 (<code>--size-sidebar</code>)</td><td data-k="Middle:">Rail 64, icons with labels on hover and focus <a class="dref" href="#ux-7">UX-7</a></td><td data-k="Phone:">Top bar 52 (<code>--size-topbar</code>) + tab bar 56 (<code>--size-tabbar</code>) + safe area</td></tr>
+            <tr><td>App panel</td><td data-k="Desk:">Inset 8 from the window, radius 14, hairline, <code>--shadow-1</code></td><td data-k="Middle:">Full bleed beside the rail</td><td data-k="Phone:">Full bleed</td></tr>
+            <tr><td>Page padding</td><td data-k="Desk:">32 (<code>--space-8</code>)</td><td data-k="Middle:">24 (<code>--space-6</code>)</td><td data-k="Phone:">16 (<code>--space-4</code>)</td></tr>
+            <tr><td>Reading column</td><td data-k="Desk:">Fluid, content ≤ 760 (<code>--size-focus-max</code>), text ≤ 62ch (<code>--measure</code>)</td><td data-k="Middle:">Same limits</td><td data-k="Phone:">Full width</td></tr>
+            <tr><td>Fixed column</td><td data-k="Desk:">Inbox queue 344 (<code>--size-queue</code>) · task facts 280</td><td data-k="Middle:">Queue 300 at ≥ 1024, else under the item · facts under the header as one line</td><td data-k="Phone:">Under the item / a Facts fold</td></tr>
+            <tr><td>Rows</td><td data-k="Desk:">36 one line, 52 two lines</td><td data-k="Middle:">Same</td><td data-k="Phone:">≥ 44 one line, 60 two lines (R5)</td></tr>
+            <tr><td>Controls</td><td data-k="Desk:">36 (<code>--size-control</code>), compact 28</td><td data-k="Middle:">36; 44 when the device is touch (<code>pointer: coarse</code>)</td><td data-k="Phone:">44 (<code>--size-control-lg</code>)</td></tr>
+            <tr><td>Gaps</td><td data-k="Desk:">Blocks 24, sections 32, rows 0 with a hairline</td><td data-k="Middle:">Same</td><td data-k="Phone:">Blocks 16, sections 24</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Density</h3>
+      <div class="prose">
+        <p><strong>Compact on the desk, roomy under the thumb.</strong> Desk rows are Linear-dense (36 px, 14 px text) because you scan them with a mouse and keys; reading text inside an item is 16 px on a 24 px line, because that is where you decide. On the phone every row and control is at least 44 px, and the meta line moves under the title instead of beside it. Spacing is the 4 px scale in <code>tokens.css</code>; nothing uses a value outside it.</p>
+      </div>
+
+      <h3>Five kinds of screen</h3>
+      <div class="grid-2" id="screen-types"></div>
+
+      <h3>List and detail, or a full page</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <h4>Side by side: only the Inbox</h4>
+          <p class="cap" style="margin:0">You go through the Inbox in order, one decision after another, so the list stays beside the open item (direction B, ruling R-1). Choosing a row changes the item; the list keeps its scroll. On the phone the item fills the screen and the list follows it.</p>
+        </div>
+        <div class="panel">
+          <h4>A page of its own: everything else</h4>
+          <p class="cap" style="margin:0">A project or a task is something you read, not a queue you work through, so it opens as a page with a back link and its own address. Whether a task can also open as a peek beside the Office or a task list is <a class="dref" href="#ux-4">UX-4</a>.</p>
+        </div>
+      </div>
+
+      <h3>Where the dock and the toasts live</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <h4>The decision dock</h4>
+          <ul class="plain">
+            <li><b>Desk</b>: stuck to the foot of the reading column, the same place for every item, 20 from the panel’s edge. The item scrolls under it.</li>
+            <li><b>Phone</b>: 8 above the tab bar, buttons full width and 44 tall; the note line grows up to 160 then scrolls.</li>
+            <li><b>Task page</b>: the same dock, only while the task needs you (a question, a plan to approve). Otherwise there is none: no dock means nothing to decide.</li>
+            <li>Never two docks on one screen; never a dock on a page that only shows things.</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>Toasts</h4>
+          <ul class="plain">
+            <li><b>With a dock on screen</b>: the toast rises out of the dock and covers only the dock, as wide as it, never a tab or another button (measured in D3).</li>
+            <li><b>Without a dock</b>: bottom centre of the content column (not over the sidebar); on the phone 8 above the tab bar.</li>
+            <li>One at a time; a new one replaces the old. 6 s, paused while hovered or focused; Undo or Try again is its only button.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    <!-- ───────────────────────── 5 INFORMATION DESIGN ───────────────────────── -->
+    <section class="sec" id="info" aria-labelledby="info-h">
+      <div class="sec-head"><span class="sec-num">5</span><h2 id="info-h">Information design: one way to show each thing</h2></div>
+      <div class="prose">
+        <p>Six things appear all over the dashboard: a project, a task, a decision, proof, money and progress. Each has <strong>one look</strong>, used on every screen, so you learn it once. Every number comes from the one summary the server sends (R2): the Inbox count, the sidebar, the Office and the project page show the same figure because they read the same field, never because each screen adds it up.</p>
+      </div>
+
+      <div class="specs" id="specs">
+        <article class="panel spec">
+          <h3>A project</h3>
+          <div class="specimen">
+            <div class="sp-row"><span class="dot dot-active" role="img" aria-label="Lead on"></span><div><b>replay</b><span class="sp-sent">Building · 4 of 9 outcomes met · 1 needs you</span></div></div>
+          </div>
+          <ul class="plain">
+            <li><b>Name</b> as you typed it, then <b>one sentence</b>: phase, outcomes met, what needs you. Lead dot: lilac when on, hollow when off.</li>
+            <li>The same row in Projects, the sidebar (name + waiting count) and the Office floor’s heading.</li>
+            <li>The GitHub repo shows only when something is wrong with it.</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>A task</h3>
+          <div class="specimen">
+            <div class="sp-row"><span class="dot dot-active" role="img" aria-label="Working"></span><div><b>Trim clips on the timeline</b><span class="sp-sent">replay · Building · last active 1 min ago</span></div></div>
+          </div>
+          <ul class="plain">
+            <li><b>What it delivers</b>, in your words (its title), never its ID or branch. Then project · stage · last active.</li>
+            <li>Status is a dot and one word from four: <em>Working</em>, <em>Needs you</em>, <em>Done</em>, and neutral for <em>Waiting</em>, <em>Stopped</em>, <em>Off</em>.</li>
+            <li>ID, branch, files and PR live under Details on its page.</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>A decision</h3>
+          <div class="specimen">
+            <span class="sp-eyebrow">replay · Budget</span>
+            <b class="sp-title">replay has used today’s $40, so new work is paused</b>
+            <span class="sp-dock"><span class="btn btn-primary btn-sm">Raise today to $60</span><span class="btn btn-secondary btn-sm">Leave it paused</span></span>
+          </div>
+          <ul class="plain">
+            <li><b>Eyebrow</b>: project · kind. <b>Title</b>: what is being asked, as a sentence. <b>Body</b>: the thing itself. <b>Dock</b>: verbs that say what happens.</li>
+            <li>Buttons are named for their result (“Raise today to $60”), never OK / Cancel / Submit.</li>
+            <li>Two groups only: <em>Needs you now</em> (red count) and <em>When you have a minute</em> (neutral).</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>Proof</h3>
+          <div class="specimen">
+            <span class="sp-proof"><img src="../screens/img/replay-trim.png" alt="replay’s trim screen, as the task showed it working" decoding="async"><span class="sp-proof-cap">Shown working · 14:02 · recording 0:48</span></span>
+          </div>
+          <ul class="plain">
+            <li><b>Pictures first, large</b> (16:10, captioned with what they show), then the recording with its length, then the run log’s last lines under Details.</li>
+            <li>Always served from the view port; opens in a new tab to click around.</li>
+            <li>No proof yet says so: “Proof appears when the task shows its work.”</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>Money</h3>
+          <div class="specimen">
+            <div class="meter"><div class="meter-head"><span>replay today</span><b>$40.00 of $40</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div><span class="meter-foot">Paused until you raise it or midnight</span></div>
+          </div>
+          <ul class="plain">
+            <li><b>Dollars with cents, tabular figures</b>, “of” the limit when there is one. A meter only against a limit; without one, just the figure.</li>
+            <li>Red only at the limit, because only then it needs you. “API-equivalent, not a bill” is said once, in the spend breakdown.</li>
+            <li>One spend figure per screen (<a class="dref" href="#ux-9">UX-9</a>); the per-task split opens under it, from the summary.</li>
+          </ul>
+        </article>
+        <article class="panel spec">
+          <h3>Progress</h3>
+          <div class="specimen">
+            <span class="sp-track" aria-label="Stage: Building"><span class="past">Planning</span><span class="now">Building</span><span>Checking</span><span>Review</span><span>Done</span></span>
+            <span class="sp-sent">Wiring the trim handles into the timeline</span>
+          </div>
+          <ul class="plain">
+            <li><b>A task</b>: its stage, the latest step in a sentence, last active (<a class="dref" href="#ux-5">UX-5</a>). <b>A project</b>: the phase track (Brief · Spec · Design · Contracts · Build) and outcomes met.</li>
+            <li>Quiet for longer than usual is neutral text (“Quiet for 25 min, longer than usual”), never red; it becomes red only when the lead says it’s stuck.</li>
+          </ul>
+        </article>
+      </div>
+
+      <h3>Time</h3>
+      <div class="prose"><p>Under an hour: “1 min ago”, “40 min ago”. Today: “14:02”. This week: “Mon 14:02”. Older: “12 Oct”. The exact time is always in the tooltip and to screen readers. Durations: “48 s”, “12 min”, “1 h 20 min”.</p></div>
+
+      <h3 id="info-states">Empty, loading, error and stale</h3>
+      <div class="prose"><p>Every screen has all four, written down so frontend never invents one. Four rules first, then each screen.</p></div>
+      <ol class="rules">
+        <li><b>Loading shows the shape, once.</b> A skeleton of the real layout on the first load of a screen only; counts are hidden until they are known. Refreshes never show a skeleton again (R7).</li>
+        <li><b>Empty says what will be here, and the one thing to do.</b> One sentence, at most one button. Never an illustration, never “No data”.</li>
+        <li><b>An error says what happened and what happens next</b>, in one line, inside the page; the sidebar and tabs stay. Neutral when it fixes itself (it retries), red only when you have to act.</li>
+        <li><b>Stale is a time, not a warning.</b> “Last updated 08:12 · Retrying” in the page’s head; decide buttons are disabled with the reason while the server can’t be reached.</li>
+      </ol>
+      <div class="tbl-wrap" role="region" aria-label="States per screen, table" tabindex="0">
+        <table class="tbl tbl-stack" id="states-table">
+          <thead><tr><th scope="col">Screen</th><th scope="col">Empty</th><th scope="col">Loading</th><th scope="col">Error</th></tr></thead>
+          <tbody>
+            <tr><td>Inbox</td><td data-k="Empty:">“Nothing needs you.” Who is working, and the last three things you decided (R8, R11)</td><td data-k="Loading:">Item and queue skeleton; no count in the tab</td><td data-k="Error:">“Couldn’t load the Inbox. Trying again in 15 s.” · Try now</td></tr>
+            <tr><td>Inbox item</td><td data-k="Empty:">n/a: an item always has its thing</td><td data-k="Loading:">Pictures load in their frames at final size, nothing jumps</td><td data-k="Error:">Action failed: the dock keeps your choice and text, says why, Try again</td></tr>
+            <tr><td>Office</td><td data-k="Empty:">“Nobody is working right now.” Each project’s next step in a line</td><td data-k="Loading:">Floor headings and desk outlines</td><td data-k="Error:">Last floors stay, with the stale line</td></tr>
+            <tr><td>Projects</td><td data-k="Empty:">“No projects yet.” · New project</td><td data-k="Loading:">Three row skeletons</td><td data-k="Error:">One line and Try now</td></tr>
+            <tr><td>Project page</td><td data-k="Empty:">Fresh project: “The lead is writing the brief. It comes to your Inbox.”</td><td data-k="Loading:">Now block skeleton; tabs ready</td><td data-k="Error:">“This project couldn’t be read.” and what the server said, under Details</td></tr>
+            <tr><td>Tasks · Outcomes · Audits</td><td data-k="Empty:">“No tasks yet: the lead plans them after the contracts.” · “No outcomes yet” · “No audits yet.” · Run audit now</td><td data-k="Loading:">Row skeletons</td><td data-k="Error:">One line in the tab</td></tr>
+            <tr><td>Task page</td><td data-k="Empty:">Proof: “Proof appears when the task shows its work.” History: “Nothing yet.”</td><td data-k="Loading:">Header and Now skeleton</td><td data-k="Error:">Failed task opens on what went wrong, in one sentence, and what the lead is doing (journey 5)</td></tr>
+            <tr><td>Activity</td><td data-k="Empty:">“Nothing happened today yet.” With Only problems on: “No problems today.”</td><td data-k="Loading:">Day heading and rows</td><td data-k="Error:">One line and Try now</td></tr>
+            <tr><td>Docs</td><td data-k="Empty:">“The lead hasn’t written the Spec yet.” (per document)</td><td data-k="Loading:">Text lines</td><td data-k="Error:">One line</td></tr>
+            <tr><td>Settings</td><td data-k="Empty:">n/a</td><td data-k="Loading:">Fields disabled, current values shown when known</td><td data-k="Error:">Save failed: your change stays in the field, the reason under it</td></tr>
+            <tr><td>New project</td><td data-k="Empty:">The form, with sensible defaults chosen</td><td data-k="Loading:">Create shows “Creating…”</td><td data-k="Error:">“That name is taken” under the field; nothing you typed is lost</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="info-words">Plain words (R3)</h3>
+      <div class="prose"><p>Eight rules, each with a line from today’s dashboard and what it becomes.</p></div>
+      <div class="tbl-wrap" role="region" aria-label="Plain words, before and after, table" tabindex="0">
+        <table class="tbl tbl-stack" id="words-table">
+          <thead><tr><th scope="col">Rule</th><th scope="col">Today</th><th scope="col">Becomes</th></tr></thead>
+          <tbody>
+            <tr><td>Every list item is one sentence about the work, not the machinery</td><td data-k="Today:"><code>6umt · atelier/6umt · iteration 2/8</code></td><td data-k="Becomes:">UX walkthrough · Building · last active 3 min ago</td></tr>
+            <tr><td>Say what it means for you</td><td data-k="Today:">BLOCKED</td><td data-k="Becomes:">Waiting for your answer</td></tr>
+            <tr><td>Buttons say what happens</td><td data-k="Today:">Approve</td><td data-k="Becomes:">Approve the design</td></tr>
+            <tr><td>IDs, files, commands and branches only under Details</td><td data-k="Today:"><code>gate-approve design</code></td><td data-k="Becomes:">The design for replay is ready for you</td></tr>
+            <tr><td>Your words, not the agents’</td><td data-k="Today:">Criteria met 4/9</td><td data-k="Becomes:">4 of 9 outcomes met <a class="dref" href="#ux-14">UX-14</a></td></tr>
+            <tr><td>Numbers as you’d say them</td><td data-k="Today:">$52.6034 · 1,284,551 tokens</td><td data-k="Becomes:">$52.60 today (tokens under Details)</td></tr>
+            <tr><td>Name the project, always</td><td data-k="Today:">Task stopped</td><td data-k="Becomes:">replay · Trim clips stopped: it was over its budget</td></tr>
+            <tr><td>Sentence case, no exclamation marks, no “please”</td><td data-k="Today:">Lead Restarted Successfully!</td><td data-k="Becomes:">Restarted the lead for replay</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── 6 PATTERNS ───────────────────────── -->
+    <section class="sec" id="patterns" aria-labelledby="patterns-h">
+      <div class="sec-head"><span class="sec-num">6</span><h2 id="patterns-h">Interaction patterns</h2></div>
+      <div class="prose">
+        <p>How things move, respond and confirm. Motion is <strong>Flow</strong>, unchanged (R-5): it moves only what carries meaning, and the thing you are reading never moves while you read it.</p>
+      </div>
+
+      <h3>Motion, per pattern</h3>
+      <div class="tbl-wrap" role="region" aria-label="Motion per pattern, table" tabindex="0">
+        <table class="tbl tbl-stack" id="motion-table">
+          <thead><tr><th scope="col">Pattern</th><th scope="col">Flow</th><th scope="col">Reduced motion</th></tr></thead>
+          <tbody>
+            <tr><td>Deciding an item</td><td data-k="Flow:">Shown done in place (<code>--dur-hold</code>), then the title flies into Decided today and the next item rises in place (<code>--spring-glide</code>)</td><td data-k="Reduced:">Hold, then one cross-fade (120 ms)</td></tr>
+            <tr><td>Undo</td><td data-k="Flow:">The same, in reverse: the title flies home, the body unfolds under it</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Next / previous item (J / K)</td><td data-k="Flow:">The item slides <code>--shift-lg</code> from the side you’re going; on the phone, like a card</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Opening a project or task page</td><td data-k="Flow:">The page slides the way you went (forward in, back out), the chrome stays still</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Tabs on a project page</td><td data-k="Flow:">Slides the way you went</td><td data-k="Reduced:">Cross-fade</td></tr>
+            <tr><td>Live figures and progress</td><td data-k="Flow:">Counts change in place; a progress bar springs (<code>--spring-soft</code>); the live dot pulses (<code>--dur-pulse</code>)</td><td data-k="Reduced:">Change in place, no pulse</td></tr>
+            <tr><td>Toast</td><td data-k="Flow:">Rises 24 px out of the dock (<code>--spring-snappy</code>)</td><td data-k="Reduced:">Fades in</td></tr>
+            <tr><td>Folds (Details, History)</td><td data-k="Flow:">Open in <code>--dur-base</code>, <code>--ease-enter</code></td><td data-k="Reduced:">Open at once</td></tr>
+            <tr><td>A note that’s needed and empty</td><td data-k="Flow:">One 4 px nudge, and the reason under the field</td><td data-k="Reduced:">The reason only</td></tr>
+            <tr><td>Inbox zero</td><td data-k="Flow:">The last title lands, then the quiet line rises 48 px</td><td data-k="Reduced:">Fades in</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Keyboard (desk)</h3>
+      <div class="grid-2">
+        <div class="panel">
+          <dl class="keys">
+            <dt><span class="kbd">⌘</span><span class="kbd">K</span></dt><dd>Go anywhere: a project, task, document or setting (Ctrl K on Windows)</dd>
+            <dt><span class="kbd">J</span> <span class="kbd">K</span></dt><dd>Next and previous item in the Inbox or any list</dd>
+            <dt><span class="kbd">Enter</span></dt><dd>Open the selected row; in the Inbox, move to the dock</dd>
+            <dt><span class="kbd">⌘</span><span class="kbd">Enter</span></dt><dd>Send the dock’s main action (with your note)</dd>
+            <dt><span class="kbd">Z</span></dt><dd>Undo, while the toast is up</dd>
+          </dl>
+        </div>
+        <div class="panel">
+          <dl class="keys">
+            <dt><span class="kbd">G</span> then <span class="kbd">I</span> <span class="kbd">O</span> <span class="kbd">P</span> <span class="kbd">A</span></dt><dd>Inbox, Office, Projects, Activity</dd>
+            <dt><span class="kbd">Esc</span></dt><dd>Close the palette or a fold; leave a note field</dd>
+            <dt><span class="kbd">?</span></dt><dd>Show these keys</dd>
+          </dl>
+          <p class="cap" style="margin:0">Single keys never act while you type. No key decides on its own: a decision always goes through the dock, so a stray key can’t approve anything. Every control is reachable with Tab in reading order, with the focus ring in the brand blue.</p>
+        </div>
+      </div>
+
+      <h3>Undo and confirm <a class="dref" href="#ux-10">UX-10</a></h3>
+      <div class="tbl-wrap" role="region" aria-label="Undo or confirm per action, table" tabindex="0">
+        <table class="tbl tbl-stack" id="confirm-table">
+          <thead><tr><th scope="col">Action</th><th scope="col">What protects it</th><th scope="col">The words</th></tr></thead>
+          <tbody>
+            <tr><td>Approve a gate or a plan, answer, judge an outcome, a finding, raise a budget, allow screen use</td><td data-k="Protect:">Instant. Undo in the toast, 6 s, paused while hovered or focused</td><td data-k="Words:">“Approved the design for replay” · Undo</td></tr>
+            <tr><td>Skip a phase</td><td data-k="Protect:">A reason is required in the dock; no dialog</td><td data-k="Words:">“Skip the design phase? Say why, for the record.”</td></tr>
+            <tr><td>Stop a task</td><td data-k="Protect:">Confirm</td><td data-k="Words:">“Stop Trim clips? Its work so far is kept on its branch.” · Stop the task · Keep it running</td></tr>
+            <tr><td>Stop or restart the lead</td><td data-k="Protect:">Confirm</td><td data-k="Words:">“Stop the lead for replay? Running tasks finish; nothing new starts.” · Stop the lead · Keep it on</td></tr>
+            <tr><td>Run an audit now</td><td data-k="Protect:">Confirm, because it spends money</td><td data-k="Words:">“Run an audit of replay now? It spends from replay’s budget for today.” · Run the audit · Not now</td></tr>
+            <tr><td>Change a setting</td><td data-k="Protect:">Saved on change, toast “Saved” with Undo</td><td data-k="Words:">“Daily budget for replay is now $60” · Undo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose"><p>A confirm is one short dialog: a question naming the thing, what happens, and two buttons named for their result. The safe one has the focus; Esc is the safe one. Never a checkbox to type “I understand”.</p></div>
+
+      <h3>Live refresh (R7)</h3>
+      <ul class="rules">
+        <li><b>Every 15 s and when you come back to the tab</b>, as today. Changes apply in place: no reload, no jump.</li>
+        <li><b>What you are reading stays.</b> Your scroll, open folds and the text you are typing are never touched. The open Inbox item is never swapped for a newer one; a new urgent item appears in the queue, in its place, and the count changes.</li>
+        <li><b>Decided somewhere else</b> (your phone, while the desk is open): the item says “You decided this on another device” and leaves when you move on.</li>
+        <li><b>Lists never reorder under your cursor or finger.</b> A row that should move waits until the pointer leaves the list.</li>
+      </ul>
+
+      <h3>Notifications <a class="dref" href="#ux-15">UX-15</a></h3>
+      <ul class="rules">
+        <li><b>Inside the app</b>: the Inbox count in the sidebar and tab bar (red only for “Needs you now”, neutral otherwise), the tab title “(2) Atelier”, and a dot on the browser tab’s icon.</li>
+        <li><b>Toasts</b> only answer something you did; the dashboard never toasts on its own.</li>
+        <li><b>Outside the app</b>: nothing today; push for “Needs you now” is UX-15.</li>
+      </ul>
+    </section>
+    <section class="sec" id="wireframes" aria-labelledby="wireframes-h">
+      <div class="sec-head"><span class="sec-num">7</span><h2 id="wireframes-h">Wireframes of every screen</h2></div>
+      <div class="prose">
+        <p>Every screen at the desk (1440) and on the phone (390), built from the system above with the same real content as the rest of this page: seven things waiting, two of them now, three agents working, $52.60 spent today. They are <strong>low-fi on purpose</strong>: plain type on hairlines, colour only on the dots. The <span class="wf-key">dashed blue labels</span> name each part and its size; they are notes for you, not part of the screen. Each one is drawn with my recommended answer to the decisions it touches.</p>
+        <p>They are real pages, not pictures: <strong>Open</strong> any of them to click between screens and resize the window to see the middle width (768–1279) with the 64 px rail.</p>
+      </div>
+      <ol class="wf-index" id="wf-index" aria-label="Screens"></ol>
+      <div id="wf-list"></div>
+    </section>
+    <!-- ───────────────────────── 8 DECISIONS ───────────────────────── -->
+    <section class="sec" id="decisions" aria-labelledby="decisions-h">
+      <div class="sec-head"><span class="sec-num">8</span><h2 id="decisions-h">Your decisions</h2></div>
+      <div class="prose">
+        <p>Fifteen places where your taste or priorities decide. Each has two or three options and my recommendation, with the reason. Pictures are structure only, not the final look. Options marked <em>New scope</em> need the server to do something new, so the lead confirms them before they are built.</p>
+      </div>
+      <div class="decs" id="decisions-list"></div>
+      <div class="panel answer" id="answer">
+        <h3 style="margin:0">Your reply</h3>
+        <p class="cap" style="margin:0">My recommendations, in one line. Copy it, change any letter you disagree with, add a few words where you want something different, and send it back.</p>
+        <pre id="answer-text"></pre>
+        <div class="answer-row"><button type="button" class="btn btn-secondary" id="answer-copy">Copy my recommendations</button><span class="cap" id="answer-status" role="status" aria-live="polite" style="margin:0"></span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="../icons.js"></script>
+<script src="../brand/r2/marks.js"></script>
+<script src="ia.js"></script>
+<script src="refs.js"></script>
+<script src="flows.js"></script>
+<script src="decisions.js"></script>
+<script src="ux.js"></script>
+</body>
+</html>

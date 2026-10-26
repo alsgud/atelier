@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" data-scheme="c1" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier brand · pick a logo, a colour scheme and a layout</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../components.css">
+<link rel="stylesheet" href="schemes.css">
+<link rel="stylesheet" href="brand.css">
+</head>
+<body class="pick">
+<nav class="pick-nav" aria-label="Sections"><div>
+  <a href="#logos">Logos L1–L16</a><a href="#colours">Colours C1–C5</a><a href="#contrast">Contrast</a><a href="#layouts">Layouts Y1–Y3</a><a href="#combos">Combos A–D</a><a href="#pick">Top pick</a>
+</div></nav>
+<main class="pick-wrap">
+  <header class="pick-head">
+    <h1>Pick Atelier’s logo, colours and layout</h1>
+    <p>Everything here is the Flow Inbox you chose, with its motion unchanged. Each option has a number. Pick one of each, or a whole combination.</p>
+    <p class="reply">Reply with, for example, <code>L7 + C2 + Y1</code> or <code>Combo B</code>. Mixing is fine: <code>Combo A, but L12</code>.</p>
+  </header>
+
+  <section class="pick-sec" id="logos" aria-labelledby="logos-h">
+    <header><h2 id="logos-h">Logos</h2>
+      <p>Four ideas, four ways to draw each. Every mark is shown at 128, 32 and 16 px (the browser tab), with its wordmark on light and dark, and in the real top bar of the Inbox at 1440 and 390.</p></header>
+    <div id="concepts"></div>
+  </section>
+
+  <section class="pick-sec" id="colours" aria-labelledby="colours-h">
+    <header><h2 id="colours-h">Colour schemes</h2>
+      <p>Each scheme is a neutral ramp, one brand accent, and the four meanings. Waiting is neutral on purpose; only working, done and needs-you carry colour (R4). The sample is the item header and dock from the Inbox.</p></header>
+    <div id="schemes"></div>
+  </section>
+
+  <section class="pick-sec" id="contrast" aria-labelledby="contrast-h">
+    <header><h2 id="contrast-h">Contrast</h2>
+      <p>Measured from the colours on this page as it loads, not typed in. Text needs 4.5:1 (WCAG AA); rings, borders and progress fills need 3:1.</p></header>
+    <p id="contrast-sum" class="tradeoff"></p>
+    <div id="contrast-tables"></div>
+  </section>
+
+  <section class="pick-sec" id="layouts" aria-labelledby="layouts-h">
+    <header><h2 id="layouts-h">Layouts</h2>
+      <p>Three ways to arrange the same Inbox. Only the frame moves: the item, the decision dock, the queue and Flow’s motion are identical in all three. Shown in L1 and C1 so only the layout differs.</p></header>
+    <div id="layout-list"></div>
+  </section>
+
+  <section class="pick-sec" id="combos" aria-labelledby="combos-h">
+    <header><h2 id="combos-h">Recommended combinations</h2>
+      <p>Four whole looks, each a logo, a scheme and a layout that belong together. Each is the full Inbox in light and dark, and a recorded demo of the same journey (open an item, decide it, undo, check the Office, clear the inbox) so you see colour and Flow’s motion together.</p></header>
+    <div id="combo-list"></div>
+  </section>
+
+  <section class="pick-sec" id="pick" aria-labelledby="pick-h">
+    <header><h2 id="pick-h">Top pick</h2></header>
+    <div id="top-pick"></div>
+  </section>
+</main>
+<script src="logos.js"></script>
+<script>
+const P = new URLSearchParams(location.search);
+if (P.get('theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+const SCHEMES = [
+  { id: 'c1', name: 'Ink and paper', mood: 'Warm white, black ink, one violet thread for the work in progress.', pairs: ['grid', 'thread'], accent: 'The accent is the working violet itself: one colour, one meaning.' },
+  { id: 'c2', name: 'Warm studio', mood: 'Linen and walnut in afternoon light; an ochre mark, like a workshop.', pairs: ['seal', 'thread', 'arch'], accent: 'Ochre is the brand’s own: the mark and the focus ring only, never on content.' },
+  { id: 'c3', name: 'Graphite', mood: 'Cool greys and an indigo violet: a precise tool that sits next to Linear.', pairs: ['grid', 'thread'], accent: 'The accent is the working indigo violet itself.' },
+  { id: 'c4', name: 'North light', mood: 'Cool, airy paper under a skylight; a slate-blue mark.', pairs: ['arch'], accent: 'Slate blue is the brand’s own: the mark and the focus ring only.' },
+  { id: 'c5', name: 'Gallery', mood: 'True greys and black type; nothing has colour unless it means something.', pairs: ['seal', 'grid'], accent: 'No brand colour: the mark and the focus ring are ink.' },
+];
+/* Each concept is shown in the scheme it pairs with first. */
+const SHOW = { grid: 'c1', arch: 'c4', thread: 'c2', seal: 'c2' };
+const PAIRS = { grid: 'C1 Ink and paper, C3 Graphite', arch: 'C4 North light, C2 Warm studio', thread: 'C2 Warm studio, C1 Ink and paper, C3 Graphite', seal: 'C2 Warm studio, C5 Gallery' };
+
+document.getElementById('concepts').innerHTML = Object.entries(CONCEPTS).map(([key, c]) => {
+  const s = SHOW[key];
+  const cards = LOGOS.filter(l => l.concept === key).map(l => `
+    <article class="card" id="${l.id}" aria-labelledby="${l.id}-h">
+      <div class="card-head"><h4 class="card-id" id="${l.id}-h">${l.id}</h4><span class="card-name">${l.name}</span></div>
+      <p class="card-idea">${l.idea}</p>
+      <div class="tile hero-tile" data-scheme="${s}" data-theme="light">${markSVG(l.id, 128, `${l.id} mark at 128 px`)}</div>
+      <div class="sizes" data-scheme="${s}" data-theme="light">
+        <figure>${markSVG(l.id, 32)}<figcaption>32</figcaption></figure>
+        <figure>${markSVG(l.id, 16)}<figcaption>16</figcaption></figure>
+        <figure><span class="favtab">${markSVG(l.id, 16)}(7) Inbox · Atelier</span><figcaption>tab, light</figcaption></figure>
+        <figure data-scheme="${s}" data-theme="dark" style="background:transparent"><span class="favtab">${markSVG(l.id, 16)}(7) Inbox</span><figcaption>tab, dark</figcaption></figure>
+      </div>
+      <div class="lockups">
+        <div class="tile" data-scheme="${s}" data-theme="light">${lockup(l.id, 22)}</div>
+        <div class="tile" data-scheme="${s}" data-theme="dark">${lockup(l.id, 22)}</div>
+      </div>
+      <div class="bar-shots">
+        <img class="bar-shot" src="img/bar/${l.id}-1440.png" alt="${l.id} in the Inbox top bar at 1440 px" width="420" height="56" loading="lazy">
+        <img class="bar-shot" src="img/bar/${l.id}-390.png" alt="${l.id} in the Inbox top bar on a phone, 390 px" width="390" height="52" loading="lazy" style="max-width:390px">
+        <span class="tile-cap">In the app: the sidebar at 1440, the top bar at 390. <a href="app/inbox.html?logo=${l.id}&scheme=${s}">Open it live</a></span>
+      </div>
+    </article>`).join('');
+  return `<div class="concept"><div class="concept-head"><h3>${c.name}</h3><p>${c.idea}</p><span class="pairs">Pairs with ${PAIRS[key]}</span></div><div class="cards">${cards}</div></div>`;
+}).join('');
+
+const meanings = `
+  <span class="meaning"><span class="dot-wait" role="img" aria-label="Waiting"></span><b>Waiting</b><code>--wait</code></span>
+  <span class="meaning"><span class="dot dot-active"></span><b style="color:var(--active)">Working</b><code>--active</code></span>
+  <span class="meaning"><span class="dot dot-done"></span><b style="color:var(--done)">Done</b><code>--done</code></span>
+  <span class="meaning"><span class="dot dot-needs"></span><b style="color:var(--needs)">Needs you</b><code>--needs</code></span>`;
+const panel = (s, t) => {
+  const logo = { c1: 'L1', c2: 'L14', c3: 'L9', c4: 'L6', c5: 'L16' }[s.id];
+  return `<div class="scheme-panel" data-scheme="${s.id}" data-theme="${t}">
+    <div class="sample-row" style="justify-content:space-between">${lockup(logo, 20)}<span class="accent-chip"><i></i>Accent</span></div>
+    <div><div class="ramp" role="img" aria-label="Neutral ramp, 11 steps">${Array.from({ length: 11 }, (_, i) => `<i style="background:var(--n${i})"></i>`).join('')}</div>
+      <div class="ramp-cap"><span>n0</span><span>n5</span><span>n10</span></div></div>
+    <div class="meanings">${meanings}</div>
+    <div class="sample" inert>
+      <div class="eyebrow"><span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span><span class="sep">·</span><span>replay</span><span class="sep">·</span><span>25 min ago</span></div>
+      <h4 class="title-display">Some of your clips may need a paid Windows add-on to play</h4>
+      <div class="agent-progress" style="display:grid;gap:4px"><span class="track" style="display:block;height:3px;border-radius:9px;background:var(--active-track);overflow:hidden"><i style="display:block;height:100%;width:69%;background:var(--active)"></i></span><span class="faint" style="font-size:var(--text-xs);color:var(--text-3)">Thumbnails · 1,240 of 1,800 clips</span></div>
+      <div class="sample-row"><button class="btn btn-primary" type="button">Yes, fix it</button><button class="btn btn-secondary" type="button">No, it’s fine</button><span style="color:var(--done);font-size:var(--text-sm)">✓ Approved the look of Replay</span></div>
+    </div>
+  </div>`;
+};
+document.getElementById('schemes').innerHTML = SCHEMES.map(s => `
+  <article class="scheme" id="${s.id.toUpperCase()}" aria-labelledby="${s.id}-h">
+    <div class="concept-head"><h3 id="${s.id}-h">${s.id.toUpperCase()} ${s.name}</h3><p>${s.mood}</p><span class="pairs">${s.accent} Pairs with ${s.pairs.map(p => CONCEPTS[p].name).join(', ')}.</span></div>
+    <div class="scheme-themes">${panel(s, 'light')}${panel(s, 'dark')}</div>
+  </article>`).join('');
+
+/* ── Contrast, measured from the computed colours ── */
+const lum = c => { const [r, g, b] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const rgb = h => { h = h.trim().replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const ratio = (a, b) => { const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const PAIRS_C = [
+  ...[['text', 'Text'], ['text-2', 'Text 2'], ['text-3', 'Meta']].flatMap(([f, n]) => [['surface', 'surface'], ['bg', 'canvas'], ['surface-sunken', 'sunken'], ['surface-hover', 'hover'], ['surface-selected', 'selected']].map(([b, m]) => [f, b, 4.5, `${n} on ${m}`])),
+  ...[['active', 'Working'], ['done', 'Done'], ['needs', 'Needs you']].flatMap(([f, n]) => [[f, 'surface', 4.5, `${n} on surface`], [f, 'bg', 4.5, `${n} on canvas`], [f, 'surface-sunken', 4.5, `${n} on sunken`], [f, 'surface-hover', 4.5, `${n} on hover`], [f, 'surface-selected', 4.5, `${n} on selected`], [f, `${f}-soft`, 4.5, `${n} on its wash`]]),
+  ['text', 'active-soft', 4.5, 'Text on working wash'], ['text', 'done-soft', 4.5, 'Text on done wash'], ['text', 'needs-soft', 4.5, 'Text on needs wash'],
+  ['text-on-ink', 'ink', 4.5, 'Primary button label'], ['text-inverse', 'surface-inverse', 4.5, 'Toast text'],
+  ['toast-done', 'surface-inverse', 4.5, 'Toast “done” word'], ['toast-needs', 'surface-inverse', 4.5, 'Toast “needs” word'], ['text-on-needs', 'needs', 4.5, 'Count on red badge'],
+  ['wait', 'surface', 3, 'Waiting ring'], ['border-field', 'surface', 3, 'Field border'], ['brand-accent', 'surface', 3, 'Focus ring, mark accent'], ['brand-accent', 'bg', 3, 'Focus ring on canvas'], ['active', 'active-track', 3, 'Progress fill on track'],
+];
+let all = 0, bad = 0;
+const tables = SCHEMES.map(s => {
+  const res = ['light', 'dark'].map(t => {
+    const probe = document.createElement('div'); probe.dataset.scheme = s.id; probe.dataset.theme = t; probe.hidden = true; document.body.append(probe);
+    const cs = getComputedStyle(probe), v = k => cs.getPropertyValue(`--${k}`).trim();
+    const r = PAIRS_C.map(([f, b, min, what]) => ({ what, f: v(f), b: v(b), r: ratio(v(f), v(b)), min }));
+    probe.remove(); return r;
+  });
+  const rows = PAIRS_C.map((p, i) => {
+    const cell = x => { all++; const ok = x.r >= x.min; if (!ok) bad++; return `<td><span class="sw" style="background:${x.b};color:${x.f}">Aa</span>${x.f} on ${x.b}</td><td class="r ${ok ? 'pass' : 'fail'}">${x.r.toFixed(2)}${ok ? '' : ' fails'}</td>`; };
+    return `<tr><th scope="row">${p[3]}</th><td class="r">${p[2]}:1</td>${cell(res[0][i])}${cell(res[1][i])}</tr>`;
+  }).join('');
+  const low = Math.min(...res.flat().filter(x => x.min === 4.5).map(x => x.r));
+  return `<details class="more" id="contrast-${s.id}"><summary>${s.id.toUpperCase()} ${s.name}: ${PAIRS_C.length * 2} pairs, lowest text pair ${low.toFixed(2)}:1</summary><div class="contrast"><table>
+    <thead><tr><th scope="col">Pair</th><th scope="col">Needs</th><th scope="col">Light</th><th scope="col">Ratio</th><th scope="col">Dark</th><th scope="col">Ratio</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+}).join('');
+document.getElementById('contrast-tables').innerHTML = tables;
+/* ── Layouts ── */
+const LAYOUTS = [
+  { id: 'Y1', name: 'Sidebar', desk: 'Sidebar | item | queue. Projects, the plan meter and settings always in view.', phone: 'Brand bar on top, four tabs at the bottom under your thumb.',
+    trade: 'Everything is one glance away, at the cost of 240 px the item and queue could use.' },
+  { id: 'Y2', name: 'Top bar', desk: 'One bar across the top: the mark, four sections, plan and spend. Item and queue get the full width.', phone: 'The tabs sit under the logo; no bottom bar, so the dock has the bottom to itself.',
+    trade: 'The roomiest item and the cleanest edges, but projects drop out of view and the phone tabs move out of thumb reach.' },
+  { id: 'Y3', name: 'Queue first', desk: 'A 64 px icon rail, the queue on the left, the item on the right, like a mail client.', phone: 'No top bar at all: the item starts at the top, tabs at the bottom.',
+    trade: 'Reads the queue before the decision, which suits a full inbox; the rail hides names behind icons, the project list leaves the screen, and the phone loses the logo.' },
+];
+document.getElementById('layout-list').innerHTML = LAYOUTS.map(l => {
+  const y = l.id.toLowerCase(), live = `app/inbox.html?logo=L1&scheme=c1&layout=${y}`;
+  return `<article class="scheme" id="${l.id}" aria-labelledby="${y}-h">
+    <div class="concept-head"><h3 id="${y}-h">${l.id} ${l.name}</h3><p class="tradeoff"><b>Trade-off:</b> ${l.trade}</p></div>
+    <div class="shots">
+      <figure class="shot"><img src="img/layout/${y}-1440-light.png" alt="${l.id} ${l.name} at 1440 px: ${l.desk}" width="1440" height="900" loading="lazy"><figcaption class="tile-cap">1440 · ${l.desk} <a href="${live}">Open it live</a></figcaption></figure>
+      <figure class="shot"><img src="img/layout/${y}-390-light.png" alt="${l.id} ${l.name} on a phone, 390 px: ${l.phone}" width="390" height="844" loading="lazy"><figcaption class="tile-cap">390 · ${l.phone}</figcaption></figure>
+    </div>
+  </article>`;
+}).join('');
+
+/* ── Combinations (keep in sync with runs/hspr/tools/combos-def.mjs) ── */
+const COMBOS = [
+  { id: 'A', name: 'The house, refined', logo: 'L1', scheme: 'C1', layout: 'Y1',
+    why: 'D2’s system with a stronger mark: the lit cell and the working violet are the same idea, so the one colour on screen always means work in progress.',
+    watch: 'The safest and most familiar of the four; also the one with the least personality of its own.' },
+  { id: 'B', name: 'Warm studio', logo: 'L14', scheme: 'C2', layout: 'Y1', top: true,
+    why: 'Linen and walnut with an ochre stamp: it feels like a workshop where things are made, and the ochre stays on the mark and the focus ring, so colour on content still only means working, done or needs you.',
+    watch: 'Warm neutrals look slightly yellow on a cool, uncalibrated screen; the serif caps wordmark needs outlining before it ships.' },
+  { id: 'C', name: 'North light', logo: 'L6', scheme: 'C4', layout: 'Y2',
+    why: 'Cool, airy paper and a slate-blue window: the roomiest Inbox, with the item and queue across the full width under one quiet bar.',
+    watch: 'Projects drop out of view on desktop and the phone tabs move to the top; slate blue sits nearer to generic tool blue.' },
+  { id: 'D', name: 'Graphite queue', logo: 'L9', scheme: 'C3', layout: 'Y3',
+    why: 'A precise, cool tool: the queue reads first like a mail client, and the thread a keeps the mark personal and small.',
+    watch: 'The closest to Linear, so the least distinctive; the rail hides names and the project list, and the phone has no logo.' },
+];
+const SCHEME_NAME = Object.fromEntries(SCHEMES.map(s => [s.id.toUpperCase(), s.name]));
+const LOGO_NAME = Object.fromEntries(LOGOS.map(l => [l.id, l.name]));
+const LAYOUT_NAME = Object.fromEntries(LAYOUTS.map(l => [l.id, l.name]));
+document.getElementById('combo-list').innerHTML = COMBOS.map(c => {
+  const k = c.id.toLowerCase(), live = `app/inbox.html?logo=${c.logo}&scheme=${c.scheme.toLowerCase()}&layout=${c.layout.toLowerCase()}`;
+  const label = `Combo ${c.id} ${c.name}, ${c.logo} + ${c.scheme} + ${c.layout}`;
+  const pair = theme => `<div class="shots">
+      <figure class="shot"><img src="img/combo/${k}-1440-${theme}.png" alt="${label}, Inbox at 1440 px, ${theme}" width="1440" height="900" loading="lazy"><figcaption class="tile-cap">1440 · ${theme} · <a href="${live}${theme === 'dark' ? '&theme=dark' : ''}">Open it live</a></figcaption></figure>
+      <figure class="shot"><img src="img/combo/${k}-390-${theme}.png" alt="${label}, Inbox on a phone, 390 px, ${theme}" width="390" height="844" loading="lazy"><figcaption class="tile-cap">390 · ${theme}</figcaption></figure>
+    </div>`;
+  return `<article class="scheme" id="combo-${c.id}" aria-labelledby="combo-${k}-h">
+    <div class="concept-head combo-head"><h3 id="combo-${k}-h">Combo ${c.id} ${c.name}${c.top ? '<span class="pick-badge">Top pick</span>' : ''}</h3>
+      <ul class="recipe" aria-label="Made of">
+        <li><a href="#${c.logo}"><b>${c.logo}</b>${LOGO_NAME[c.logo]}</a></li>
+        <li><a href="#${c.scheme}"><b>${c.scheme}</b>${SCHEME_NAME[c.scheme]}</a></li>
+        <li><a href="#${c.layout}"><b>${c.layout}</b>${LAYOUT_NAME[c.layout]}</a></li>
+      </ul>
+      <p class="tradeoff"><b>Why:</b> ${c.why}</p><p class="tradeoff"><b>Watch for:</b> ${c.watch}</p></div>
+    ${pair('light')}${pair('dark')}
+    <p class="combo-sub">Demo: the same journey, desktop in light and phone in dark</p>
+    <div class="shots">
+      <figure class="shot"><video controls muted playsinline preload="none" poster="img/combo/${k}-1440-light.png" width="1440" height="900" aria-label="${label}: demo on desktop, light"><source src="img/combo/combo-${k}-desktop-light.webm" type="video/webm"></video>
+        <figcaption class="tile-cap">Desktop, light, about 50 s · <a href="img/combo/contact-${k}-desktop-light.png">Key frames</a></figcaption></figure>
+      <figure class="shot"><video controls muted playsinline preload="none" poster="img/combo/${k}-390-dark.png" width="390" height="844" aria-label="${label}: demo on a phone, dark"><source src="img/combo/combo-${k}-phone-dark.webm" type="video/webm"></video>
+        <figcaption class="tile-cap">Phone, dark, 46 s · <a href="img/combo/contact-${k}-phone-dark.png">Key frames</a></figcaption></figure>
+    </div>
+  </article>`;
+}).join('');
+document.getElementById('top-pick').innerHTML = `<div class="top-pick">
+  <span class="eyebrow-pick">My recommendation</span>
+  <h3 class="title-display">Combo B: L14 Chop + C2 Warm studio + Y1 Sidebar</h3>
+  <ol>
+    <li>Warm studio is the only scheme that makes Atelier feel like a place where things are made while staying as quiet as Linear, and its ochre never touches content, so colour still only means working, done or needs you.</li>
+    <li>The chop is one of the strongest marks at 16 px (a solid tile that also works as the app icon), and its idea, a maker’s stamp, is what you do on every decision: you sign the work off.</li>
+    <li>The sidebar keeps projects, plan and spend one glance away on desktop and the tabs under your thumb on the phone, the shell D2 already proved, so what changes is the identity, not the way you work.</li>
+  </ol>
+  <p class="tradeoff">Runner-up: Combo A, if you’d rather keep the violet thread and D2’s look you already know.</p>
+</div>`;
+
+document.getElementById('contrast-sum').innerHTML = `<b>${all} pairs measured, ${bad ? `${bad} below AA` : 'all pass AA'}.</b> Open a scheme to see every pair.`;
+</script>
+</body>
+</html>

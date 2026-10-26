@@ -1,0 +1,45 @@
+/* D4b brand round 2: the lockup for the N marks and the round-2 pick page (r2/index.html).
+   Builds on ../brand.css (round-1 pick page) and tokens.css; colours come from ../schemes.css + schemes-k.css. */
+
+/* One wordmark for all eleven marks, so the owner compares marks, not type: the system sans at 600, tightened. */
+.lockup-r2 .wm { font-family: var(--font-sans); font-weight: var(--weight-semibold); letter-spacing: -0.02em; }
+
+/* ── Pick page, round 2 ── */
+/* Grid children may shrink, so the open contrast table scrolls inside its box instead of widening the page. */
+.pick-r2 .pick-sec > *, .pick-r2 #contrast-tables > * { min-width: 0; }
+.pick-r2 .hero-tile { height: 168px; background: var(--bg); }
+.pick-r2 .sizes { background: var(--surface); }
+.size-pair { display: grid; grid-template-columns: 1fr 1fr; border-top: var(--border-width) solid var(--border); }
+.size-pair .sizes { border-top: 0; }
+.size-pair .sizes + .sizes { border-left: var(--border-width) solid var(--border); }
+.family { display: grid; gap: var(--space-4); padding-top: var(--space-6); border-top: var(--border-width) solid var(--border); }
+.small-cut { color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); padding: 0 var(--space-4) var(--space-3); }
+.bar-shots .bar-shot { background: var(--bg); }
+/* Meanings: wide enough that "Needs you" and its token name stay on one line. */
+.pick-r2 .meanings { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+
+/* Set aside: a quiet strip, smaller than the real options. */
+.aside-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.aside-list li { display: grid; grid-template-columns: 48px 1fr; gap: var(--space-3); align-items: start; padding: var(--space-3); border: var(--border-width) solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.aside-list .lg { color: var(--text-3); --brand-accent: var(--text-3); }
+.aside-list b { display: block; font-weight: var(--weight-medium); }
+.aside-list p { margin: 0; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+
+/* References board */
+.refs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-4); }
+.ref { display: grid; gap: var(--space-2); align-content: start; margin: 0; }
+.ref img { display: block; width: 100%; height: auto; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); }
+.ref figcaption { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.ref figcaption b { color: var(--text); font-weight: var(--weight-semibold); }
+
+/* Combos: dark 1440 wide, then the phone in dark and light side by side. */
+.shots-3 { display: grid; grid-template-columns: minmax(0, 3.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.shots-2 { display: grid; grid-template-columns: minmax(0, 3.2fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+
+@media (max-width: 767px) {
+  .size-pair { grid-template-columns: 1fr; }
+  .size-pair .sizes + .sizes { border-left: 0; border-top: var(--border-width) solid var(--border); }
+  .shots-3 { grid-template-columns: 1fr 1fr; }
+  .shots-3 > :first-child { grid-column: 1 / -1; }
+  .shots-2 { grid-template-columns: 1fr; }
+}
