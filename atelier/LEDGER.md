@@ -2,9 +2,40 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## Slice 3 done 2026-10-27 ~04:30
+- EPERM card-write race is now frequent (2026-10-27: xhen, 9pfh twice, a46b crashed at start). Each time: one `atelier resume`/`retry`. Tell the owner it's the top core fix.
+- 66eq and xhen wait in review on purpose: both are inside a46b, which the owner merges once; then the lead closes them with `atelier close` (chained branches don't close themselves).
+- xhen APPROVED round 1. Lead checked projects-1440-dark (real data, matches) and the inventory table (95 lines, 0 missing). Owner has NOT merged 66eq; xhen contains 5u8q + 66eq, so one merge later brings everything.
+- main has the owner's core commits (voice projects: audio proof in the old task page; window guard fix 489552d) and conflicts with xhen in dashboard/app.js. a46b integration task: base xhen, merge main, carry audio proof, small follow-ups. Then: second-port try for the owner (`node bin/atelier.mjs dashboard --port 4750 --no-tailscale` from the a46b worktree), owner merges atelier/a46b, audit.
+- Tell owner: xhen's settings test accidentally started a real "replay lead" (claude --remote-control) in a fixture for ~3.5 h; the frontend stopped it. A stale "replay lead" remote session may show in the owner's Claude app.
+
+## 2026-10-27 ~02:30
+- Owner wants advanced Office character design ("alive but professional and smooth", game inspiration). Started designer 9pfh ($40, 10 it), parallel with xhen (no file overlap). Building the picked direction = next milestone, a frontend slice after slice 3, priced when the owner picks.
+- Design gate REOPENED (owner's own request quoted) so 9pfh can write atelier/design/office-chars/** and a DESIGN.md Office characters section. When the owner picks a direction: request the design gate again with the pick.
+- xhen runner crashed on the EPERM card-write race (Atelier core) when 9pfh started; lead resumed it once.
+## Resumed by owner 2026-10-27 (xhen running). Owner pauses and resumes on demand: stop or resume xhen at once when asked.
+## (was) PAUSED BY OWNER 2026-10-26 ~23:30
+- Owner asked to stop all workers (lag, being tabbed out). xhen stopped at try 3/17 (`atelier resume xhen` when the owner says resume). Nothing else was running. Leftover headless Edge pid 40788: owner given the command. Do not start new work until the owner says so.
+
+## Slice 2 done 2026-10-26 ~23:00
+- 66eq APPROVED round 3. Lead checked office-1440-dark on real data: matches the mockup. Owner to merge atelier/66eq. xhen slice 3 started on base atelier/66eq with all reviewer follow-ups. After xhen: second-port try (R25), owner tries it, audit (`atelier audit atelier-ui run --bg`), file the contracts (owner OK pending).
+
+## 2026-10-26 21:36
+- Owner merged 5u8q (slice 1 live) and raised Atelier's plan ceilings to 90% (5h) / 90% (week). A paced runner sleeps to its fixed time and ignores new ceilings, so the lead stopped and resumed 66eq once. 66eq round 1 review: changes; builder fixing.
+
+- 66eq round 2 must-fix: a paced task shows as working and stuck. Lead ruled: paced tasks are not counted in working; add a read-only paced count to the summary; wording "Waiting for your plan window, carries on at HH:MM"; dim desk. Answered 21:53.
+- 21:41 window guard closed Chrome New Tab, the Tailscale installer and its setup window, blamed on 66eq: almost certainly the owner's own (second false positive). Told the owner. Atelier core fix, the owner's call.
+
+## Slice 1 done 2026-10-26 ~17:00
+- 5u8q APPROVED round 2 (round 1 must-fix: double exposure leaving Inbox zero). Lead checked inbox-gate-1440-dark (matches mockup) and inbox-real-390-dark (real data, matches). Evidence: ~/.atelier/runs/5u8q/evidence/. Owner to merge atelier/5u8q to use it (restart: the service restarts the dashboard within 5 min).
+- 66eq slice 2 started on base atelier/5u8q, includes reviewer follow-ups (cold first switch, Office wrap at 390, cache overview helpers). Still open from review: phone Inbox zero has no stale line (designer question); answered questions don't show in Decided today (answered event lacks who; Atelier core).
+
 ## Build started 2026-10-26 13:35
 - Design gate APPROVED by owner ("Good"), recommended UX answers accepted. 6dug + whole design chain merged to main by owner. The review-task notes below are settled. hspr, ysk4, 6umt, pjv7, 57cv still show "review" but their branches are in main; Atelier's tick marks a merged branch done on its own (it did 6dug and 68h6), so nothing to do. Correction: tick only closes a branch that is an ancestor of its own base, so chained branches never close; lead closed 57cv, hspr, ysk4, 6umt, pjv7, tkvt with `atelier close` (worth telling the owner: core quirk). 5u8q is queued behind two replay tasks (c8pn, qsg9) using both parallel slots; it starts by itself when one frees.
 - 5u8q slice 1 (shell, one summary, Inbox) queued, $30 / 12 it. Next: when it reaches review, check the proof myself, then slice 2 brief (PLAN), then slice 3.
+
+- Owner raised the daily budget to $250 (14:24). 5u8q in iteration 1 at 15:00ish, check passing. M-1 from frontend: Undo holds the decision on the client for 6 s before sending it, so no server change. Accepted (matches the design's undo window).
+- Request mesj (frontend): record the new read-only API shapes in atelier/contracts/dashboard-api.md. Lead reviewed the branch diff: read-only, no action changes, fine. But contracts/ is frozen (gate approved), so the guard blocked the write. Draft is in atelier/dashboard-api-draft.md. ASK OWNER: OK to reopen the contracts gate to file it? Then `atelier gate atelier-ui contracts reopen --quote "<owner words>"`, move the file, re-request. (mesj was closed with a note saying it was added: wrong, the draft is where it lives for now.)
 
 ## Design gate requested 2026-10-26 ~06:00 (settled)
 - pjv7 D6 APPROVED round 3 ($41+). Screens index worktrees/pjv7/atelier/design/screens2/index.html (linked from design/index.html, so the dashboard's Design review opens it). Lead checked office-1440-dark (lit desks, legend, good character) and task-1440-dark (stage track, proof, outcomes: strong). Gate approval = accepts recommended UX answers unless the owner names changes.
@@ -50,6 +81,8 @@
 - Tasks left in review on purpose (autonomy `branch`, `atelier land` refuses): 6dug waits for the owner's merge; 68h6 -> 57cv -> hspr -> ysk4 -> 6umt -> pjv7 is the design chain, each based on the last; the whole chain reaches main in one owner merge at the design gate. All of them reach main in one owner merge at the design gate.
 - 6dug round 2: tab switch paint 838 ms median / 4.5 s max -> 2 ms / under 40 ms; warm API 4 ms. Must-fix: after being unwatched it shows old data for 15 s. Lead answered with the fix (stale flag + quick re-fetch). $5.90 of $10.
 - Atelier core bug (owner's code): a task fails when its end-of-iteration leftovers commit finds nothing to commit (ysk4, 2026-10-25). Lead used `atelier retry` with an answer note. Mention to owner.
+- Atelier core (owner's call), from request 45nt 2026-10-26: card writes fail with EPERM on Windows when the atomic rename races a reader (a dashboard Stop answers 500 in about 2 of 8 tries; same error as the pjv7 double start). Fix: retry the rename on EPERM/EBUSY in the card writer. Lead told the frontend to retry once in lib/dashboard.mjs meanwhile.
+- Atelier core (owner's call), from request kghe 2026-10-26: lib/newproject.mjs passes the whole New project description to `gh repo create --description`; a long brief (UX-12 B) makes GitHub refuse it, so the repo isn't made. Fix: pass the first line, cut to ~300 chars. The dashboard now shows a toast when it fails.
 - Follow-ups outside the frontend's files (Atelier core, owner's call): memoize cards.all() by board mtime (lib/card.mjs:67), tail-read audit logs in budget.auditRuns (lib/budget.mjs:66), tick log grows ~15 KB/day. Mention to owner with the hotfix.
 - Live dashboard too slow to use (R-4). 6dug measuring and fixing on its branch; reviewer must show before/after timings.
 - 68h6 stays in review on branch atelier/68h6 (autonomy `branch`); 57cv builds on it.

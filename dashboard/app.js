@@ -76,6 +76,9 @@ document.body.insertAdjacentHTML('afterbegin', `<svg xmlns="http://www.w3.org/20
   `<symbol id="i-${k}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${v}</symbol>`).join('')}</svg>`);
 const I = (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
 const icon = (name, cls = '') => `<svg class="${cls}" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
+// Audio proof (voice projects): a player in a proof frame's box, its file name as the caption. src is a view-port URL.
+const sounds = (list, src) => list.length ? `<div class="sounds">${list.map(f => `<figure class="sound"><span class="sound-box"><audio src="${esc(src(f))}" controls preload="none" aria-label="${esc(f.name)}"></audio></span>
+    <figcaption class="frame-cap"><b>${esc(f.name)}</b><span>Sound</span></figcaption></figure>`).join('')}</div>` : '';
 
 // The N1 mark (design/brand/r2/marks.js): the arched window and the patch of light it throws. Its small cut is used at 20 px and under.
 const markN1 = (size = 20) => {
@@ -449,10 +452,12 @@ const Inbox = (() => {
       }
       case 'owner-criterion': {
         const pr = q.proof;
-        const pics = (pr?.files || []).map(f => ({ ...f, url: viewUrl(pr.viewPort, f.url) })).filter(f => f.url);
+        const files = (pr?.files || []).map(f => ({ ...f, url: viewUrl(pr.viewPort, f.url) })).filter(f => f.url);
+        const pics = files.filter(f => !f.audio), heard = files.filter(f => f.audio);
         return { ...base, glyph: 'proof', kind: 'Your judgement', short: 'your judgement',
           body: () => `<p class="lede">${pr?.notes ? `Shown working: ${esc(pr.notes.replace(/[*_`#]/g, ''))}` : 'Try it yourself, then say whether it holds.'}</p>
             ${pics.length ? `<div class="frames is-hero">${pics.slice(0, 3).map((f, i) => f.video ? `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="frame" aria-label="Recording ${esc(f.name)}, opens in a new tab"><span class="frame-img"><video src="${esc(f.url)}" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video><span class="play">${I('play')}Recording</span></span><span class="frame-cap"><b>Recording</b><span>Open ${I('external')}</span></span></a>` : frame(f.url, f.name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '), /(390|360|phone)/i.test(f.name) && i ? 'is-phone' : '')).join('')}</div>` : ''}
+            ${sounds(heard, f => f.url)}
             ${pr ? `<div class="links"><a href="#/t/${encodeURIComponent(pr.task)}">${I('log')}Open the task</a></div>` : ''}`,
           dock: { note: 'If you reject it, say what’s wrong', rejectNeedsNote: true, required: 'Say what’s wrong so the team can fix it.', primary: 'Accept', secondary: 'Reject',
             send: (w, note) => ({ action: 'criterion', project: a, id: q.id, verb: w === 'secondary' ? 'reject' : 'accept', note }),
@@ -2328,7 +2333,7 @@ const Task = (() => {
     const at = tl.filter(e => e.type === 'evidence').at(-1);
     const tryOf = at && [...tl.slice(0, tl.indexOf(at))].reverse().find(e => e.type === 'iteration')?.msg?.match(/#(\d+)/)?.[1];
     const note = plain((ev?.notes || '').split(/\n\s*\n/).find(b => b.trim() && !/^\s*(#|[-*] |\d+\. )/.test(b)) || '');
-    const others = (ev?.files || []).filter(f => !f.image && !f.video && f.url);
+    const others = (ev?.files || []).filter(f => !f.image && !f.video && !f.audio && f.url), heard = (ev?.files || []).filter(f => f.audio && f.url);
     const lines = (v.t.lastCheck || '').trim().split('\n').filter(l => l.trim()).slice(-4);
     const frame = (x, i) => `<button class="frame${x.kind === 'phone' ? ' is-phone' : ''}" type="button" data-ta="shot" data-i="${i}" aria-label="${esc(x.cap)}${x.kind === 'rec' ? ', recording' : ''}. Open large">
         <span class="frame-img">${x.kind === 'rec' ? `<video src="${esc(x.src)}" preload="metadata" muted playsinline data-len></video><span class="play">${I('play')}<span>Recording</span></span>` : `<img src="${esc(x.src)}" alt="" decoding="async" loading="lazy">`}</span>
@@ -2336,8 +2341,9 @@ const Task = (() => {
     const shown = list.length > 3 ? list.slice(0, 2) : list;
     const more = list.length > 3 ? `<button class="frame frame-more" type="button" data-ta="shot" data-i="2" aria-label="See all ${list.length} pictures and recordings, from the third"><span class="frame-img"><b>+${list.length - 2}</b>more</span><span class="frame-cap"><b>See them all</b><span>${list.length} in all</span></span></button>` : '';
     if (ev?.notes) lazy.set('t-pnote', () => md(ev.notes));
-    const body = list.length || note ? `${note ? `<p class="t-note">${esc(clip(note, 320))}</p>` : ''}
+    const body = list.length || heard.length || note ? `${note ? `<p class="t-note">${esc(clip(note, 320))}</p>` : ''}
         ${list.length ? `<div class="frames ${shown.length + (more ? 1 : 0) > 2 ? 'is-hero' : 't-two'}">${shown.map(frame).join('')}${more}</div>` : ''}
+        ${sounds(heard, f => viewAt(ev.viewPort, f.url))}
         ${lines.length ? `<details class="details t-log" data-key="t-log"><summary>${I('log')}Run log · last ${lines.length} line${lines.length === 1 ? '' : 's'}${I('chevron-down')}</summary><div class="details-body"><pre>${lines.map(l => `<span${/✗|\bFAIL|\bfailed\b|Error/.test(l) ? ' class="bad"' : /✓|\bPASS|\bpassed\b|exit(ed)?( with)? 0\b/i.test(l) ? ' class="ok"' : ''}>${esc(l)}</span>`).join('\n')}</pre></div></details>` : ''}
         ${ev?.notes ? `<details class="details t-log" data-key="t-pnote"><summary>${I('doc')}Its notes on the proof${I('chevron-down')}</summary><div class="details-body" data-tlazy></div></details>` : ''}
         ${others.length ? `<details class="details t-log" data-key="t-files"><summary>${I('doc')}Other files · ${others.length}${I('chevron-down')}</summary><div class="details-body"><ul class="t-files">${others.map(f => `<li><a class="link" href="${esc(viewAt(ev.viewPort, f.url))}" target="_blank" rel="noopener">${esc(f.name)}${I('external')}</a></li>`).join('')}</ul></div></details>` : ''}`
