@@ -58,6 +58,7 @@
   .item .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item .t small { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item .r { color: var(--muted); font-size: 12px; white-space: nowrap; flex: none; }
+  .item .r:has(.idots) { flex: 0 1 auto; min-width: 0; max-width: 45%; }
   .item.urgent .t { font-weight: 500; }
   .group { display: flex; align-items: center; gap: 8px; padding: 14px 10px 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
   .group .n { color: var(--faint); font-weight: 400; }
@@ -191,7 +192,7 @@
   a.desk.busy:hover, a.desk.needs:hover { transform: translateY(-2px); }
 
   /* iteration trail */
-  .idots { display: inline-flex; gap: 3px; align-items: center; vertical-align: middle; }
+  .idots { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; align-items: center; vertical-align: middle; }
   .idot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
   .idot.pass { background: var(--green); }
   .idot.fail { background: var(--red); }
