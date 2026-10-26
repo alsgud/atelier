@@ -707,6 +707,7 @@ const Inbox = (() => {
   // covers a dock button or a tab. No dock: the CSS default.
   function placeToast() {
     const box = $('toasts'), dk = document.querySelector('.focus .dock');
+    if (!box) return; // the sign in screen has no shell
     if (!box.firstChild || !dk) { box.removeAttribute('data-anchor'); ['--toast-x', '--toast-w', '--toast-top'].forEach(v => box.style.removeProperty(v)); return; }
     const gap = tok('--space-2'), r = dk.getBoundingClientRect();
     box.style.setProperty('--toast-x', `${r.left + r.width / 2}px`); box.style.setProperty('--toast-w', `${r.width}px`);
@@ -879,6 +880,7 @@ const Inbox = (() => {
 // (HttpOnly, SameSite=Strict cookie); fetch follows the server's redirect, so a wrong token keeps what you pasted.
 function renderLogin() {
   document.body.classList.add('is-login');
+  document.title = 'Sign in · Atelier';
   document.body.innerHTML = `<main class="l-wrap" id="main"><form class="l-card" method="post" action="/login" novalidate>
     <span class="l-mark">${markN1(40)}</span>
     <h1>Sign in to Atelier</h1>
@@ -905,7 +907,9 @@ function renderLogin() {
     try {
       const r = await fetch('/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ token: inp.value.trim() }) });
       if (r.url.includes('login=failed')) throw new Error('wrong');
-      location.replace('/#/inbox');
+      // A reload, not location.replace: the address is often already /#/inbox, and a same-page hash change wouldn't load the app.
+      history.replaceState(null, '', '/' + (location.hash || '#/inbox'));
+      location.reload();
       return;
     } catch (err) {
       b.disabled = false; b.removeAttribute('aria-busy'); b.textContent = 'Sign in';
@@ -1493,5 +1497,6 @@ setInterval(() => {
 }, 15000);
 document.addEventListener('visibilitychange', () => { refreshSoon.tries = 0; if (!document.hidden && (state || failedAt)) refresh().catch(() => {}); });
 
-renderLoading();
-refresh().catch(() => {});
+// Signed out: the server marks the page, so the sign in screen shows without a failed read in the console.
+if (document.body.hasAttribute('data-signed-out')) renderLogin();
+else { renderLoading(); refresh().catch(() => {}); }
