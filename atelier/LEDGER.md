@@ -2,7 +2,11 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
-## Design gate requested 2026-10-26 ~06:00
+## Build started 2026-10-26 13:35
+- Design gate APPROVED by owner ("Good"), recommended UX answers accepted. 6dug + whole design chain merged to main by owner. The review-task notes below are settled.
+- 5u8q slice 1 (shell, one summary, Inbox) queued, $30 / 12 it. Next: when it reaches review, check the proof myself, then slice 2 brief (PLAN), then slice 3.
+
+## Design gate requested 2026-10-26 ~06:00 (settled)
 - pjv7 D6 APPROVED round 3 ($41+). Screens index worktrees/pjv7/atelier/design/screens2/index.html (linked from design/index.html, so the dashboard's Design review opens it). Lead checked office-1440-dark (lit desks, legend, good character) and task-1440-dark (stage track, proof, outcomes: strong). Gate approval = accepts recommended UX answers unless the owner names changes.
 - After approval: owner merges the design chain (tip atelier/pjv7). Then frontend slice 1 (shell + summary endpoint + Inbox) based on pjv7, then slices 2 and 3. Write the slice briefs from DESIGN.md Screens + Endpoint needs.
 

@@ -34,7 +34,7 @@ Rough split (to be re-priced from real costs after the design task):
 | ysk4 | designer | D4b: brand round 2 (N1-N11, K1-K3) | R-6 | done, owner picked N1 + K1 (R-7) |
 | 6umt | designer | D5: UX research + walkthrough with numbered decisions ($22, 8 it) | R-8 | running |
 | — | designer | D6: every screen high-fi in N1 + K1 dark-first, from D5 answers (old D4 brief below + R-3 motion) | owner answers UX decisions | not started |
-| — | frontend | Slice 1: shell + summary endpoint + Inbox | design gate | not started |
+| 5u8q | frontend | Slice 1: shell + summary endpoint + Inbox (12 it, $30) | design gate (approved 2026-10-26) | queued |
 | — | frontend | Slice 2: project + task pages | slice 1 | not started |
 | — | frontend | Slice 3: office, new project, settings | slice 2 | not started |
 | — | auditor | End-of-milestone audit | slice 3 | not started |
@@ -50,6 +50,7 @@ Base: main after the owner merges atelier/6dug (speed fix) and atelier/pjv7 (who
 - Then: integration on one branch, try it on a second port (R25), owner tries it, audit.
 
 ## Progress notes
+- 2026-10-26 13:33: owner approved design ("Good"): recommended UX-1..15 answers stand, D6 screens no longer provisional. Owner merged 6dug and pjv7 (whole design chain) into main. Started slice 1, 5u8q, base main. Project total $188.
 - 2026-10-26 ~06:00: D6 pjv7 approved (3 rounds, ~$41). Design gate requested (owner). Approval accepts recommended UX answers unless the owner names changes. Spent so far ~$184.
 - 2026-10-26: owner picked N1 + K1 (R-7), asked for a full UX walkthrough with research (R-8). Started 6umt D5 ($22). Re-price: spent ~$115; remaining design D5 22 + D6 ~25; build 3 slices ~70; integration ~10; audit ~10: total ~$250.
 - 2026-10-25 later: owner picked Flow; colour, layout and logo not settled (R-5). Started hspr D4 brand ($20). Old D4 brief below becomes D5 (base on hspr). Price estimate ~$185.
