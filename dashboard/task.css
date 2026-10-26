@@ -136,7 +136,8 @@
 /* dashboard: a review that asked for changes is neutral words, like the stuck signal (nothing for the owner to do) */
 .t-verdict.is-changes { color: var(--text); }
 /* dashboard: a task may use many tries; the dots wrap inside the facts column */
-.t-tryrow .t-tries { flex-wrap: wrap; }
+.t-tryrow .t-tries { flex-wrap: wrap; min-width: 0; }
+.t-tryrow > .num { flex: none; white-space: nowrap; }
 /* dashboard: the proof's other files, and the last check's output, in the run log's type */
 .t-files { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
 .t-files .icon { width: 12px; height: 12px; margin-left: 2px; vertical-align: -1px; }

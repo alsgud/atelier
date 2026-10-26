@@ -1295,8 +1295,10 @@ const Project = (() => {
     const live = p.tasks.filter(t => ['running', 'needs-you', 'review', 'stalled'].includes(t.status));
     const next = p.tasks.filter(t => t.status === 'queued').slice(0, 3);
     const list = [...live, ...next].map(t => taskView(p, t));
-    return `<section class="p-sec" aria-labelledby="work-h" data-r="work"><h2 class="p-h" id="work-h">In progress</h2>
-      ${list.length ? `<div class="p-tasks">${list.map(card).join('')}</div>`
+    // The count is the summary's open tasks (the Tasks tab shows the same); more than three queued are left to that tab.
+    const more = S.tasksOpen > list.length;
+    return `<section class="p-sec" aria-labelledby="work-h" data-r="work"><h2 class="p-h" id="work-h">In progress${S.tasksOpen ? ` <span class="n">${S.tasksOpen}</span>` : ''}</h2>
+      ${list.length ? `<div class="p-tasks">${list.map(card).join('')}</div>${more ? `<a class="link p-more" href="${href(p.alias, 'tasks')}">All ${S.tasksOpen} open tasks</a>` : ''}`
         : `<p class="p-quiet">${S.lead ? 'Nothing is being built yet. Tasks appear here once the lead plans them.' : 'Nothing running. The lead is off, so nothing new starts.'}</p>`}</section>`;
   };
 
