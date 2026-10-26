@@ -214,11 +214,11 @@ a { color: inherit; text-decoration: none; }
 
 /* The rest of the item: out the way it's going, in from where it comes. */
 ::view-transition-group(ih), ::view-transition-group(ib), ::view-transition-group(page), ::view-transition-group(empty), ::view-transition-group(zero-work) { animation: none; }
-/* Never a double exposure: the old content is gone (--dur-fast) before the new is more than faint. */
-::view-transition-old(ih), ::view-transition-old(ib), ::view-transition-old(page) { animation: flow-leave var(--dur-fast) var(--ease-exit) both; }
+/* Never a double exposure: the old content is gone (--dur-fast) before the new is more than faint (Inbox zero too, when a tab leaves it). */
+::view-transition-old(ih), ::view-transition-old(ib), ::view-transition-old(page), ::view-transition-old(empty), ::view-transition-old(zero-work) { animation: flow-leave var(--dur-fast) var(--ease-exit) both; }
 ::view-transition-new(ih), ::view-transition-new(page) { animation: flow-arrive var(--spring-glide-dur) var(--spring-glide) 100ms both; }
 ::view-transition-new(ib) { animation: flow-arrive var(--spring-glide-dur) var(--spring-glide) calc(100ms + 2 * var(--stagger)) both; }
-html[data-dir="back"]::view-transition-old(ih), html[data-dir="back"]::view-transition-old(ib), html[data-dir="back"]::view-transition-old(page) { animation-name: flow-leave-back; }
+html[data-dir="back"]::view-transition-old(ih), html[data-dir="back"]::view-transition-old(ib), html[data-dir="back"]::view-transition-old(page), html[data-dir="back"]::view-transition-old(empty), html[data-dir="back"]::view-transition-old(zero-work) { animation-name: flow-leave-back; }
 html[data-dir="back"]::view-transition-new(ih), html[data-dir="back"]::view-transition-new(ib), html[data-dir="back"]::view-transition-new(page) { animation-name: flow-arrive-back; }
 /* Undo: the title leads home; the body unfolds under it once it has nearly landed, so the flight never crosses the frames (round 10). */
 html[data-vt="undo"]::view-transition-new(ib) { animation-delay: 380ms; }
