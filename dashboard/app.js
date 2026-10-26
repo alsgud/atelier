@@ -296,7 +296,7 @@ async function route({ refreshing = false, wait = false } = {}) {
       Inbox.leave();
       if (!state) return renderPageError();
       if (kind === 'p' && a) return await Project.show(decodeURIComponent(a), b || 'overview', c ? decodeURIComponent(c) : c, refreshing, wait);
-      if (kind === 't' && a) return await renderTask(decodeURIComponent(a));
+      if (kind === 't' && a) return await Task.show(decodeURIComponent(a), refreshing);
       if (kind === 'new') return renderNew();
       if (kind === 'projects') return renderProjects();
       if (kind === 'activity') return renderActivity();
@@ -719,7 +719,7 @@ const Inbox = (() => {
   // The toast anchors to the dock (centred, as wide, --space-2 above it, or below when there's no room) and never
   // covers a dock button or a tab. No dock: the CSS default.
   function placeToast() {
-    const box = $('toasts'), dk = document.querySelector('.focus .dock');
+    const box = $('toasts'), dk = document.querySelector('.focus .dock, .task .t-dock');
     if (!box) return; // the sign in screen has no shell
     if (!box.firstChild || !dk) { box.removeAttribute('data-anchor'); ['--toast-x', '--toast-w', '--toast-top'].forEach(v => box.style.removeProperty(v)); return; }
     const gap = tok('--space-2'), r = dk.getBoundingClientRect();
@@ -873,7 +873,7 @@ const Inbox = (() => {
   }
   const pending = () => [...S.hidden.values()].some(h => !h.committed);
   return {
-    show, leave, pending,
+    show, leave, pending, placeToast,
     hiddenItems: () => [...S.hidden.values()].filter(h => !h.committed || (state?.queue || []).some(x => x.key === h.x.id)).map(h => ({ project: h.project, needs: h.needs })),
     localDecided: () => S.decided.filter(d => !d.committed || !(state?.decidedToday || []).length).length,
     // For the project page's "Needs you here": the same title and kind words as the Inbox, minus decisions in their Undo window.
@@ -1181,11 +1181,34 @@ const STAGES = ['Planning', 'Building', 'Checking', 'Review', 'Done'];
 // Mockups and evidence live on the dashboard's sibling port (their own origin), on whatever host this page uses.
 const viewUrl = r => `${location.protocol}//${location.hostname}:${r.viewPort}${r.open}`;
 
-// Finished iterations as a row of dots (green: check passed, red: failed) plus the one underway (the old task page).
-function iterDots(t) {
-  const h = t.live?.history || [];
-  const dot = (cls, title) => `<span class="idot ${cls}" title="${esc(title)}"></span>`;
-  return `<span class="idots">${h.map(x => dot(x.check === 'pass' ? 'pass' : x.check === 'fail' ? 'fail' : '', `#${x.n}: ${x.outcome}, check ${x.check}`)).join('')}${t.live?.current ? dot('now', `#${t.live.current.n}: underway`) : ''}</span>`;
+// A time in the page's short form: 14:05 today, "Mon" this week, "18 Oct" before that.
+const when = iso => {
+  const t = Date.parse(iso); if (!t) return '';
+  const d = new Date(t);
+  if (d.toDateString() === new Date().toDateString()) return hhmm(t);
+  return Date.now() - t < 6 * 864e5 ? d.toLocaleDateString('en-GB', { weekday: 'short' }) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+};
+const day = iso => { const t = Date.parse(iso); return t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; };
+
+// The project and task pages redraw in regions (data-r). A region whose words changed replaces the one on screen;
+// folds the owner opened stay open, typed text and picked answers stay, and a region the owner is typing in, has a
+// menu open in, or holds a sent answer (data-hold) waits for the next refresh.
+function patchRegions(root, regions, parts, fill) {
+  for (const [r, html] of regions) {
+    if (parts.get(r) === html) continue;
+    const old = root.querySelector(`[data-r="${r}"]`);
+    if (!old) continue;
+    if (old.contains(document.activeElement) && /^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement.tagName)) continue;
+    if (old.querySelector('.p-pop:not([hidden]), [data-hold]')) continue;
+    const tpl = document.createElement('template'); tpl.innerHTML = html;
+    const el = tpl.content.firstElementChild;
+    old.querySelectorAll('details[data-key]').forEach(d => { const n = el.querySelector(`details[data-key="${CSS.escape(d.dataset.key)}"]`); if (n) n.open = d.open; });
+    old.querySelectorAll('textarea[id]').forEach(t => { const n = el.querySelector(`#${CSS.escape(t.id)}`); if (n && t.value !== t.defaultValue) n.value = t.value; });
+    old.querySelectorAll('input[type="radio"]:checked').forEach(i => { const n = el.querySelector(`input[name="${CSS.escape(i.name)}"][value="${CSS.escape(i.value)}"]`); if (n) n.checked = true; });
+    fill?.(el);
+    old.replaceWith(el);
+    parts.set(r, html);
+  }
 }
 
 const Project = (() => {
@@ -1194,14 +1217,6 @@ const Project = (() => {
   const TABS = ['overview', 'tasks', 'outcomes', 'audits', 'docs', 'activity', 'settings'];
   const href = (a, tab = 'overview', sub) => `#/p/${encodeURIComponent(a)}/${tab}${sub ? `/${sub}` : ''}`;
   const dot = (k, word) => Office.dotOf(k, word);
-  // A time in the page's short form: 14:05 today, "Mon" this week, "18 Oct" before that.
-  const when = iso => {
-    const t = Date.parse(iso); if (!t) return '';
-    const d = new Date(t);
-    if (d.toDateString() === new Date().toDateString()) return hhmm(t);
-    return Date.now() - t < 6 * 864e5 ? d.toLocaleDateString('en-GB', { weekday: 'short' }) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  };
-  const day = iso => { const t = Date.parse(iso); return t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; };
   // The status glyph is the Office's window at text size: lit while working, a tick when done (the words carry it).
   const win = k => `<span class="p-win" data-k="${k}" aria-hidden="true"><svg viewBox="0 0 12 16"><path d="M1 15V6a5 5 0 0 1 10 0v9z"/><path class="t" d="M3.4 9.6 5.3 11.5 8.8 7.6"/></svg></span>`;
   const moneyWords = S => `${money(S.spentToday)} of ${money(S.dayLimit)} today${S.atLimit ? ', at its limit' : S.dayLimit && S.spentToday >= 0.8 * S.dayLimit ? ', most of it used' : ''}`;
@@ -1479,24 +1494,7 @@ const Project = (() => {
       <p id="paud-d">Independent checkers look over what’s built so far, against your charter, outcomes and spec. It costs from today’s spend. Anything only you can decide comes to your Inbox.</p>
       <div class="p-dialog-act"><button class="btn btn-secondary" type="button" value="keep" autofocus>Not now</button><button class="btn btn-primary" type="button" value="go">Run the audit</button></div></dialog>`;
 
-  // A region whose words changed replaces the one on screen; folds the owner opened stay open, typed text stays,
-  // and a region the owner is typing in or has a menu open in waits for the next refresh.
-  function patch(root, regions) {
-    for (const [r, html] of regions) {
-      if (parts.get(r) === html) continue;
-      const old = root.querySelector(`[data-r="${r}"]`);
-      if (!old) continue;
-      if (old.contains(document.activeElement) && /^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement.tagName)) continue;
-      if (old.querySelector('.p-pop:not([hidden])')) continue;
-      const tpl = document.createElement('template'); tpl.innerHTML = html;
-      const el = tpl.content.firstElementChild;
-      old.querySelectorAll('details[data-key]').forEach(d => { const n = el.querySelector(`details[data-key="${CSS.escape(d.dataset.key)}"]`); if (n) n.open = d.open; });
-      old.querySelectorAll('textarea[id]').forEach(t => { const n = el.querySelector(`#${CSS.escape(t.id)}`); if (n && t.value !== t.defaultValue) n.value = t.value; });
-      fillLazy(el);
-      old.replaceWith(el);
-      parts.set(r, html);
-    }
-  }
+  const patch = (root, regions) => patchRegions(root, regions, parts, fillLazy);
   const fillLazy = root => root.querySelectorAll('details[open] > [data-lazy]').forEach(b => { if (!b.childElementCount) b.innerHTML = lazy.get(b.parentElement.dataset.key)?.() || ''; });
 
   function draw(p, tab, sub) {
@@ -1661,63 +1659,427 @@ function projSettings(p) {
     <dl class="kv"><dt>Your approvals</dt><dd>${p.metrics.approvals}</dd><dt>Overrules</dt><dd>${p.metrics.overrules}</dd><dt>Audit hit rate</dt><dd>${p.hit.confirmed}/${p.hit.judged} confirmed</dd><dt>Full test suite</dt><dd>${p.suite ? `<code>${esc(p.suite)}</code>` : '<span class="hint">not set (the lead sets it)</span>'}</dd><dt>Folder</dt><dd class="mono">${esc(p.repo)}</dd></dl>`;
 }
 
-// ---------- task (Cursor / Devin agent view) ----------
-async function renderTask(id) {
-  const hash = location.hash;
-  if ($('app')?.dataset.task !== id) pageLoading(`<b>${esc(id)}</b>`);
-  const t = await get(`/api/task/${encodeURIComponent(id)}`);
-  if (location.hash !== hash) return; // the owner has already moved on
-  if (busy() && $('app')?.dataset.task === id) return; // the owner is typing an answer or reading a fold
-  const m = t.meta;
-  const s = taskStatus(m);
-  const crit = t.criteria || [];
-  const right = m.status === 'planned' ? `<button class="btn primary" data-do="plan-approve" data-id="${esc(m.id)}">Approve plan</button>`
-    : ['running', 'queued'].includes(m.status) ? `<button class="btn danger" data-do="task-stop" data-id="${esc(m.id)}">Stop</button>` : '';
-  const evIcon = e => st(/failed|FAIL|stalled/.test(`${e.type} ${e.msg}`) ? 'needs-you' : e.type === 'done' || /pass|approve/.test(e.msg) ? 'done' : e.type === 'started' || e.type === 'iteration' ? 'running' : 'queued');
-  legacy(`${topbar(`${m.project ? `<a href="#/p/${esc(m.project)}/tasks">${esc(m.project)}</a><span>/</span>` : ''}<b>${esc(m.id)}</b>`, right)}
-    <div class="page"><div class="task">
-      <div>
-        <div class="muted" style="display:flex;gap:8px;align-items:center">${st(s)} ${STATUS_WORD[s] || s}${m.reason ? ` · ${esc(m.reason)}` : ''}</div>
-        <h1 style="font-size:20px;font-weight:600;margin:6px 0 4px">${esc(m.title)}</h1>
-        ${m.status === 'needs-you' ? `<div class="box decide"><div class="label">The agent needs you</div>${md(t.questions.split(/^## /m).slice(-1)[0] || m.reason)}<textarea id="d-text" aria-label="Your answer" placeholder="Your answer"></textarea><button class="btn primary" data-do="answer" data-id="${esc(m.id)}">Send answer</button></div>` : ''}
-        ${t.live?.current || t.live?.history?.length ? `<div class="box" style="margin-top:12px">
-          <div class="label">Progress ${iterDots({ live: t.live })} <span class="faint">${(t.live.history || []).length} of ${esc(m.iterations)} iterations finished${t.spend ? ` · ${money(t.spend.spent)} of its ${money(t.spend.limit)} budget` : ''}</span></div>
-          ${t.live.current ? `<div>Iteration ${t.live.current.n} is ${t.live.current.minutes} min in: ${t.live.current.actions} steps so far, ${t.live.current.edited} file${t.live.current.edited === 1 ? '' : 's'} changed.</div>
-            <ul class="hint" style="margin:6px 0 0 18px;padding:0">${t.live.current.recent.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
-        </div>` : ''}
-        ${t.evidence && (t.evidence.files.length || t.evidence.notes) ? `<div class="sec">Shown working</div>
-          <div class="box">${t.evidence.notes ? md(t.evidence.notes) : ''}
-            <div class="evid">${t.evidence.files.map(f => {
-              const u = f.url && t.evidence.viewPort ? `${location.protocol}//${location.hostname}:${t.evidence.viewPort}${f.url}` : '';
-              if (!u) return `<span class="hint">${esc(f.name)}</span>`;
-              if (f.image) return `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="${esc(f.name)}" loading="lazy"></a>`;
-              if (f.video) return `<video src="${esc(u)}" controls preload="metadata"></video>`;
-              return `<a class="btn ghost" href="${esc(u)}" target="_blank" rel="noopener">${esc(f.name)}</a>`;
-            }).join('')}</div></div>` : ''}
-        <div class="sec">Timeline</div>
-        <ul class="timeline">${t.timeline.map(e => `<li><span>${evIcon(e)}</span><span><span class="ev-k">${esc(EVENT_WORD[e.type] || e.type.replace(/-/g, ' '))}</span> <span class="muted">${esc(e.msg)}</span></span><span class="when">${esc(ago(e.ts))}</span></li>`).join('') || '<div class="hint">Not started yet.</div>'}</ul>
-        ${t.review ? `<div class="sec">Review</div><div class="box">${md(t.review)}</div>` : ''}
-        ${t.progress ? `<details open data-auto><summary class="sec" style="cursor:pointer">Progress notes</summary>${md(t.progress)}</details>` : ''}
-        ${t.decisions && t.decisions.split('\n').length > 2 ? `<details><summary class="sec" style="cursor:pointer">Decisions made without you</summary>${md(t.decisions)}</details>` : ''}
-        <details><summary class="sec" style="cursor:pointer">Brief</summary>${md(t.body)}</details>
-        ${t.lastCheck ? `<details><summary class="sec" style="cursor:pointer">Last check output</summary><pre class="raw">${esc(t.lastCheck)}</pre></details>` : ''}
-      </div>
-      <aside>
-        <dl class="props">
-          <dt>Status</dt><dd>${st(s)} ${STATUS_WORD[s] || s}</dd>
-          <dt>Role</dt><dd>${esc(m.role || 'builder')}</dd>
-          <dt>Progress</dt><dd>${esc(m.iteration || 0)} of ${esc(m.iterations)} iterations</dd>
-          <dt>Acceptance criteria</dt><dd>${crit.length ? crit.map(c => `<div class="check-row">${st(c.status)}<span>${esc(c.id)} · ${esc(c.statement)}</span></div>`).join('') : '<span class="hint">none cited</span>'}</dd>
-          <dt>Done when</dt><dd><code>${esc(m.check)}</code></dd>
-          ${m.files ? `<dt>Owns</dt><dd class="mono">${esc(m.files)}</dd>` : ''}
-          ${m.test_touch ? `<dt>Flagged</dt><dd style="color:var(--red)">changed existing tests: ${esc(m.test_touch)}</dd>` : ''}
-          ${m.pr ? `<dt>Pull request</dt><dd><a href="${esc(m.pr)}" target="_blank" rel="noopener" style="text-decoration:underline">${esc(m.pr.replace(/^https:\/\/github.com\//, ''))}</a></dd>` : ''}
-          <dt>Spend</dt><dd>$${Number(m.cost_usd || 0).toFixed(2)} API-equivalent</dd>
-        </dl>
-      </aside>
-    </div></div>`);
-  $('app').dataset.task = id;
-}
+// ---------- task page (D6 Task page; UX-4 A, UX-5 A, UX-10 A; R17-R20) ----------
+// What it is doing, whether it is really working, and the proof, in that order. Status, tries, money and outcomes come
+// from the one summary (the same figures as the Office and the project page); the task's read adds its question,
+// proof, review and history. Agent text goes through esc() or md(); pictures and recordings come from the view port.
+const Task = (() => {
+  const seen = new Map(); // task id → the last read, so switching to the page paints at once
+  let parts = new Map(), pageId = '', shots = [];
+  const lazy = new Map(); // fold key → body, made when the fold opens (the brief and notes can be long)
+  const dot = (k, word) => Office.dotOf(k, word);
+  const viewAt = (port, u) => port && u ? `${location.protocol}//${location.hostname}:${port}${u}` : '';
+  const plain = s => String(s || '').replace(/[`*_#>|]/g, '').replace(/\s+/g, ' ').trim();
+  const clip = (s, n) => s.length <= n ? s : `${s.slice(0, n - 1).replace(/\s+\S*$/, '')}…`;
+  const TRY = { f: 'failed the check', p: 'passed', n: 'now', x: 'ended without a check', '': 'not used' };
+  const idsOf = c => String(c || '').toUpperCase().split(/[\s,;]+/).filter(Boolean);
+
+  // One task's events in words (Latest steps and History).
+  function stepWords(e) {
+    const m = e.msg || '';
+    if (e.type === 'iteration') {
+      const x = m.match(/#(\d+)\s+(\w+)(?:.*?check (\w+))?/);
+      if (x) return `Try ${x[1]} ended${x[3] === 'pass' ? ': the check passed' : x[3] === 'fail' ? ': the check failed' : ''}`;
+    }
+    if (e.type === 'evidence') return 'Showed its work';
+    if (e.type === 'reviewed') { const x = m.match(/round (\d+): (\w+)/); if (x) return `Review round ${x[1]}: ${/approve/.test(x[2]) ? 'passed' : 'changes asked'}`; }
+    if (e.type === 'review-started') return `The reviewer started${m ? ` ${m}` : ''}`;
+    if (e.type === 'criteria') { const x = m.match(/(\d+)\/(\d+)/); if (x) return `Outcomes checked: ${x[1]} of ${x[2]} pass`; }
+    if (e.type === 'suite') return /pass/.test(m) ? 'The full test suite passes' : `Full test suite: ${m}`;
+    if (e.type === 'answered') return `You answered: ${m}`;
+    if (e.type === 'approved') return 'You approved the plan';
+    if (e.type === 'paused' && /owner/.test(m)) return 'You stopped it';
+    const w = EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' '));
+    return m ? `${w}: ${m}` : w;
+  }
+
+  // ── The page's figures and words, from the summary first and the read second ──
+  function view(t) {
+    const m = t.meta, a = m.project || '';
+    const p = (state?.projects || []).find(x => x.alias === a);
+    const row = p?.tasks.find(x => x.id === m.id) || (state?.looseTasks || []).find(x => x.id === m.id) || {};
+    const ag = p?.team.agents.find(x => x.id === m.id) || {};
+    const T = { ...m, ...row };
+    const s = taskStatus(T), reason = T.reason || '';
+    const reviewing = ag.kind === 'reviewer' || /in review/.test(reason);
+    const live = row.live || t.live || {};
+    const of = Number(T.iterations) || 0, n = live.current?.n || 0;
+    const tries = [...(live.history || []).map(h => h.check === 'pass' ? 'p' : h.check === 'fail' ? 'f' : 'x'), ...(live.current ? ['n'] : [])];
+    while (tries.length < of) tries.push('');
+    const used = tries.filter(Boolean).length;
+    const ids = idsOf(m.criteria);
+    const outs = (p ? p.criteria : t.criteria || []).filter(c => ids.includes(c.id));
+    const spent = row.cost !== undefined ? Number(((row.cost || 0) + (row.liveCost || 0)).toFixed(2)) : t.spend?.spent || Number(m.cost_usd || 0);
+    const limit = Number(row.budget || t.spend?.limit || 0);
+    const passed = /verdict:\s*\**\s*approve/i.test(t.review || '');
+    const role = cap1(reviewing ? 'reviewer' : m.role || 'builder');
+    const v = { id: m.id, title: m.title, a, role, k: '', word: STATUS_WORD[s] || cap1(s), stage: 1, step: '', why: '', stop: '', dock: '',
+      tries, used, of, n, outs, spent, limit, eta: s === 'running' && !reviewing ? T.eta : null, t, m, ag, s, last: '', quiet: ag.quietMin || 0 };
+    const merge = m.pr ? 'its pull request is ready for you to merge' : m.where === 'local' || T.autonomy === 'branch' ? `it waits on ${m.branch || 'its branch'} for you to merge` : 'it lands by itself';
+    switch (s) {
+      case 'running':
+        Object.assign(v, reviewing
+          ? { k: 'active', word: 'In review', stage: 3, step: ag.step || 'Checking the work against its outcomes', why: 'The reviewer checks the work against its outcomes, and looks at the proof, before it ships.' }
+          : { k: 'active', word: 'Working', step: ag.step || 'Getting started on this try', why: `Each try ends with its check. Once the check passes, the reviewer looks at the work.${T.eta ? ` Likely ${T.eta.low}–${T.eta.high} min left.` : ''}` });
+        v.stop = 'Stop task…'; break;
+      case 'needs-you': Object.assign(v, { k: 'needs', step: 'Asked you a question', why: 'It stopped to ask before choosing. It carries on as soon as you answer; nothing it did is lost.', stop: 'Stop task…', dock: 'answer' }); break;
+      case 'planned': Object.assign(v, { stage: 0, step: 'Planned, and waits for your OK to start', why: `Up to ${of} tries${limit ? `, at most ${money(limit)}` : ''}.${m.files ? ` It owns ${m.files}.` : ''} Approve it here or in the Inbox.`, stop: 'Stop it', dock: 'plan' }); break;
+      case 'queued': Object.assign(v, { stage: n || used ? 1 : 0, step: 'Queued, and starts when a teammate is free', why: reason ? `${cap1(reason)}.` : 'Nothing to do: it starts by itself.', stop: 'Stop task…' }); break;
+      case 'review': Object.assign(v, passed
+        ? { k: 'done', word: 'Passed review', stage: 4, step: `Passed review; ${merge}`, why: 'Its check and the reviewer both passed it. What the reviewer checked is under Review.' }
+        : { stage: 3, step: 'Waiting for the reviewer', why: 'Its check passed. The reviewer looks at the work next.' }); break;
+      case 'done': Object.assign(v, { k: 'done', stage: 4, step: reason ? cap1(reason) : 'Finished', why: 'It passed its check and review.' }); break;
+      case 'stalled': Object.assign(v, { step: 'Stopped making progress', why: 'The lead decides what happens next: another try, a new plan, or a question for you.', stop: 'Stop task…' }); break;
+      case 'paused': Object.assign(v, { step: /owner/.test(reason) ? 'You stopped it' : 'Paused', why: 'This try’s work is kept as it is. The lead decides what happens next.' }); break;
+      default: Object.assign(v, { step: v.word, why: reason ? `${cap1(reason)}.` : '' });
+    }
+    v.label = v.k === 'done' ? `${role} · finished ${longAgo(T.updated)}` : s === 'running' || s === 'needs-you' ? `${role} · now` : `${role} · ${when(T.updated)}`;
+    v.last = ag.lastAt || T.updated;
+    // Building fills to tries used of those it is likely to need; other stages have no measure, so their bar is whole.
+    v.fill = v.stage === 1 && n ? Math.round(100 * n / Math.max(n, Number(T.eta?.expected) || of || n)) : 100;
+    v.shots = media(t.evidence);
+    return v;
+  }
+
+  // Pictures and recordings from the view port: a picture leads (a recording's first frame is often blank), the
+  // first recording second, because it shows the most.
+  function media(ev) {
+    const cap = name => cap1(name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '));
+    const list = (ev?.files || []).filter(f => (f.image || f.video) && f.url).map(f => ({ src: viewAt(ev.viewPort, f.url), cap: cap(f.name), kind: f.video ? 'rec' : /(^|[-_])(360|390|phone)([-_.]|$)/i.test(f.name) ? 'phone' : 'shot' }));
+    const pic = list.findIndex(x => x.kind !== 'rec');
+    if (pic > 0) list.unshift(...list.splice(pic, 1));
+    const r = list.findIndex(x => x.kind === 'rec');
+    if (r > 1) list.splice(1, 0, ...list.splice(r, 1));
+    return list;
+  }
+
+  // ── Head: back to the project, the title, its status, and the one task action (R20) ──
+  const statusChip = v => `<span class="p-lead t-status" data-k="${v.k}">${dot(v.k, v.word)}<span>${esc(v.word)}</span></span>`;
+  const back = a => `<a class="back" href="${a ? `#/p/${encodeURIComponent(a)}/overview` : '#/projects'}">${I('chevron-left')}<span>${esc(a || 'Projects')}</span></a>`;
+  const head = v => `<header class="hf-head" data-r="head">${back(v.a)}<h1>${esc(v.title)}</h1>${statusChip(v)}${v.stop ? `<button class="btn btn-secondary" type="button" data-ta="stop">${v.stop.endsWith('…') ? I('x') : ''}${v.stop}</button>` : ''}<span class="end">${liveLine()}</span></header>`;
+
+  // ── Now (R17): the latest step is the headline; why and what next; last active or the stuck signal; the stage ──
+  const pulse = v => {
+    if (v.k === 'done') return '';
+    if (v.k === 'active' && v.quiet) return `<p class="t-pulse is-quiet">${I('refresh')}<span>Quiet for ${v.quiet} min, longer than usual. It usually reports every few minutes.</span></p>`;
+    const into = v.k === 'active' && v.t.live?.current ? ` · ${v.t.live.current.minutes} min into this try` : '';
+    return `<p class="t-pulse">${v.k === 'active' ? dot('active', 'Working') : ''}<span>Last active <b class="num">${esc(longAgo(v.last))}</b>${into}</span></p>`;
+  };
+  const stageTrack = v => {
+    const prog = v.stage === 1 && v.n ? `, try ${v.n}${v.eta?.expected ? `, about ${Math.max(v.n, v.eta.expected)} likely` : ` of ${v.of}`}` : '';
+    return `<ol class="p-phases t-stages" data-k="${v.k}" aria-label="Stage: ${STAGES[v.stage]}${prog}">${STAGES.map((name, i) => `<li class="${i < v.stage || (v.k === 'done' && i === v.stage) ? 'past' : i === v.stage ? 'now' : ''}"${i === v.stage ? ' aria-current="step"' : ''}>
+      <span class="bar">${i === v.stage && v.k !== 'done' ? `<span class="fill" style="--f:${v.fill}%"></span>` : ''}</span><span class="n">${name}</span></li>`).join('')}</ol>`;
+  };
+  const triesText = v => v.of > 1 && v.used ? `Try ${v.n || v.used} of ${v.of}` : '';
+  const figs = v => `<p class="p-figs num">
+      ${triesText(v) ? `<span>Try <b>${v.n || v.used}</b> of ${v.of}</span>` : ''}
+      ${v.eta ? `<span>likely <b>${v.eta.low}–${v.eta.high}</b> min left</span>` : ''}
+      ${v.outs.length ? `<span><b>${v.outs.filter(met).length}</b> of ${v.outs.length} outcomes met</span>` : ''}
+      ${v.limit ? `<span><b>${money(v.spent)}</b> of ${money(v.limit)}</span>` : `<span><b>${money(v.spent)}</b> spent</span>`}</p>`;
+  const met = c => c.status === 'pass' || c.status === 'accepted';
+  const now = v => `<section class="p-now t-now" aria-labelledby="now-h" data-r="now"><h2 class="section-label" id="now-h">${esc(v.label)}</h2>
+      <p class="p-now-t" data-step>${esc(plain(v.step).replace(/[.:;,]$/, ''))}.</p>${v.why ? `<p class="lede">${esc(v.why)}</p>` : ''}
+      ${pulse(v)}${stageTrack(v)}${figs(v)}</section>`;
+
+  // ── Its question (needs you) and the dock: the Inbox's question, asked in place ──
+  const ask = v => {
+    if (v.dock !== 'answer') return v.dock === 'plan' ? `<div data-r="ask">${dock(v)}</div>` : '<div data-r="ask" hidden></div>';
+    const q = v.t.ask || {}, words = [q.context, q.rest].filter(Boolean).join('\n\n');
+    return `<div data-r="ask"><section class="p-sec t-ask" aria-labelledby="ask-h"><h2 class="p-h" id="ask-h">${dot('needs', 'Needs you')}Its question</h2>
+      <blockquote class="quote">${q.title ? `<p><b>${esc(q.title)}</b></p>` : ''}${words ? md(words) : ''}<footer>The ${esc(v.role.toLowerCase())}, try ${v.n || v.used || 1} of “${esc(v.title)}” · ${esc(longAgo(v.m.updated))}</footer></blockquote>
+      ${q.options?.length ? `<fieldset class="choices"><legend class="section-label">Suggested answers</legend>${q.options.map((o, i) => `<label class="choice"><input type="radio" name="t-ans" value="${i}"> ${esc(o)}</label>`).join('')}</fieldset>` : ''}
+      ${q.suggested ? `<p class="p-quiet">What it will do if you don’t mind: ${esc(q.suggested)}</p>` : ''}</section>${dock(v)}</div>`;
+  };
+  const dock = v => v.dock === 'answer' ? `<form class="dock t-dock" aria-label="Answer the ${esc(v.role.toLowerCase())}" data-dock="answer">
+      <label class="sr-only" for="t-own">${v.t.ask?.options?.length ? 'Or write your own answer' : 'Your answer'}</label>
+      <textarea class="input" id="t-own" rows="1" placeholder="${v.t.ask?.options?.length ? 'Or write your own answer' : 'Your answer'}" aria-describedby="t-msg"></textarea>
+      <div class="dock-row"><span class="dock-msg" id="t-msg" data-msg hidden></span><span class="spacer"></span><button class="btn btn-primary" type="submit" data-go>Send answer</button></div></form>`
+    : `<form class="dock t-dock" aria-label="Approve the plan" data-dock="plan">
+      <div class="dock-row"><span class="dock-msg" id="t-msg" data-msg>Up to ${v.of} tries${v.limit ? ` · at most ${money(v.limit)}` : ''}</span><span class="spacer"></span><button class="btn btn-primary" type="submit" data-go>Approve plan</button></div></form>`;
+
+  // ── Shown working (R18): pictures large, the recording first; the run log under it ──
+  function proof(v) {
+    const ev = v.t.evidence, list = v.shots, tl = v.t.timeline || [];
+    const at = tl.filter(e => e.type === 'evidence').at(-1);
+    const tryOf = at && [...tl.slice(0, tl.indexOf(at))].reverse().find(e => e.type === 'iteration')?.msg?.match(/#(\d+)/)?.[1];
+    const note = plain((ev?.notes || '').split(/\n\s*\n/).find(b => b.trim() && !/^\s*(#|[-*] |\d+\. )/.test(b)) || '');
+    const others = (ev?.files || []).filter(f => !f.image && !f.video && f.url);
+    const lines = (v.t.lastCheck || '').trim().split('\n').filter(l => l.trim()).slice(-4);
+    const frame = (x, i) => `<button class="frame${x.kind === 'phone' ? ' is-phone' : ''}" type="button" data-ta="shot" data-i="${i}" aria-label="${esc(x.cap)}${x.kind === 'rec' ? ', recording' : ''}. Open large">
+        <span class="frame-img">${x.kind === 'rec' ? `<video src="${esc(x.src)}" preload="metadata" muted playsinline data-len></video><span class="play">${I('play')}<span>Recording</span></span>` : `<img src="${esc(x.src)}" alt="" decoding="async" loading="lazy">`}</span>
+        <span class="frame-cap"><b>${esc(x.cap)}</b><span>${x.kind === 'rec' ? 'Recording' : x.kind === 'phone' ? 'Phone' : 'Screenshot'}</span></span></button>`;
+    const shown = list.length > 3 ? list.slice(0, 2) : list;
+    const more = list.length > 3 ? `<button class="frame frame-more" type="button" data-ta="shot" data-i="2" aria-label="See all ${list.length} pictures and recordings, from the third"><span class="frame-img"><b>+${list.length - 2}</b>more</span><span class="frame-cap"><b>See them all</b><span>${list.length} in all</span></span></button>` : '';
+    if (ev?.notes) lazy.set('t-pnote', () => md(ev.notes));
+    const body = list.length || note ? `${note ? `<p class="t-note">${esc(clip(note, 320))}</p>` : ''}
+        ${list.length ? `<div class="frames ${shown.length + (more ? 1 : 0) > 2 ? 'is-hero' : 't-two'}">${shown.map(frame).join('')}${more}</div>` : ''}
+        ${lines.length ? `<details class="details t-log" data-key="t-log"><summary>${I('log')}Run log · last ${lines.length} line${lines.length === 1 ? '' : 's'}${I('chevron-down')}</summary><div class="details-body"><pre>${lines.map(l => `<span${/✗|\bFAIL|\bfailed\b|Error/.test(l) ? ' class="bad"' : /✓|\bPASS|\bpassed\b|exit(ed)?( with)? 0\b/i.test(l) ? ' class="ok"' : ''}>${esc(l)}</span>`).join('\n')}</pre></div></details>` : ''}
+        ${ev?.notes ? `<details class="details t-log" data-key="t-pnote"><summary>${I('doc')}Its notes on the proof${I('chevron-down')}</summary><div class="details-body" data-tlazy></div></details>` : ''}
+        ${others.length ? `<details class="details t-log" data-key="t-files"><summary>${I('doc')}Other files · ${others.length}${I('chevron-down')}</summary><div class="details-body"><ul class="t-files">${others.map(f => `<li><a class="link" href="${esc(viewAt(ev.viewPort, f.url))}" target="_blank" rel="noopener">${esc(f.name)}${I('external')}</a></li>`).join('')}</ul></div></details>` : ''}`
+      : `<p class="p-quiet">${v.k === 'active' ? `Nothing shown yet. The ${esc(v.role.toLowerCase())} shows its work when this step is done.` : v.k === 'done' ? 'It attached no screenshots or recordings.' : 'Nothing shown yet. Screenshots and recordings appear here once it starts.'}</p>`;
+    return `<section class="p-sec t-proof" aria-labelledby="proof-h" data-r="proof"><h2 class="p-h" id="proof-h">Shown working ${at ? `<span class="n num">${tryOf ? `From try ${tryOf} · ` : ''}${esc(when(at.ts))}</span>` : ''}</h2>${body}</section>`;
+  }
+
+  // ── Latest steps: what it is doing now, then the newest events ──
+  const row = ([ts, w], i) => `<li${i === 0 ? ' data-k="done"' : ''}><time class="num" datetime="${esc(ts)}">${esc(when(ts))}</time><span>${esc(clip(plain(w), 200))}</span></li>`;
+  const steps = v => {
+    const list = [...(v.k === 'active' && v.ag.step ? [[v.ag.lastAt, v.ag.step]] : []), ...[...(v.t.timeline || [])].reverse().map(e => [e.ts, stepWords(e)])].slice(0, 4);
+    return `<section class="p-sec" aria-labelledby="steps-h" data-r="steps"><h2 class="p-h" id="steps-h">Latest steps</h2>
+      ${list.length ? `<ol class="p-feed">${list.map(row).join('')}</ol>` : '<p class="p-quiet">Not started yet.</p>'}</section>`;
+  };
+
+  // ── Review: the verdict, with the reviewer's notes folded ──
+  const review = v => {
+    const r = v.t.review || '', at = (v.t.timeline || []).filter(e => e.type === 'reviewed').at(-1);
+    let body;
+    if (!r.trim()) body = `<p class="p-quiet">${v.word === 'In review' ? 'The reviewer is checking it now.' : 'Not reviewed yet. The reviewer looks at the work once the check passes.'}</p>`;
+    else {
+      lazy.set('t-review', () => md(r));
+      const ok = /verdict:\s*\**\s*approve/i.test(r);
+      body = `<div class="t-review"><p><span class="t-verdict${ok ? '' : ' is-changes'}">${ok ? `${I('check')}Passed` : 'Changes asked'}</span><span class="p-quiet">Reviewer${at ? ` · ${esc(when(at.ts))}` : ''}</span></p>
+        ${ok ? '' : `<p class="p-quiet">The ${esc((v.m.role || 'builder'))} works on them in its next try.</p>`}
+        <details class="details t-log" data-key="t-review"><summary>${I('doc')}The reviewer’s notes${I('chevron-down')}</summary><div class="details-body" data-tlazy></div></details></div>`;
+    }
+    return `<section class="p-sec" aria-labelledby="rev-h" data-r="review"><h2 class="p-h" id="rev-h">Review</h2>${body}</section>`;
+  };
+
+  // ── History and notes (R19): folded; each says how much is inside ──
+  const folds = v => {
+    const t = v.t, tl = [...(t.timeline || [])].reverse();
+    const notes = (t.progress.match(/^## /gm) || []).length, dec = (t.decisions.match(/^- /gm) || []).length;
+    const it = (t.timeline || []).filter(e => e.type === 'iteration').at(-1);
+    lazy.set('t-hist', () => `<ol class="p-feed">${tl.map(e => `<li><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${esc(clip(plain(stepWords(e)), 240))}</span></li>`).join('')}</ol>`);
+    lazy.set('t-notes', () => md(t.progress));
+    lazy.set('t-dec', () => md(t.decisions));
+    lazy.set('t-brief', () => md(t.body));
+    lazy.set('t-check', () => `<p><code>${esc(v.m.check)}</code>${it ? ` · Last run ${esc(when(it.ts))}: ${v.m.last_check === 'pass' ? 'passed' : v.m.last_check === 'fail' ? 'failed' : 'no result'}` : ' · Not run yet'}</p>${t.lastCheck ? `<pre class="t-out">${esc(t.lastCheck.trim().split('\n').slice(-60).join('\n'))}</pre>` : ''}`);
+    const f = (key, title) => `<details class="details" data-key="${key}"><summary>${title}${I('chevron-down')}</summary><div class="details-body" data-tlazy></div></details>`;
+    return `<section class="p-sec t-folds" aria-label="History and notes" data-r="folds">
+      ${f('t-hist', `History · ${tl.length} event${tl.length === 1 ? '' : 's'}`)}
+      ${notes || t.progress.trim() ? f('t-notes', `Progress notes${notes ? ` · ${notes}` : ''}`) : ''}
+      ${f('t-dec', `Decided without you · ${dec || 'none'}`)}
+      ${f('t-brief', 'The brief')}
+      ${f('t-check', 'Last check')}</section>`;
+  };
+
+  // ── Facts: status, tries, its own spend, outcomes, the work ──
+  const facts = v => {
+    const m = v.m, pct = v.limit ? Math.min(100, Math.round(v.spent / v.limit * 100)) : 0;
+    const fails = v.tries.filter(x => x === 'f').length;
+    const tryNote = v.tries.includes('p') ? `${fails ? `${fails === 1 ? 'One try' : `${fails} tries`} failed the check; the` : 'The'} last check passed.`
+      : fails ? `${fails === 1 ? 'One try' : `${fails} tries`} failed the check; each new try starts from what the last one learned.` : v.used ? 'Each try ends with its check.' : `It may use up to ${v.of}.`;
+    const words = c => met(c) ? `Met ${when((c.history || []).at(-1)?.at)}` : c.status === 'awaiting-owner' ? 'Waiting for your judgement in the Inbox' : c.status === 'fail' ? 'Not yet: its check is failing' : 'Not met yet';
+    const pr = m.pr ? `<dt>Pull request</dt><dd><a class="link" href="${esc(m.pr)}" target="_blank" rel="noopener">${esc(m.pr.replace(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\//, 'Draft #'))}${I('external')}</a></dd>` : m.branch ? `<dt>Branch</dt><dd class="mono">${esc(m.branch)}</dd>` : '';
+    return `<aside class="p-facts" aria-label="Facts" data-r="facts"><details class="p-factsfold" data-key="facts" open>
+      <summary><span>Facts</span><span class="num">${triesText(v) ? `${triesText(v)} · ` : ''}${money(v.spent)}${v.limit ? ` of ${money(v.limit)}` : ''}</span>${I('chevron-down')}</summary>
+      <div class="p-facts-in">
+        <section class="p-fact" aria-labelledby="f-st"><h3 class="section-label" id="f-st">Status</h3>
+          <p class="t-st" data-k="${v.k}">${dot(v.k, v.word)}<b>${esc(v.word)}</b></p>
+          <dl class="p-dl"><dt>ID</dt><dd class="num">${esc(v.id)}</dd><dt>Who</dt><dd>${esc(cap1(m.role || 'builder'))}</dd>${m.created ? `<dt>Started</dt><dd>${esc(`${day(m.created)}, ${hhmm(m.created)}`)}</dd>` : ''}${v.a ? `<dt>Project</dt><dd><a class="link" href="#/p/${encodeURIComponent(v.a)}/overview">${esc(v.a)}</a></dd>` : ''}</dl></section>
+        <section class="p-fact" aria-labelledby="f-try"><h3 class="section-label" id="f-try">Tries</h3>
+          <div class="t-tryrow"><ol class="t-tries" aria-label="${v.used} of ${v.of} tries used">${v.tries.map((x, i) => `<li data-t="${x === 'x' ? 'f' : x}" title="Try ${i + 1}: ${TRY[x]}"></li>`).join('')}</ol><span class="num">${v.used} of ${v.of}</span></div>
+          <p class="p-quiet">${tryNote}</p>
+          <div class="meter"><div class="meter-head"><span>Spent on this task</span><b class="num">${money(v.spent)}${v.limit ? ` <small>of ${money(v.limit)}</small>` : ''}</b></div>
+            ${v.limit ? `<div class="meter-track${pct >= 100 ? ' is-full' : ''}" role="img" aria-label="${esc(`${money(v.spent)} of ${money(v.limit)} spent`)}"><i style="--value:${pct}%"></i></div>` : ''}
+            <span class="meter-foot">Its own budget${v.a ? ` · part of ${esc(v.a)}’s day` : ''}</span></div></section>
+        ${v.outs.length ? `<section class="p-fact" aria-labelledby="f-out"><h3 class="section-label" id="f-out">Outcomes · ${v.outs.filter(met).length} of ${v.outs.length}</h3>
+          <ul class="p-outs t-outs">${v.outs.map(c => `<li data-met="${met(c)}"><span class="p-ok" role="img" aria-label="${met(c) ? 'Met' : 'Not met yet'}">${met(c) ? I('check') : ''}</span><span class="t"><b>${esc(c.statement)}</b><span class="s">${esc(c.id)} · ${esc(words(c))}</span></span></li>`).join('')}</ul></section>` : ''}
+        <section class="p-fact" aria-labelledby="f-code"><h3 class="section-label" id="f-code">The work</h3>
+          <dl class="p-dl"><dt>Check</dt><dd><code>${esc(m.check || 'none')}</code>${m.last_check ? ` · ${m.last_check === 'pass' ? 'last run passed' : m.last_check === 'fail' ? 'last run failed' : esc(m.last_check)}` : ''}</dd>
+            ${m.files ? `<dt>Files</dt><dd class="mono">${esc(m.files)}</dd>` : ''}
+            ${m.test_touch ? `<dt class="is-needs">Tests</dt><dd class="is-needs">Changed an existing test: <code>${esc(m.test_touch)}</code>. Look before you merge</dd>` : m.files ? '<dt>Tests</dt><dd>Didn’t change existing tests</dd>' : ''}
+            ${pr}</dl></section>
+      </div></details></aside>`;
+  };
+
+  // ── Mounting, patching, states ──
+  const dialogs = `<dialog class="p-dialog" id="t-stop" aria-labelledby="tstop-t" aria-describedby="tstop-d"><h2 id="tstop-t"></h2><p id="tstop-d"></p>
+      <div class="p-dialog-act"><button class="btn btn-secondary" type="button" value="keep" autofocus>Keep it running</button><button class="btn btn-danger" type="button" value="go">Stop the task</button></div></dialog>
+    <dialog class="t-lb" id="t-lb" aria-labelledby="lb-cap">
+      <div class="t-lb-bar"><span id="lb-cap" class="t-lb-cap"></span><span class="t-lb-n num" data-n></span>
+        <a class="btn btn-ghost btn-sm" href="#" target="_blank" rel="noopener" data-full>${I('external')}Full size</a>
+        <button class="btn btn-ghost btn-icon" type="button" data-ta="lb-close" aria-label="Close" autofocus>${I('x')}</button></div>
+      <figure class="t-lb-fig"><span class="t-lb-media"></span></figure>
+      <button class="btn btn-secondary btn-icon t-lb-prev" type="button" data-ta="lb-prev" aria-label="Previous picture">${I('chevron-left')}</button>
+      <button class="btn btn-secondary btn-icon t-lb-next" type="button" data-ta="lb-next" aria-label="Next picture">${I('chevron-right')}</button></dialog>`;
+  const fillLazy = root => root.querySelectorAll('details[open] > [data-tlazy]').forEach(b => { if (!b.childElementCount) b.innerHTML = lazy.get(b.parentElement.dataset.key)?.() || ''; });
+
+  function draw(t) {
+    const v = view(t);
+    const regions = [['head', head(v)], ['now', now(v)], ['facts', facts(v)], ['ask', ask(v)], ['proof', proof(v)], ['steps', steps(v)], ['review', review(v)], ['folds', folds(v)]];
+    shots = v.shots;
+    const box = $('view'), root = box.querySelector(':scope > .task');
+    const cls = `p-grid t-grid${failedAt ? ' is-stale' : ''}${v.dock ? ' has-dock' : ''}`;
+    if (root && root.dataset.id === v.id) {
+      patchRegions(root, regions, parts, fillLazy);
+      const g = root.querySelector('.t-grid'); if (g) g.className = cls;
+      return;
+    }
+    box.innerHTML = `<div class="project task" data-id="${esc(v.id)}">${regions[0][1]}<div class="hf-body"><div class="${cls}">${regions[1][1]}${regions[2][1]}<div class="p-col">${regions.slice(3).map(r => r[1]).join('')}</div></div></div>${dialogs}</div>`;
+    parts = new Map(regions); pageId = v.id;
+    const f = box.querySelector('details[data-key="facts"]');
+    if (f && isPhone()) f.open = false;
+  }
+
+  // Before the first read: Now, facts and two proof frames as skeletons (States); the title if the summary has it.
+  function loading(id) {
+    const row = (state?.projects || []).flatMap(p => p.tasks).find(x => x.id === id) || {};
+    const sk = (w, h, more = '') => `<span class="skeleton" style="width:${w};height:${h}px${more}"></span>`;
+    $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back(row.project)}<h1>${esc(row.title || '')}</h1><span class="end">${liveLine()}</span></header>
+      <div class="hf-body"><div class="p-grid t-grid" aria-busy="true" aria-label="Loading the task">
+        <section class="p-now">${sk('96px', 12)}${sk('80%', 28)}${sk('95%', 16)}${sk('100%', 28, ';margin-top:8px')}</section>
+        <aside class="p-facts"><div class="p-facts-in p-skel">${sk('100%', 96)}${sk('100%', 120)}</div></aside>
+        <div class="p-col"><section class="p-sec">${sk('140px', 16)}<div class="frames t-two"><span class="skeleton" style="aspect-ratio:16/10"></span><span class="skeleton" style="aspect-ratio:16/10"></span></div></section></div></div></div></div>`;
+    pageId = '';
+  }
+  function error(id) {
+    const row = (state?.projects || []).flatMap(p => p.tasks).find(x => x.id === id) || {};
+    $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back(row.project)}<h1>${esc(row.title || id)}</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('This task')}</div></div>`;
+    pageId = '';
+  }
+
+  async function show(id, refreshing) {
+    const hash = location.hash, had = seen.get(id);
+    if (had && !(refreshing && pageId === id)) draw(had);
+    else if (!had) loading(id);
+    let t;
+    try { t = await get(`/api/task/${encodeURIComponent(id)}`); } catch (e) {
+      if (e.message === 'signed out') throw e;
+      if (location.hash !== hash) return;
+      if (had) draw(had); else error(id); // a failed refresh keeps the page, marked stale
+      return;
+    }
+    if (location.hash !== hash) return; // the owner has already moved on
+    seen.set(id, t);
+    draw(t);
+  }
+
+  // ── The dock: answer or approve at once, with Undo while the toast shows (UX-10); then it goes to Atelier ──
+  let pend = null; // { body, timer } inside its Undo window
+  function commit(opts = {}) {
+    if (!pend) return;
+    const { body, form } = pend; pend = null;
+    form?.removeAttribute('data-hold');
+    post(body, opts).then(() => { if (!opts.keepalive) refresh().catch(() => {}); }).catch(e => {
+      if (opts.keepalive) return;
+      const f = document.querySelector('.task [data-dock]');
+      if (f) reset(f, /fetch|network/i.test(e.message) ? 'Couldn’t reach Atelier. Nothing was sent.' : e.message);
+      else toast(/fetch|network/i.test(e.message) ? 'Couldn’t reach Atelier. Nothing was sent.' : e.message, { error: true });
+    });
+  }
+  function reset(form, err) {
+    form.classList.remove('is-sent'); form.removeAttribute('data-hold');
+    const go = form.querySelector('[data-go]'), msg = form.querySelector('[data-msg]'), own = form.querySelector('textarea');
+    go.hidden = false; own?.removeAttribute('disabled');
+    if (form.dataset.dock === 'plan') { msg.className = 'dock-msg'; msg.textContent = msg.dataset.was || msg.textContent; }
+    else { msg.hidden = !err; msg.className = 'dock-msg'; msg.textContent = ''; }
+    if (err) { msg.hidden = false; msg.className = 'dock-msg is-error'; msg.innerHTML = `${I('alert')}${esc(err)}`; }
+    (own || go).focus();
+  }
+  function toastUndo(text) {
+    const box = $('toasts');
+    box.innerHTML = `<div class="toast toast-success" role="status"><span class="tick">${I('check')}</span><span class="toast-text">${esc(text)}</span><button class="toast-action" type="button" data-ta="undo">Undo</button><span class="toast-life" aria-hidden="true"></span></div>`;
+    Inbox.placeToast();
+    const t = box.firstChild;
+    let left = 6000, started = Date.now();
+    const run = () => { started = Date.now(); clearTimeout(pend?.timer); if (pend) pend.timer = setTimeout(close, left); };
+    const hold = () => { clearTimeout(pend?.timer); left = Math.max(1500, left - (Date.now() - started)); };
+    t.addEventListener('pointerenter', hold); t.addEventListener('focusin', hold);
+    t.addEventListener('pointerleave', () => { if (!t.contains(document.activeElement)) run(); });
+    t.addEventListener('focusout', e => { if (!t.contains(e.relatedTarget) && !t.matches(':hover')) run(); });
+    run();
+  }
+  function close() { commit(); const box = $('toasts'); box.innerHTML = ''; Inbox.placeToast(); }
+  document.addEventListener('submit', e => {
+    const form = e.target.closest('.task [data-dock]');
+    if (!form) return;
+    e.preventDefault();
+    if (pend) return;
+    const id = pageId, own = form.querySelector('textarea'), msg = form.querySelector('[data-msg]'), go = form.querySelector('[data-go]');
+    let body, said, done;
+    if (form.dataset.dock === 'answer') {
+      const pick = document.querySelector('.task input[name="t-ans"]:checked'), opts = seen.get(id)?.ask?.options || [];
+      const text = own.value.trim() || (pick ? opts[Number(pick.value)] || '' : '');
+      if (!text) { msg.hidden = false; msg.className = 'dock-msg is-error'; msg.innerHTML = `${I('alert')}Pick an answer or write your own.`; own.setAttribute('aria-invalid', 'true'); return own.focus(); }
+      const who = (seen.get(id)?.meta.role || 'builder');
+      body = { action: 'answer', id, text }; said = `Answered. The ${who} carries on.`; done = `Answered the ${who}.`;
+    } else {
+      body = { action: 'plan-approve', id }; said = `Approved. The ${seen.get(id)?.meta.role || 'builder'} starts within a minute.`; done = 'Approved the plan.';
+      msg.dataset.was = msg.textContent;
+    }
+    form.classList.add('is-sent'); form.setAttribute('data-hold', '');
+    go.hidden = true; own?.setAttribute('disabled', ''); own?.removeAttribute('aria-invalid');
+    msg.hidden = false; msg.className = 'dock-msg is-done'; msg.innerHTML = `${I('check')}${esc(said)}`;
+    pend = { body, form };
+    toastUndo(done);
+  });
+  document.addEventListener('input', e => {
+    if (e.target.id === 't-own' || e.target.name === 't-ans') { const msg = document.querySelector('.task [data-dock] [data-msg].is-error'); if (msg) { msg.hidden = true; msg.className = 'dock-msg'; $('t-own')?.removeAttribute('aria-invalid'); } }
+  });
+  addEventListener('pagehide', () => commit({ keepalive: true }));
+
+  // ── Stop (asks first: it can't be undone), the proof viewer, Undo ──
+  let at = 0, opener = null;
+  function showShot(i) {
+    const lb = $('t-lb'); if (!lb || !shots.length) return;
+    at = (i + shots.length) % shots.length;
+    const x = shots[at];
+    lb.querySelector('.t-lb-media').innerHTML = x.kind === 'rec' ? `<video src="${esc(x.src)}" controls playsinline preload="metadata" aria-label="${esc(x.cap)}"></video>` : `<img src="${esc(x.src)}" alt="${esc(x.cap)}">`;
+    lb.querySelector('[data-full]').href = x.src;
+    lb.querySelector('.t-lb-cap').textContent = x.cap;
+    lb.querySelector('[data-n]').textContent = `${at + 1} of ${shots.length}`;
+    lb.classList.toggle('is-phone', x.kind === 'phone');
+    lb.querySelectorAll('[data-ta="lb-prev"],[data-ta="lb-next"]').forEach(b => { b.hidden = shots.length < 2; });
+  }
+  document.addEventListener('click', e => {
+    const lb = $('t-lb');
+    if (lb && e.target === lb) return lb.close(); // the scrim
+    const b = e.target.closest('[data-ta]');
+    if (!b) return;
+    switch (b.dataset.ta) {
+      case 'shot': opener = b; showShot(Number(b.dataset.i)); lb.showModal(); break;
+      case 'lb-close': lb.close(); break;
+      case 'lb-prev': showShot(at - 1); break;
+      case 'lb-next': showShot(at + 1); break;
+      case 'undo': {
+        if (!pend) return;
+        clearTimeout(pend.timer);
+        const f = pend.form; pend = null;
+        $('toasts').innerHTML = ''; Inbox.placeToast();
+        if (f?.isConnected) reset(f);
+        break;
+      }
+      case 'stop': {
+        const d = $('t-stop'), t = seen.get(pageId); if (!d || !t) return;
+        const planned = t.meta.status === 'planned';
+        $('tstop-t').textContent = `Stop “${t.meta.title}”?`;
+        $('tstop-d').textContent = planned ? 'The plan is dropped and nothing starts. The lead can plan it again later.' : `The ${t.meta.role || 'builder'} stops now and this try’s work is kept as it is. The lead decides what happens next.`;
+        d.querySelectorAll('button').forEach(x => { x.onclick = async () => {
+          d.close();
+          if (x.value !== 'go') return b.focus();
+          const was = b.innerHTML; b.disabled = true; b.setAttribute('aria-busy', 'true'); b.textContent = 'Stopping…';
+          const r = await act({ action: 'task-stop', id: t.meta.id }, `Stopped “${t.meta.title}”`);
+          if (r === null && b.isConnected) { b.disabled = false; b.removeAttribute('aria-busy'); b.innerHTML = was; }
+        }; });
+        d.showModal();
+        break;
+      }
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if ($('t-lb')?.open && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); showShot(at + (e.key === 'ArrowLeft' ? -1 : 1)); }
+  });
+  document.addEventListener('close', e => { if (e.target.id === 't-lb') { e.target.querySelector('video')?.pause(); opener?.focus(); } }, true);
+  document.addEventListener('toggle', e => { const d = e.target; if (d.matches?.('.task details[open]')) fillLazy(d.parentElement); }, true);
+  // A recording's pill shows its length once the browser knows it.
+  document.addEventListener('loadedmetadata', e => {
+    const v = e.target; if (!v.matches?.('video[data-len]') || !isFinite(v.duration)) return;
+    const s = Math.round(v.duration), pill = v.nextElementSibling?.lastElementChild;
+    if (pill) pill.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }, true);
+
+  return { show };
+})();
 
 // ---------- new project ----------
 function renderNew() {
