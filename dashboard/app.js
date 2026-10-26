@@ -62,6 +62,7 @@ const ICON = {
   blocked: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
   log: '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8.5h5M9 12h7M9 15.5h7M9 19h4"/>',
   refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.8 4.5v4.2h-4.2"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/>',
   // the old screens' extra glyphs, until slices 2 and 3 replace them
   gate: '<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>',
   doc: '<path d="M7 3h7l4 4v14H7zM14 3v4h4M9.5 12h6M9.5 16h6"/>',
@@ -1576,7 +1577,7 @@ const Settings = (() => {
       const secs = [...document.querySelectorAll('.sets .s-sec')];
       const end = innerHeight + scrollY >= document.documentElement.scrollHeight - 2; // the last ones can't scroll up to 30 %
       const cur = scrollY < 8 ? secs[0] : end ? secs.at(-1) : secs.filter(s => s.getBoundingClientRect().top < innerHeight * 0.3).pop() || secs[0];
-      links.forEach(l => l.toggleAttribute('aria-current', `ss-${l.dataset.sec}` === cur?.id));
+      links.forEach(l => (`ss-${l.dataset.sec}` === cur?.id ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current')));
     }, { threshold: [0, 0.25, 0.5, 0.75, 1], rootMargin: '0px 0px -70% 0px' });
     document.querySelectorAll('.sets .s-sec').forEach(s => io.observe(s));
   }
@@ -1673,7 +1674,7 @@ const Settings = (() => {
       const h = $(`ss-${nav.dataset.sec}-h`);
       h?.closest('.s-sec').scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'start' });
       h?.focus({ preventScroll: true });
-      document.querySelectorAll('.s-nav [data-sec]').forEach(l => l.toggleAttribute('aria-current', l === nav));
+      document.querySelectorAll('.s-nav [data-sec]').forEach(l => (l === nav ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current')));
       pin = nav.dataset.sec; pinAt = Date.now(); // a picked section stays current while it is on screen, even one too short to reach 30 %
       return;
     }
@@ -2704,6 +2705,172 @@ const New = (() => {
     });
   }
   return { show };
+})();
+
+// ---------- keys: Ctrl/⌘ K palette, G then I/O/P/A, ? ----------
+// DESIGN Interaction patterns › Keys and the UX page's keyboard table: ⌘K goes anywhere (a project, task, document or
+// setting), G then a letter jumps to a place, ? shows the keys. Single keys never act while typing, and no key decides:
+// the palette only moves you. The design gives the palette's job but no drawing: it is the confirm dialog's surface
+// with the lead menu's 44 px rows (nearest pattern, R-1; DECISIONS).
+const Keys = (() => {
+  const PLACES = [['inbox', 'Inbox', 'inbox', 'I'], ['office', 'Office', 'office', 'O'], ['projects', 'Projects', 'projects', 'P'], ['activity', 'Activity', 'activity', 'A'], ['new', 'New project', 'plus', ''], ['settings', 'Settings', 'settings', '']];
+  const TABS = [['overview', 'Overview'], ['tasks', 'Tasks'], ['outcomes', 'Outcomes', 'criteria'], ['audits', 'Audits', 'findings'], ['docs', 'Docs', 'documents']];
+  const DOCS = [['charter', 'Charter'], ['rulings', 'Rulings'], ['brief', 'Brief'], ['spec', 'Spec'], ['design', 'Design'], ['contracts', 'Contracts'], ['plan', 'Lead’s plan'], ['ledger', 'Lead’s ledger'], ['messages', 'Team messages']];
+  // Settings sections, as Settings draws them (keys are its #ss-<key> ids); the third word is what people may type instead.
+  const SETS_ALL = [['plan', 'Claude plan', 'limits pace spread window'], ['look', 'Appearance', 'theme dark light'], ['device', 'This device', 'phone token home screen'], ['projects', 'Each project', ''], ['about', 'About', 'version']];
+  const SETS_ONE = [['lead', 'Lead', 'start stop restart'], ['gates', 'Approvals', 'gates approve'], ['trust', 'Gating', 'trust'], ['money', 'Money', 'budget spend limit'], ['ship', 'Shipping', 'autonomy merge pull requests'], ['report', 'Reporting', 'digest'], ['read', 'What you read', 'summaries plain technical'], ['team', 'Team', 'roster model roles'], ['numbers', 'Numbers', 'metrics']];
+  const GROUPS = ['Go to', 'Projects', 'Tasks', 'Documents', 'Settings'];
+  const LIVE = ['needs-you', 'running', 'review', 'planned'];
+  const signedOut = () => document.body.classList.contains('is-login') || document.body.hasAttribute('data-signed-out');
+  const otherDialog = () => [...document.querySelectorAll('dialog[open]')].some(d => d.id !== 'k-pal' && d.id !== 'k-keys');
+  let items = [], shown = [], at = 0, back = null;
+
+  // Everything the palette can open, from the overview already in hand (no read of its own: it opens at once).
+  function all() {
+    const out = PLACES.map(([k, t, ic, g]) => ({ g: 0, t, href: `#/${k}`, ic, key: g && `G ${g}`, find: '' }));
+    for (const p of (state?.projects || []).filter(p => !p.error)) {
+      const a = p.alias, h = `#/p/${encodeURIComponent(a)}`;
+      out.push({ g: 1, t: a, href: `${h}/overview`, ic: 'projects', sub: `${cap1(p.phase || '')} · Lead ${p.lead?.running ? 'on' : 'off'}`, find: '', top: true });
+      for (const [k, t, w] of TABS.slice(1)) out.push({ g: 1, t: `${a} · ${t}`, href: `${h}/${k}`, ic: 'projects', find: w || '' });
+      out.push({ g: 1, t: `${a} · Activity`, href: `#/activity?p=${encodeURIComponent(a)}`, ic: 'activity', find: 'events' });
+      for (const t of p.tasks || []) {
+        const s = taskStatus(t);
+        out.push({ g: 2, t: t.title || t.id, href: `#/t/${encodeURIComponent(t.id)}`, ic: s === 'needs-you' ? 'question' : s === 'done' ? 'check' : 'plan', sub: `${t.id} · ${a} · ${STATUS_WORD[s] || s}`, id: t.id, find: '', top: LIVE.includes(s) });
+      }
+      for (const [k, t] of DOCS) out.push({ g: 3, t, href: `${h}/docs/${k}`, ic: 'log', sub: a, find: 'document' });
+      for (const [k, t, w] of SETS_ONE) out.push({ g: 4, t, href: `#/settings?p=${encodeURIComponent(a)}`, sec: k, ic: 'settings', sub: `${a} settings`, find: w });
+    }
+    for (const [k, t, w] of SETS_ALL) out.push({ g: 4, t, href: '#/settings', sec: k, ic: 'settings', sub: 'Settings for every project', find: w });
+    return out;
+  }
+
+  // Every word typed must appear somewhere; a name that starts with what you typed comes first.
+  function match(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return items.filter(x => x.g === 0 || x.top).slice(0, 24);
+    const words = q.split(/\s+/);
+    const scored = [];
+    for (const x of items) {
+      const name = x.t.toLowerCase(), hay = `${name} ${(x.sub || '').toLowerCase()} ${x.find}`;
+      if (!words.every(w => hay.includes(w))) continue;
+      const s = x.id === q || name.startsWith(q) ? 0 : name.split(/[\s·-]+/).some(w => w.startsWith(q)) ? 1 : name.includes(q) ? 2 : 3;
+      scored.push([s, x]);
+    }
+    scored.sort((a, b) => a[0] - b[0] || a[1].g - b[1].g);
+    return scored.slice(0, 50).map(s => s[1]);
+  }
+
+  function draw() {
+    const q = $('k-q').value;
+    shown = match(q);
+    at = 0;
+    const order = [...new Set(shown.map(x => x.g))];
+    shown = order.flatMap(g => shown.filter(x => x.g === g)); // grouped, groups in the order of their best match
+    let i = 0;
+    $('k-list').innerHTML = shown.length ? order.map(g => `<div role="group" aria-labelledby="k-g${g}"><div class="k-gh" id="k-g${g}" role="presentation">${GROUPS[g]}</div>${shown.filter(x => x.g === g).map(x => {
+      const n = i++;
+      return `<a class="k-opt" role="option" id="k-o${n}" data-n="${n}" href="${esc(x.href)}" tabindex="-1" aria-selected="${n === 0}">${I(x.ic)}<span class="k-t"><b>${esc(x.t)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>${x.key ? `<span class="k-key" aria-label="Keys: G then ${x.key.slice(2)}">${x.key.split(' ').map(k => `<span class="kbd">${k}</span>`).join('')}</span>` : ''}</a>`;
+    }).join('')}</div>`).join('') : `<p class="k-none">Nothing called “${esc(q.trim())}”. Try a project, a task’s name or ID, a document or a setting.</p>`;
+    $('k-q').setAttribute('aria-activedescendant', shown.length ? 'k-o0' : '');
+    $('k-n').textContent = !q.trim() ? '' : shown.length ? `${shown.length} result${shown.length === 1 ? '' : 's'}` : 'No results';
+  }
+
+  function move(d) {
+    if (!shown.length) return;
+    $(`k-o${at}`)?.setAttribute('aria-selected', 'false');
+    at = (at + d + shown.length) % shown.length;
+    const o = $(`k-o${at}`);
+    o.setAttribute('aria-selected', 'true');
+    o.scrollIntoView({ block: 'nearest' });
+    $('k-q').setAttribute('aria-activedescendant', o.id);
+  }
+
+  function go(x) {
+    back = null;
+    $('k-pal').close();
+    if (location.hash !== x.href) location.hash = x.href;
+    if (!x.sec) return $('view')?.focus({ preventScroll: true });
+    // A settings section: wait for the page to draw (it draws from the overview, so within a frame or two), then use its own nav.
+    const t0 = Date.now();
+    const find = () => { const l = document.querySelector(`.sets .s-nav [data-sec="${x.sec}"]`); if (l) l.click(); else if (Date.now() - t0 < 1500) requestAnimationFrame(find); };
+    requestAnimationFrame(find);
+  }
+
+  function mount() {
+    if ($('k-pal')) return;
+    document.body.insertAdjacentHTML('beforeend', `<dialog class="k-pal" id="k-pal" aria-label="Go anywhere">
+      <div class="k-in">${I('search')}<input class="k-q" id="k-q" type="text" role="combobox" aria-expanded="true" aria-controls="k-list" aria-autocomplete="list" aria-label="Go to a project, task, document or setting" placeholder="Go anywhere" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+      <div class="k-list" id="k-list" role="listbox" aria-label="Places"></div>
+      <div class="k-foot"><span><span class="kbd">↑</span><span class="kbd">↓</span> to move</span><span><span class="kbd">Enter</span> to open</span><span><span class="kbd">Esc</span> to close</span><span class="sr-only" id="k-n" role="status"></span></div>
+    </dialog>
+    <dialog class="p-dialog k-keys" id="k-keys" aria-labelledby="k-keys-t"><h2 id="k-keys-t">Keys</h2>
+      <dl class="k-dl">
+        <dt><span class="kbd">Ctrl</span><span class="kbd">K</span></dt><dd>Go anywhere: a project, task, document or setting (⌘ K on a Mac)</dd>
+        <dt><span class="kbd">J</span> <span class="kbd">K</span></dt><dd>Next and previous item in the Inbox</dd>
+        <dt><span class="kbd">Enter</span></dt><dd>Open the selected row; in the Inbox, move to the dock</dd>
+        <dt><span class="kbd">Ctrl</span><span class="kbd">Enter</span></dt><dd>Send the dock’s main action (with your note)</dd>
+        <dt><span class="kbd">Z</span></dt><dd>Undo, while the toast is up</dd>
+        <dt><span class="kbd">G</span> then <span class="kbd">I</span> <span class="kbd">O</span> <span class="kbd">P</span> <span class="kbd">A</span></dt><dd>Inbox, Office, Projects, Activity</dd>
+        <dt><span class="kbd">Esc</span></dt><dd>Close the palette or a fold; leave a note field</dd>
+        <dt><span class="kbd">?</span></dt><dd>Show these keys</dd>
+      </dl>
+      <p>Single keys never act while you type. No key decides on its own: a decision always goes through the dock.</p>
+      <div class="p-dialog-act"><button class="btn btn-secondary" type="button" data-k-close autofocus>Close</button></div>
+    </dialog>`);
+    const pal = $('k-pal');
+    $('k-q').addEventListener('input', draw);
+    pal.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); move(e.key === 'ArrowDown' ? 1 : -1); }
+      else if (e.key === 'Home' && e.ctrlKey || e.key === 'End' && e.ctrlKey) { e.preventDefault(); move((e.key === 'Home' ? 0 : shown.length - 1) - at); }
+      else if (e.key === 'Enter' && shown[at]) { e.preventDefault(); go(shown[at]); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); pal.close(); } // only the palette: a toast under it stays
+      else if (e.key === 'Tab') e.preventDefault(); // one field: arrows move, Tab would leave the dialog's only control
+    });
+    pal.addEventListener('click', e => {
+      const o = e.target.closest('.k-opt');
+      if (o && !(e.ctrlKey || e.metaKey || e.shiftKey || e.button)) { e.preventDefault(); go(shown[Number(o.dataset.n)]); return; }
+      if (e.target === pal) pal.close(); // a click on the scrim
+    });
+    pal.addEventListener('close', () => { back?.isConnected && back.focus({ preventScroll: true }); back = null; });
+    $('k-keys').addEventListener('click', e => { if (e.target.closest('[data-k-close]') || e.target.id === 'k-keys') $('k-keys').close(); });
+  }
+
+  function open() {
+    mount();
+    const pal = $('k-pal');
+    if (pal.open) { $('k-q').select(); return; }
+    back = document.activeElement;
+    items = all();
+    $('k-q').value = '';
+    draw();
+    pal.showModal();
+    $('k-q').focus();
+  }
+
+  let gAt = 0;
+  document.addEventListener('keydown', e => {
+    if (signedOut()) return;
+    if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+      if (otherDialog()) return;
+      e.preventDefault(); e.stopPropagation();
+      $('k-keys')?.open && $('k-keys').close();
+      open(); return;
+    }
+    const el = document.activeElement;
+    const typing = el && (['TEXTAREA', 'INPUT', 'SELECT'].includes(el.tagName) || el.isContentEditable);
+    if (typing || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) { gAt = 0; return; }
+    const k = e.key.toLowerCase();
+    if (gAt && Date.now() - gAt < 1200) {
+      gAt = 0;
+      const p = PLACES.find(x => x[3] && x[3].toLowerCase() === k);
+      if (p) { e.preventDefault(); e.stopPropagation(); location.hash = `#/${p[0]}`; }
+      return;
+    }
+    gAt = k === 'g' && !e.shiftKey ? Date.now() : 0;
+    if (e.key === '?') { e.preventDefault(); mount(); $('k-keys').showModal(); }
+  }, true);
+
+  return { open };
 })();
 
 // ---------- markdown (escaped first, so agent-written text can't inject markup) ----------
