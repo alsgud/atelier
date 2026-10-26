@@ -214,6 +214,8 @@ function counts() {
 function place() {
   const [, kind, a] = (location.hash || '#/inbox').split('?')[0].split('/');
   if (kind === 'p' && a) return decodeURIComponent(a);
+  const sp = kind === 'settings' && new URLSearchParams(location.hash.split('?')[1] || '').get('p');
+  if (sp) return sp; // one project's settings sit under that project in the sidebar (D6)
   return kind || 'inbox';
 }
 
@@ -299,13 +301,14 @@ async function route({ refreshing = false, wait = false } = {}) {
       if (!state) return renderPageError();
       // A project's Activity tab is the Activity screen filtered to it (D6); old links land there too.
       if (kind === 'p' && a && b === 'activity') { history.replaceState(null, '', `#/activity?p=${a}`); return await Activity.show(false); }
+      if (kind === 'p' && a && b === 'settings') { history.replaceState(null, '', `#/settings?p=${a}`); renderChrome(); return Settings.show(); }
       if (kind === 'p' && a) return await Project.show(decodeURIComponent(a), b || 'overview', c ? decodeURIComponent(c) : c, refreshing, wait);
       if (kind === 't' && a) return await Task.show(decodeURIComponent(a), refreshing);
       if (kind === 'new') return New.show();
       if (kind === 'projects') return Projects.show();
       if (kind === 'activity') return await Activity.show(refreshing, wait);
       if (kind === 'office') return Office.show();
-      if (kind === 'settings') return renderSettings();
+      if (kind === 'settings') return Settings.show();
       return Inbox.show(null, { refreshing });
     } catch (e) {
       if (e.message !== 'signed out') legacy(`${topbar('<b>Error</b>')}<div class="page">${loadError('This page')}</div>`);
@@ -339,6 +342,7 @@ function renderLoading() {
   if (place() === 'office') return Office.loading();
   if (place() === 'projects') return Projects.loading();
   if (place() === 'activity') return Activity.loading();
+  if (Settings.here()) return Settings.loading();
   // First load only: skeletons where the Inbox will be, counts hidden in the chrome (DESIGN §5).
   const sk = (w, h = 12) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
   $('view').innerHTML = `<header class="page-head"><h1>${place() === 'inbox' ? 'Inbox' : 'Atelier'}</h1><span class="summary">Loading…</span></header>
@@ -356,6 +360,7 @@ function pageLoading(crumbs) {
 }
 function renderPageError() {
   if (place() === 'projects') return Projects.error();
+  if (Settings.here()) return Settings.error();
   if (place() === 'activity') return void ($('view').innerHTML = `<div class="scr acts"><header class="hf-head"><h1>Activity</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('Activity')}</div></div>`);
   if (place() === 'office') return void ($('view').innerHTML = `<header class="hf-head"><h1>Office</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('The Office')}</div>`);
   legacy(`<div class="top"><div class="crumbs"><b>Atelier</b></div></div><div class="page">${loadError('This page')}</div>`);
@@ -1403,35 +1408,300 @@ const Activity = (() => {
   return { show, loading };
 })();
 
-// ---------- settings (global): appearance, plan pacing, about ----------
-// Plan-limit ceilings are global: changing one saves straight away.
-const paceSel = (key, value, options) => `<select data-pace="${key}" aria-label="${key === 'fiveHour' ? '5-hour window' : 'Week'}">${[...new Set([...options, Number(value)])].filter(Boolean).sort((a, b) => a - b).map(v => `<option value="${v}" ${v === Number(value) ? 'selected' : ''}>Pause Atelier at ${v}% used</option>`).join('')}</select>`;
-function renderSettings() {
-  const pick = store.get('atelier-theme') || 'auto';
-  const lim = state.limits || {}, t = state.atelierToday || {};
-  const meter = (label, w) => w ? `<dt>${label}</dt><dd>${Math.round(w.used_percentage)}% used · resets ${esc(resetIn(w.resets_at))}</dd>` : '';
-  legacy(`${topbar('<b>Settings</b>')}<div class="page">
-    <div class="sec">Appearance</div>
-    <dl class="kv"><dt><label for="theme-pick">Theme</label></dt><dd><select id="theme-pick" data-theme-pick>
-      <option value="auto" ${pick === 'auto' ? 'selected' : ''}>Dark here; a phone follows the device</option>
-      <option value="dark" ${pick === 'dark' ? 'selected' : ''}>Dark</option>
-      <option value="light" ${pick === 'light' ? 'selected' : ''}>Light</option>
-      <option value="device" ${pick === 'device' ? 'selected' : ''}>Follow the device</option></select>
-      <div class="hint">Kept on this device only.</div></dd></dl>
-    <div class="sec">Your Claude plan<span class="faint"> · applies to all projects</span></div>
-    <dl class="kv">
-      ${meter('5-hour window', lim.five_hour)}${meter('Week', lim.seven_day)}
-      <dt>Pause at (5 h)</dt><dd>${paceSel('fiveHour', state.pace?.fiveHour, [50, 60, 70, 80, 90])}</dd>
-      <dt>Pause at (week)</dt><dd>${paceSel('sevenDay', state.pace?.sevenDay, [50, 60, 70, 75, 80, 90])} <label class="tick"><input type="checkbox" data-pace-spread ${state.pace?.spread ? 'checked' : ''}> spread evenly over the week</label>
-        <div class="hint">You use the same plan yourself. Atelier pauses when your usage reaches these levels, and resumes when the window resets.${state.pace?.holdingUntil ? ` <b>Holding now</b> until ${esc(new Date(state.pace.holdingUntil * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }))}.` : ''}</div></dd>
-      <dt>Atelier today</dt><dd>${money(t.cost)} finished${t.liveTokens ? ' + work in progress' : ''} · ${(((t.tokens || 0) + (t.liveTokens || 0)) / 1e6).toFixed(1)}M tokens <span class="hint">API-equivalent, not a bill</span>${lim.saved_at ? `<div class="hint">Plan figures updated ${esc(ago(new Date(lim.saved_at * 1000).toISOString()) || 'now')} ago.</div>` : ''}</dd>
-    </dl>
-    <div class="sec">This device</div>
-    <p class="hint" style="max-width:62ch">To use Atelier on your phone, open it there, paste your access token once, and add it to the home screen.</p>
-    <div class="sec">About</div>
-    <p class="hint">The dashboard reloads itself when a new version is installed. Project settings are on each project’s Settings tab.</p>
-  </div>`);
-}
+// =====================================================================================================
+// Settings (D6: design/screens2/settings.html; UX-3 A, UX-10 A). Two scopes, said in the head: #/settings is every
+// project (Claude plan, appearance, this device, each project, about); #/settings?p=<alias> is one project (lead,
+// approvals, gating, money, shipping, reporting, reading, team, numbers), and the project page's Settings tab lands
+// there. Everything comes from the overview, so the page paints at once. A change takes effect at once and says so:
+// a choice saves on change with a toast and Undo, an amount on Enter or leaving the field with "Saved" beside it, and
+// only stopping the lead confirms. Same actions as before (dial, pace, lead-*); the theme stays in the browser.
+// A refresh replaces only sections whose words changed, never one being typed in or saving.
+// =====================================================================================================
+const Settings = (() => {
+  let mounted = '', parts = new Map(), io = null, pin = '', pinAt = 0;
+  const TRUST = { strict: 'Strict', standard: 'Standard', loose: 'Loose' };
+  const SHIP = { merge: 'straight to main', pr: 'draft pull requests', branch: 'local branches only' };
+  const REPORT = { everything: 'Everything', daily: 'A daily digest', exceptions: 'Only exceptions' };
+  const GATES = [['brief', 'Brief'], ['spec', 'Spec'], ['design', 'Design'], ['contracts', 'Contracts']];
+  const THEME = { dark: 'Dark', light: 'Light', device: 'Follow this device' };
+  const q = () => new URLSearchParams(location.hash.split('?')[1] || '');
+  const proj = a => (state?.projects || []).find(p => p.alias === a);
+  const themePick = () => store.get('atelier-theme') || (!firstRun && isPhone() ? 'device' : 'dark');
+  const setTheme = v => { if (v) store.set('atelier-theme', v); else try { localStorage.removeItem('atelier-theme'); } catch { /* private mode */ } applyTheme(); };
+  const when = sec => new Date(sec * 1000).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+  const dollars = n => `$${Number(n) % 1 ? Number(n).toFixed(2) : Number(n)}`;
+
+  const radio = (name, val, title, sub, cur, tag = '') => `<label class="choice is-two"><input type="radio" name="${name}" value="${val}"${cur === val ? ' checked' : ''} data-say="${esc(title)}"><span><b>${title}${tag ? `<span class="tag">${tag}</span>` : ''}</b>${sub ? `<small>${sub}</small>` : ''}</span></label>`;
+  const amount = (key, label, val, unit, help) => `
+    <div class="field" data-field="${key}">
+      <label class="field-label" for="s-${key}">${label}</label>
+      <span class="f-inline"><span class="f-unit ${unit === '$' ? 'is-pre' : 'is-post'}">${unit === '$' ? '<i>$</i>' : ''}<input class="input" id="s-${key}" name="${key}" inputmode="decimal" autocomplete="off" value="${esc(String(val ?? ''))}" data-amount="${key}" data-was="${esc(String(val ?? ''))}" aria-describedby="s-${key}-h">${unit === '%' ? '<i>%</i>' : ''}</span><span class="f-saved" aria-live="polite">${I('check')}<span>Saved</span></span></span>
+      <span class="field-help" id="s-${key}-h">${help}</span>
+    </div>`;
+  const sec = (key, title, body, why = '') => `<section class="f-sec s-sec" id="ss-${key}" aria-labelledby="ss-${key}-h" data-r="${key}"><h2 id="ss-${key}-h" tabindex="-1">${title}</h2>${why ? `<p class="f-why">${why}</p>` : ''}${body}</section>`;
+  const meter = (label, w, foot) => `<div class="meter"><div class="meter-head"><span>${label}</span><b>${w ? `${w.used}%` : '–'} <small>used</small></b></div><div class="meter-track${w && w.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${w ? `${label}: ${w.used}% used` : `${label}: not known yet`}"><i style="--value:${w ? Math.min(100, w.used) : 0}%"></i></div><span class="meter-foot">${foot}</span></div>`;
+  // The earned-trust reason in words (the server's why: "3/10 approvals and 3 overrule(s) (max 1) since the last change").
+  const whyWords = s => {
+    const m = String(s || '').match(/^(\d+)\/(\d+) approvals and (\d+) overrule\(s\) \(max (\d+)\) since the last change(?:, (\d+) open high-severity)?/);
+    if (!m) return esc(s || '');
+    const [, got, need, over, max, high] = m;
+    return `${got} of ${need} approvals and ${over} overrule${over === '1' ? '' : 's'} (at most ${max}) since the last change${high ? `; ${high} serious audit finding${high === '1' ? ' is' : 's are'} still open` : ''}.`;
+  };
+
+  // Why the pacing holds (the server's pace.holdingWhy), with the sidebar's figures.
+  const holdWhy = (pace, plan) => {
+    const w = pace.holdingWhy || [], pc = x => `<span class="num">${x}</span> %`;
+    if (w.includes('fiveHour')) return `The 5‑hour window is at ${pc(plan.fiveHour?.used ?? pace.fiveHour)}, past the ${pc(pace.fiveHour)} you set below.`;
+    if (w.includes('sevenDay')) return `This week is at ${pc(plan.sevenDay?.used ?? pace.sevenDay)}, past the ${pc(pace.sevenDay)} you set below.`;
+    if (w.includes('spread')) return `Today has used more than its share of the week (${pc(plan.sevenDay?.used ?? 0)} so far).`;
+    return 'Your plan use is past the line you set below.';
+  };
+
+  // overview.version is the newest dashboard file's time (base 36 ms): when this version was installed.
+  const installed = () => {
+    const ms = parseInt(state.version || '', 36);
+    if (!(ms > 0)) return '';
+    const d = new Date(ms), today = new Date().toDateString() === d.toDateString();
+    return `This version was installed ${today ? 'today' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} at ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}. `;
+  };
+
+  // ── Every project ──
+  function global() {
+    const C = counts(), plan = C?.plan || {}, pace = state.pace || {}, t = state.atelierToday || {};
+    const upd = plan.savedAt ? ` · updated ${longAgo(new Date(plan.savedAt * 1000).toISOString())}` : '';
+    const tokens = ((t.tokens || 0) + (t.liveTokens || 0)) / 1e6;
+    const holding = pace.holdingUntil
+      ? `<p class="s-hold is-holding" role="status">${I('refresh')}<span><b>Holding new work until ${esc(when(pace.holdingUntil))}.</b> ${holdWhy(pace, plan)} Running tasks finish first.</span></p>`
+      : `<p class="s-hold" role="status"><span class="dot dot-done" aria-hidden="true"></span><span>Not holding: work runs as planned.</span></p>`;
+    const rows = (state.projects || []).filter(p => !p.error).map(p => `<a class="p-row" href="#/settings?p=${encodeURIComponent(p.alias)}">${Office.dotOf(p.lead?.running ? 'active' : '', p.lead?.running ? 'Lead on' : 'Lead off')}<span class="t"><b>${esc(p.alias)}</b><span class="s">${TRUST[p.trust] || cap1(p.trust)} gating · ${dollars(p.budget?.day)} a day · ${SHIP[p.autonomy] || esc(p.autonomy)}</span></span><span class="m">${I('chevron-right')}</span></a>`).join('');
+    return [
+      ['plan', 'Claude plan', `
+        <div class="s-meters">${meter('5‑hour window', plan.fiveHour, plan.fiveHour ? `Resets ${resetIn(plan.fiveHour.resetsAt)}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, plan.sevenDay ? `Resets ${esc(when(plan.sevenDay.resetsAt))}` : 'Shows after the first run')}</div>
+        <p class="field-help s-spent">Atelier spent <b class="num">${money(C?.spentToday)}</b> today on finished work${C?.working ? `; ${C.working} agent${C.working === 1 ? ' is' : 's are'} still working, so it will rise` : ''}. <span class="num">${tokens.toFixed(1)}</span> M tokens. API-equivalent cost, not a bill.</p>
+        ${holding}
+        ${amount('fiveHour', 'Pause Atelier at this much of the 5‑hour window', pace.fiveHour, '%', 'New work waits until the window resets. Running tasks finish.')}
+        ${amount('sevenDay', 'Pause Atelier at this much of the week', pace.sevenDay, '%', 'Leaves the rest of the week for you.')}
+        <label class="f-switch"><span>Spread work evenly over the week<small>Holds work when today has used more than its share.</small></span><input type="checkbox" name="spread"${pace.spread ? ' checked' : ''} data-say="Spread work evenly"></label>`,
+        'Shared by every project, and by your own chats and Claude Code sessions. Atelier paces itself so the plan lasts.'],
+      ['look', 'Appearance', `<fieldset class="f-sec"><legend class="sr-only">Theme</legend><div class="f-row3">${Object.entries(THEME).map(([k, v]) => radio('theme', k, v, '', themePick())).join('')}</div></fieldset>`,
+        'Kept in this browser only.'],
+      ['device', 'This device', `<p class="s-p">Signed in on this browser. To use Atelier on your phone, open it there, paste your access token once, and add it to the home screen.</p>`],
+      ['projects', 'Each project', rows ? `<div class="p-rows">${rows}</div>` : `<p class="s-p">No projects yet. <a class="link" href="#/new">Start one</a>.</p>`,
+        'Approvals, gating, money, shipping and the team are set per project.'],
+      ['about', 'About', `<p class="s-p">${installed()}The dashboard reloads itself when a new version is installed.</p>`],
+    ];
+  }
+
+  // ── One project ──
+  function one(p) {
+    const a = p.alias, A = esc(a), C = counts(), S = C?.projects[a] || {};
+    const sg = p.suggestion, earned = sg?.ready ? sg : null;
+    const tag = (dial, v) => earned && earned.dial === dial && earned.to === v ? 'earned' : '';
+    const working = new Set((p.team?.agents || []).filter(x => x.state === 'working').map(x => (x.role || x.who || '').toLowerCase()));
+    const model = r => r.model || (r.role === 'reviewer' ? p.reviewer?.model : '');
+    const lead = p.lead?.running;
+    const spent = Number(S.spentToday || 0), lim = Number(S.dayLimit || p.budget?.day || 0);
+    const dayHelp = `Today ${money(spent)} of ${dollars(lim)}${S.atLimit ? ', at its limit' : ''}. Resets at midnight.`;
+    const trustNote = earned
+      ? `<p class="s-earned">${I('outcome')}<span><b>The team has earned ${earned.dial === 'trust' ? `${earned.to} gating` : `${(REPORT[earned.to] || earned.to).toLowerCase()} reporting`}.</b> ${whyWords(earned.why)}</span></p>`
+      : sg ? `<p class="field-help">Next to earn: ${sg.dial === 'trust' ? `${esc(sg.to)} gating` : `${esc((REPORT[sg.to] || sg.to).toLowerCase())} reporting`}. So far ${whyWords(sg.why).replace(/^./, c => c.toLowerCase())}</p>` : '';
+    return [
+      ['lead', 'Lead', `<div class="s-lead"><span class="p-lead${lead ? '' : ' is-off'}">${Office.dotOf(lead ? 'active' : '', lead ? 'Lead on' : 'Lead off')}<span>${lead ? 'Lead on' : 'Lead off'}</span></span><span class="s-app">${lead ? `In the Claude app: “${A} lead”` : 'Start it, then talk to it in the Claude app'}</span></div>
+        <div class="f-actions">${lead ? `<button class="btn btn-secondary" type="button" data-sa="restart">${I('refresh')}Restart fresh</button><button class="btn btn-secondary" type="button" data-sa="stop">${I('x')}Stop the lead…</button>` : `<button class="btn btn-primary" type="button" data-sa="start">${I('play')}Start the lead</button>`}</div>`],
+      ['gates', 'Approvals', `<div class="f-checks">${GATES.map(([k, t]) => `<label class="f-check"><input type="checkbox" name="gate" value="${k}"${(p.ownerGates || []).includes(k) ? ' checked' : ''}><span>${t}</span></label>`).join('')}</div>`,
+        'The phases you approve yourself. The lead approves the rest and logs it; the auditor still checks after every phase. Your charter is always yours.'],
+      ['trust', 'Gating', `${trustNote}<div class="choices">
+        ${radio('trust', 'strict', 'Strict', 'You OK every phase, and every task’s plan before it starts.', p.trust, tag('trust', 'strict'))}
+        ${radio('trust', 'standard', 'Standard', 'You OK the phases ticked under Approvals; tasks start by themselves.', p.trust, tag('trust', 'standard'))}
+        ${radio('trust', 'loose', 'Loose', 'You OK the brief; the lead takes the rest and logs it.', p.trust, tag('trust', 'loose'))}</div>`],
+      ['money', 'Money', `<div class="s-money">${amount('budgetDay', 'Spend per day', p.budget?.day, '$', dayHelp)}${amount('budgetTask', 'Spend per task', p.budget?.task, '$', 'Then the lead decides whether to give it more.')}</div>`,
+        'For the whole team, the lead included. API-equivalent cost, not a bill. Your Claude plan is in <a class="link" href="#/settings">Settings for every project</a>.'],
+      ['ship', 'Shipping', `<div class="choices">${radio('autonomy', 'merge', 'Straight to main', 'Reviewed work lands by itself.', p.autonomy)}${radio('autonomy', 'pr', 'Draft pull requests', 'You merge each one.', p.autonomy)}${radio('autonomy', 'branch', 'Local branches only', 'Nothing leaves this computer.', p.autonomy)}</div>`],
+      ['report', 'Reporting', `<div class="choices">${radio('reporting', 'everything', 'Everything', 'Every event reaches you.', p.reporting, tag('reporting', 'everything'))}${radio('reporting', 'daily', 'A daily digest', 'One summary each day.', p.reporting, tag('reporting', 'daily'))}${radio('reporting', 'exceptions', 'Only exceptions', 'Only what needs you and what went wrong.', p.reporting, tag('reporting', 'exceptions'))}</div>`],
+      ['read', 'What you read', `<div class="f-row2">${radio('summaryStyle', 'plain', 'Plain words', 'Short summaries of what it means for the product.', p.summaryStyle)}${radio('summaryStyle', 'technical', 'Technical', 'Full detail: files, tests and diffs.', p.summaryStyle)}</div>`],
+      ['team', 'Team', `<table class="s-team"><thead><tr><th scope="col">Role</th><th scope="col">Files it owns</th><th scope="col">Model</th></tr></thead><tbody>${(p.roster || []).map(r => `<tr><th scope="row"><span class="dot${working.has(r.role) ? ' dot-active' : ''}" aria-hidden="true"></span>${esc(cap1(r.role.replace(/-/g, ' ')))}${working.has(r.role) ? '<span class="sr-only">, working</span>' : ''}</th><td>${r.owns?.length ? esc(r.owns.join(', ')) : 'Reads everything, writes nothing'}</td><td>${model(r) ? esc(cap1(model(r))) : 'Set per task'}</td></tr>`).join('')}</tbody></table>`],
+      ['numbers', 'Numbers', `<dl class="s-dl"><dt>Your approvals</dt><dd class="num">${p.metrics?.approvals ?? 0}</dd><dt>Overruled by you</dt><dd>${p.metrics?.overrules ? `<span class="num">${p.metrics.overrules}</span> time${p.metrics.overrules === 1 ? '' : 's'}` : 'Never yet'}</dd><dt>Audit hit rate</dt><dd>${p.hit?.judged ? `<span class="num">${p.hit.confirmed}</span> of <span class="num">${p.hit.judged}</span> findings confirmed` : 'No findings judged yet'}</dd><dt>Full test suite</dt><dd>${p.suite ? `<code>${esc(p.suite)}</code>` : 'Not set yet: the lead sets it'}</dd><dt>Project folder</dt><dd><code>${esc(p.repo || '')}</code></dd></dl>`],
+    ];
+  }
+
+  const dialog = a => `<dialog class="p-dialog" id="s-stop" aria-labelledby="sstop-t" aria-describedby="sstop-d"><h2 id="sstop-t">Stop the lead for ${esc(a)}?</h2>
+      <p id="sstop-d">Nothing new starts until you start it again. Running tasks finish the try they are on.</p>
+      <div class="p-dialog-act"><button class="btn btn-secondary" type="button" value="keep" autofocus>Keep it running</button><button class="btn btn-danger" type="button" value="go">Stop the lead</button></div></dialog>`;
+  const head = a => `<header class="hf-head" data-r="head">${a ? `<a class="back" href="#/p/${encodeURIComponent(a)}/overview">${I('chevron-left')}<span>${esc(a)}</span></a>` : ''}<h1>Settings</h1><span class="hf-sum">${a ? `${esc(a)} only` : 'For every project'}</span><span class="end">${liveLine()}</span></header>`;
+
+  function show() {
+    const a = q().get('p') || '';
+    const view = $('view');
+    const p = a && proj(a);
+    if (a && !p) { mounted = ''; view.innerHTML = `<div class="scr sets">${head('')}<div class="hf-body"><p class="p-empty"><b>There’s no project called ${esc(a)}.</b><span><a class="link" href="#/settings">Settings for every project</a></span></p></div></div>`; return; }
+    if (p?.error) { mounted = ''; view.innerHTML = `<div class="scr sets">${head(a)}<div class="hf-body">${loadError(`Settings for ${a}`)}</div></div>`; return; }
+    const S = p ? one(p) : global();
+    const key = a || '*';
+    const regions = [['head', head(a)], ...S.map(x => [x[0], sec(...x)])];
+    const root = view.querySelector(':scope > .sets');
+    if (mounted === key && root) { patch(root, regions); return; }
+    mounted = key; parts = new Map(regions);
+    const nav = `<nav class="s-nav" aria-label="Settings sections">${S.map(([k, t], i) => `<a class="nav-item" href="#ss-${k}" data-sec="${k}"${i === 0 ? ' aria-current="true"' : ''}>${t}</a>`).join('')}
+      ${a ? `<a class="nav-item s-other" href="#/settings">${I('settings')}Every project</a>` : ''}</nav>`;
+    view.innerHTML = `<div class="scr sets" data-a="${esc(a)}">${regions[0][1]}<div class="hf-body"><div class="s-grid">${nav}<form class="f-form s-form" novalidate>${regions.slice(1).map(r => r[1]).join('')}</form></div></div>${a ? dialog(a) : ''}</div>`;
+    follow();
+  }
+
+  // Replace a section whose words changed, unless it is being typed in or is saving; focus stays on the same control.
+  function patch(root, regions) {
+    for (const [r, html] of regions) {
+      if (parts.get(r) === html) continue;
+      const old = root.querySelector(`[data-r="${r}"]`);
+      if (!old || old.hasAttribute('data-hold')) continue;
+      const f = document.activeElement;
+      if (old.contains(f) && f.matches('input:not([type=radio]):not([type=checkbox])')) continue;
+      const sel = !old.contains(f) ? '' : f.name ? `[name="${CSS.escape(f.name)}"]${f.type === 'radio' || f.name === 'gate' ? `[value="${CSS.escape(f.value)}"]` : ''}` : f.dataset.sa ? `[data-sa="${f.dataset.sa}"]` : 'h2';
+      const tpl = document.createElement('template'); tpl.innerHTML = html;
+      const el = tpl.content.firstElementChild;
+      old.replaceWith(el); parts.set(r, html);
+      if (sel) (el.querySelector(sel) || el.querySelector('h2')).focus({ preventScroll: true });
+    }
+    if (io) root.querySelectorAll('.s-sec').forEach(s => io.observe(s));
+  }
+
+  // The section nav follows the scroll (desk only); a link scrolls to its section and moves focus to its heading.
+  function follow() {
+    io?.disconnect();
+    const links = [...document.querySelectorAll('.s-nav [data-sec]')];
+    // Current = the last section whose top has passed 30 % of the view; the first at the top of the page, the last at the end.
+    io = new IntersectionObserver(() => {
+      const top = pin && $(`ss-${pin}`)?.getBoundingClientRect().top;
+      if (pin && (Date.now() - pinAt < 1000 || (top >= 0 && top < innerHeight * 0.8))) return; // still scrolling there, or still on screen
+      pin = '';
+      const secs = [...document.querySelectorAll('.sets .s-sec')];
+      const end = innerHeight + scrollY >= document.documentElement.scrollHeight - 2; // the last ones can't scroll up to 30 %
+      const cur = scrollY < 8 ? secs[0] : end ? secs.at(-1) : secs.filter(s => s.getBoundingClientRect().top < innerHeight * 0.3).pop() || secs[0];
+      links.forEach(l => l.toggleAttribute('aria-current', `ss-${l.dataset.sec}` === cur?.id));
+    }, { threshold: [0, 0.25, 0.5, 0.75, 1], rootMargin: '0px 0px -70% 0px' });
+    document.querySelectorAll('.sets .s-sec').forEach(s => io.observe(s));
+  }
+
+  // ── Saving ──
+  const A = () => document.querySelector('.sets')?.dataset.a || '';
+  const hold = (el, on) => el?.closest('[data-r]')?.toggleAttribute('data-hold', on);
+  const fail = e => /fetch|network/i.test(e.message) ? 'Couldn’t reach Atelier. Nothing was saved.' : cap1(e.message);
+  function toastUndo(text, undo) {
+    const box = $('toasts');
+    box.innerHTML = `<div class="toast toast-success" role="status"><span class="tick">${I('check')}</span><span class="toast-text">${esc(text)}</span>${undo ? '<button class="toast-action" type="button" data-sa="undo">Undo</button>' : ''}<span class="toast-life" aria-hidden="true"></span></div>`;
+    Inbox.placeToast();
+    const t = box.firstChild;
+    let left = 6000, started = Date.now(), timer;
+    const close = () => { if (t.isConnected) { t.remove(); Inbox.placeToast(); } };
+    const run = () => { started = Date.now(); clearTimeout(timer); timer = setTimeout(close, left); };
+    const pause = () => { clearTimeout(timer); left = Math.max(1500, left - (Date.now() - started)); };
+    t.addEventListener('pointerenter', pause); t.addEventListener('focusin', pause);
+    t.addEventListener('pointerleave', () => { if (!t.contains(document.activeElement)) run(); });
+    t.addEventListener('focusout', e => { if (!t.contains(e.relatedTarget) && !t.matches(':hover')) run(); });
+    t.querySelector('[data-sa="undo"]')?.addEventListener('click', () => { clearTimeout(timer); close(); undo(); });
+    run();
+  }
+  // Send one setting; on failure put the control back and say why.
+  async function save(el, body, putBack) {
+    hold(el, true);
+    try { await post(body); return true; } catch (e) { putBack?.(); toast(fail(e), { error: true }); return false; } finally { hold(el, false); refresh().catch(() => {}); }
+  }
+  const DIAL_SEC = { trust: 'Gating', autonomy: 'Shipping', reporting: 'Reporting', summaryStyle: 'What you read' };
+
+  document.addEventListener('change', async e => {
+    const t = e.target;
+    if (!t.closest?.('.sets .s-form') || t.dataset.amount) return;
+    const a = A(), p = a && proj(a), where = a ? ` for ${a}` : '';
+    if (t.name === 'theme') {
+      const was = store.get('atelier-theme');
+      setTheme(t.value);
+      return toastUndo(`Saved on this device. Appearance: ${THEME[t.value]}`, () => { setTheme(was); const r = document.querySelector(`.sets input[name="theme"][value="${themePick()}"]`); if (r) r.checked = true; });
+    }
+    if (t.name === 'spread') {
+      const on = t.checked, back = () => { t.checked = !on; };
+      if (await save(t, { action: 'pace', spread: on }, back)) toastUndo(`Saved. Spread work evenly: ${on ? 'on' : 'off'}`, () => { back(); save(t, { action: 'pace', spread: !on }, () => { t.checked = on; }); });
+      return;
+    }
+    if (!p) return;
+    if (t.name === 'gate') {
+      const list = () => [...document.querySelectorAll('.sets input[name="gate"]:checked')].map(x => x.value);
+      const now = list(), was = p.ownerGates || [], back = () => document.querySelectorAll('.sets input[name="gate"]').forEach(x => { x.checked = was.includes(x.value); });
+      const said = `You approve the ${t.value}: ${t.checked ? 'on' : 'off'}`;
+      if (await save(t, { action: 'dial', project: a, dial: 'ownerGates', value: now.join(',') }, back)) toastUndo(`Saved${where}. ${said}`, () => { back(); save(t, { action: 'dial', project: a, dial: 'ownerGates', value: was.join(',') }); });
+      return;
+    }
+    if (DIAL_SEC[t.name]) {
+      const was = p[t.name], v = t.value;
+      const pick = x => { const r = document.querySelector(`.sets input[name="${t.name}"][value="${CSS.escape(x)}"]`); if (r) r.checked = true; };
+      if (await save(t, { action: 'dial', project: a, dial: t.name, value: v }, () => pick(was))) toastUndo(`Saved${where}. ${DIAL_SEC[t.name]}: ${t.dataset.say}`, () => { pick(was); save(t, { action: 'dial', project: a, dial: t.name, value: was }, () => pick(v)); });
+    }
+  });
+
+  // Amounts save on Enter or on leaving the field, once they read as a number; nothing is sent until then.
+  async function amountSave(inp) {
+    const k = inp.dataset.amount, isMoney = k.startsWith('budget'), v = inp.value.trim().replace(/^\$/, '').replace(/%$/, '').trim();
+    const fld = inp.closest('.field'), help = `${inp.id}-h`;
+    const err = msg => {
+      fld.querySelector('.field-error')?.remove();
+      if (!msg) { inp.removeAttribute('aria-invalid'); inp.setAttribute('aria-describedby', help); return; }
+      inp.setAttribute('aria-invalid', 'true'); inp.setAttribute('aria-describedby', `${help} ${inp.id}-e`);
+      inp.closest('.f-inline').insertAdjacentHTML('afterend', `<span class="field-error" id="${inp.id}-e">${I('alert')}<span>${esc(msg)}</span></span>`);
+    };
+    const n = Number(v);
+    const ok = isMoney ? /^\d+(\.\d{1,2})?$/.test(v) && n > 0 && n <= 10000 : /^\d+$/.test(v) && n >= 10 && n <= 100;
+    if (!ok) return err(isMoney ? 'Enter an amount in dollars, like 40.' : 'Enter a percentage from 10 to 100.');
+    err('');
+    if (n === Number(inp.dataset.was)) return;
+    const a = A();
+    const body = isMoney ? { action: 'dial', project: a, dial: k, value: String(n) } : { action: 'pace', [k]: n };
+    hold(inp, true);
+    try {
+      await post(body);
+      inp.dataset.was = String(n); inp.value = String(n);
+      const s = fld.querySelector('.f-saved'); s.classList.add('is-on'); clearTimeout(s.t); s.t = setTimeout(() => s.classList.remove('is-on'), 2400);
+    } catch (x) { err(fail(x)); } finally { hold(inp, false); refresh().catch(() => {}); }
+  }
+  // Leaving the field, not 'change': after Enter saved, typing the old value back fires no change (it equals the value at focus).
+  document.addEventListener('focusout', e => { if (e.target.closest?.('.sets') && e.target.dataset.amount) amountSave(e.target); });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest?.('.sets') && e.target.dataset.amount) { e.preventDefault(); amountSave(e.target); } });
+  document.addEventListener('submit', e => { if (e.target.closest('.sets')) e.preventDefault(); });
+
+  // ── The lead (R16): restart is instant, stop confirms; and the section nav ──
+  document.addEventListener('click', async e => {
+    const nav = e.target.closest('.sets .s-nav [data-sec]');
+    if (nav) {
+      e.preventDefault();
+      const h = $(`ss-${nav.dataset.sec}-h`);
+      h?.closest('.s-sec').scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'start' });
+      h?.focus({ preventScroll: true });
+      document.querySelectorAll('.s-nav [data-sec]').forEach(l => l.toggleAttribute('aria-current', l === nav));
+      pin = nav.dataset.sec; pinAt = Date.now(); // a picked section stays current while it is on screen, even one too short to reach 30 %
+      return;
+    }
+    const b = e.target.closest('.sets [data-sa]');
+    if (!b) return;
+    const a = A();
+    const go = async (body, done, busy) => {
+      const was = b.innerHTML; b.disabled = true; b.setAttribute('aria-busy', 'true'); if (busy) b.textContent = busy;
+      await act(body, done);
+      if (b.isConnected) { b.disabled = false; b.removeAttribute('aria-busy'); b.innerHTML = was; }
+    };
+    if (b.dataset.sa === 'restart') go({ action: 'lead-restart', project: a }, `Restarting the lead for ${a} with a fresh start`, 'Restarting…');
+    if (b.dataset.sa === 'start') go({ action: 'lead-start', project: a }, `Starting the lead for ${a} in a terminal on this PC`, 'Starting…');
+    if (b.dataset.sa === 'stop') {
+      const d = $('s-stop'); if (!d) return;
+      d.querySelectorAll('button').forEach(x => { x.onclick = () => { d.close(); if (x.value === 'go') go({ action: 'lead-stop', project: a }, `Stopped the lead for ${a}`, 'Stopping…'); else b.focus(); }; });
+      d.showModal();
+    }
+  });
+
+  // Before the first overview: three skeleton blocks; if it doesn't come: the neutral notice (DESIGN Settings states).
+  const here = () => location.hash.split('?')[0].split('/')[1] === 'settings';
+  const frame = body => { const a = q().get('p') || ''; mounted = ''; $('view').innerHTML = `<div class="scr sets">${head(a)}<div class="hf-body">${body}</div></div>`; };
+  const loading = () => frame(`<div class="s-grid" aria-busy="true" aria-label="Loading settings"><span></span><div class="f-form">${[120, 96, 140].map(h => `<span class="skeleton" style="display:block;height:${h}px"></span>`).join('')}</div></div>`);
+  const error = () => { const a = q().get('p'); frame(loadError(a ? `Settings for ${a}` : 'Settings')); };
+
+  return { show, here, loading, error };
+})();
 
 // =====================================================================================================
 // Project page (D6: design/screens2/project.html; UX-6 A, UX-14 A, UX-3 A, UX-11 C). Now first: one sentence on what
@@ -1604,7 +1874,7 @@ const Project = (() => {
         <section class="p-fact" aria-labelledby="f-how"><h3 class="section-label" id="f-how">How it runs</h3>
           <dl class="p-dl is-stack"><dt>Shipping</dt><dd>${SHIP[p.autonomy] || esc(p.autonomy)}</dd><dt>Gating</dt><dd>${GATING[p.trust] || esc(p.trust)}</dd>
             <dt>In the Claude app</dt><dd>${S.lead ? `“${a} lead”` : 'Not running: start the lead'}</dd>${gh ? `<dt>GitHub</dt><dd>${gh}</dd>` : ''}</dl>
-          <a class="link p-more" href="${href(p.alias, 'settings')}">Change in Settings</a></section>
+          <a class="link p-more" href="#/settings?p=${encodeURIComponent(p.alias)}">Change in Settings</a></section>
       </div></details></aside>`;
   }
 
@@ -1757,7 +2027,7 @@ const Project = (() => {
   };
   const tabs = (a, tab, S) => `<nav class="tabs p-tabs" aria-label="${esc(a)}" data-r="tabs">${[
     ['overview', 'Overview'], ['tasks', 'Tasks', S?.tasksOpen || ''], ['outcomes', 'Outcomes', S?.outcomes?.of ? `${S.outcomes.met}/${S.outcomes.of}` : ''], ['audits', 'Audits', S?.findingsOpen || ''], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings'],
-  ].map(([k, t, c]) => `<a class="tab" href="${k === 'activity' ? `#/activity?p=${encodeURIComponent(a)}` : href(a, k)}"${tab === k ? ' aria-current="page"' : ''}>${t}${c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}</nav>`;
+  ].map(([k, t, c]) => `<a class="tab" href="${k === 'activity' || k === 'settings' ? `#/${k}?p=${encodeURIComponent(a)}` : href(a, k)}"${tab === k ? ' aria-current="page"' : ''}>${t}${c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}</nav>`;
 
   // ── Mounting and patching ──
   const dialogs = a => `<dialog class="p-dialog" id="p-stop" aria-labelledby="pstop-t" aria-describedby="pstop-d"><h2 id="pstop-t">Stop the lead for ${esc(a)}?</h2>
@@ -1781,8 +2051,7 @@ const Project = (() => {
       regions.push(...r);
       body = `<div class="p-grid${failedAt ? ' is-stale' : ''}">${r[0][1]}${r[1][1]}<div class="p-col">${r[2][1]}${r[3][1]}${r[4][1]}</div></div>`;
     } else {
-      const html = tab === 'tasks' ? tasksTab(p, S) : tab === 'outcomes' ? outcomesTab(p, S) : tab === 'audits' ? auditsTab(p, S) : tab === 'docs' ? docsTab(p, sub)
-        : `<div class="legacy">${projSettings(p)}</div>`;
+      const html = tab === 'tasks' ? tasksTab(p, S) : tab === 'outcomes' ? outcomesTab(p, S) : tab === 'audits' ? auditsTab(p, S) : docsTab(p, sub);
       const one = `<div class="p-col p-list" data-r="list">${html}</div>`;
       regions.push(['list', one]);
       body = one;
@@ -1898,35 +2167,6 @@ const Project = (() => {
 
   return { show, nowOf };
 })();
-
-function projSettings(p) {
-  const a = esc(p.alias);
-  const sel = (dial, value, options, label) => `<select data-dial="${dial}" data-project="${a}" aria-label="${label}">${options.map(([v, l]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
-  const gates = ['brief', 'spec', 'design', 'contracts'];
-  return `<div class="sec">How much you're involved</div>
-    <dl class="kv">
-      <dt>You approve</dt><dd><div class="btns">${gates.map(g => `<label class="tick"><input type="checkbox" data-gate="${g}" data-project="${a}" ${p.ownerGates.includes(g) ? 'checked' : ''}> ${g}</label>`).join('')}</div><div class="hint">Unticked phases are approved by the lead and logged. The auditor still checks after every phase. Your charter is always yours.</div></dd>
-      <dt>What you read</dt><dd>${sel('summaryStyle', p.summaryStyle, [['plain', 'Plain: short, non-technical summaries'], ['technical', 'Technical: full detail']], 'What you read')}</dd>
-      <dt>Gating</dt><dd>${sel('trust', p.trust, [['strict', 'Strict: approve every phase and task'], ['standard', 'Standard: approve phases'], ['loose', 'Loose: approve the brief only']], 'Gating')}</dd>
-      <dt>Reporting</dt><dd>${sel('reporting', p.reporting, [['everything', 'Everything'], ['daily', 'Daily digest'], ['exceptions', 'Exceptions only']], 'Reporting')}</dd>
-      <dt>Shipping</dt><dd>${sel('autonomy', p.autonomy, [['merge', 'Straight to main after review'], ['pr', 'Draft PRs you merge'], ['branch', 'Local branches only']], 'Shipping')}</dd>
-      <dt>Spend per task</dt><dd>${sel('budgetTask', String(p.budget?.task), [...new Set([5, 10, 15, 20, 30, 50, Number(p.budget?.task)])].sort((x, y) => x - y).map(v => [String(v), `${v} (then the lead decides whether to extend)`]), 'Spend per task')}</dd>
-      <dt>Spend per day</dt><dd>${sel('budgetDay', String(p.budget?.day), [...new Set([20, 40, 60, 100, 150, 250, 400, Number(p.budget?.day)])].sort((x, y) => x - y).map(v => [String(v), `${v} for the whole team, lead included`]), 'Spend per day')}<div class="hint">API-equivalent dollars: on your plan this measures usage, not a bill. When the day's budget is used up, new work waits until tomorrow.</div></dd>
-      <dt>Earned trust</dt><dd>${p.suggestion ? `${esc(p.suggestion.dial)} → ${esc(p.suggestion.to)}: ${p.suggestion.ready ? '<b>earned</b>' : 'not yet'} <span class="hint">(${esc(p.suggestion.why)})</span>` : '—'}</dd>
-    </dl>
-    <div class="sec">Your Claude plan<span class="faint"> · applies to all projects</span></div>
-    <dl class="kv">
-      <dt>5-hour window</dt><dd>${paceSel('fiveHour', state.pace?.fiveHour, [50, 60, 70, 80, 90])}</dd>
-      <dt>Week</dt><dd>${paceSel('sevenDay', state.pace?.sevenDay, [50, 60, 70, 75, 80, 90])} <label class="tick"><input type="checkbox" data-pace-spread ${state.pace?.spread ? 'checked' : ''}> spread evenly over the week</label>
-        <div class="hint">You use the same plan yourself. Atelier pauses when your usage reaches these levels, and resumes when the window resets.${state.pace?.holdingUntil ? ` <b>Holding now</b> until ${esc(new Date(state.pace.holdingUntil * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }))}.` : ''}</div></dd>
-    </dl>
-    <div class="sec">Team</div>
-    <div class="list">${p.roster.map(r => `<div class="item" style="cursor:default"><span class="t">${esc(r.role)}<small>${r.owns.length ? esc(r.owns.join(', ')) : 'read-only'}</small></span><span class="r">${esc(r.model || '')}</span></div>`).join('')}</div>
-    <div class="sec">Lead</div>
-    <div class="btns">${p.lead.running ? `<button class="btn" data-do="lead-restart" data-project="${a}">Restart fresh</button><button class="btn danger" data-do="lead-stop" data-project="${a}">Stop lead</button>` : `<button class="btn primary" data-do="lead-start" data-project="${a}">Start lead</button>`}</div>
-    <div class="sec">Numbers</div>
-    <dl class="kv"><dt>Your approvals</dt><dd>${p.metrics.approvals}</dd><dt>Overrules</dt><dd>${p.metrics.overrules}</dd><dt>Audit hit rate</dt><dd>${p.hit.confirmed}/${p.hit.judged} confirmed</dd><dt>Full test suite</dt><dd>${p.suite ? `<code>${esc(p.suite)}</code>` : '<span class="hint">not set (the lead sets it)</span>'}</dd><dt>Folder</dt><dd class="mono">${esc(p.repo)}</dd></dl>`;
-}
 
 // ---------- task page (D6 Task page; UX-4 A, UX-5 A, UX-10 A; R17-R20) ----------
 // What it is doing, whether it is really working, and the proof, in that order. Status, tries, money and outcomes come
@@ -2529,22 +2769,6 @@ document.addEventListener('click', async e => {
       case 'ruling': if (!text) return toast('Write the ruling first'); await act({ action: 'ruling', project: d.project, text }, 'Ruling added'); break;
     }
   } finally { b.disabled = false; }
-});
-
-document.addEventListener('change', e => {
-  const th = e.target.closest('select[data-theme-pick]');
-  if (th) { if (th.value === 'auto') { try { localStorage.removeItem('atelier-theme'); } catch { /* private mode */ } } else store.set('atelier-theme', th.value); applyTheme(); return toast('Saved on this device'); }
-  const g = e.target.closest('input[data-gate]');
-  if (g) {
-    const list = [...document.querySelectorAll(`input[data-gate][data-project="${CSS.escape(g.dataset.project)}"]`)].filter(x => x.checked).map(x => x.dataset.gate);
-    return act({ action: 'dial', project: g.dataset.project, dial: 'ownerGates', value: list.join(',') }, list.length ? `You approve: ${list.join(', ')}` : 'All phases delegated to the lead');
-  }
-  const s = e.target.closest('select[data-dial]');
-  if (s) return act({ action: 'dial', project: s.dataset.project, dial: s.dataset.dial, value: s.value }, 'Saved');
-  const pc = e.target.closest('select[data-pace]');
-  if (pc) return act({ action: 'pace', [pc.dataset.pace]: pc.value }, `Atelier pauses at ${pc.value}%`);
-  const sp = e.target.closest('input[data-pace-spread]');
-  if (sp) return act({ action: 'pace', spread: sp.checked }, sp.checked ? 'Spread over the week' : 'No weekly pacing');
 });
 
 // The owner is typing or reading an open fold: don't redraw under them.
