@@ -59,7 +59,22 @@ const STATUS_WORD = { 'needs-you': 'Needs you', running: 'Working', queued: 'Que
 async function get(path) {
   const r = await fetch(path, { credentials: 'same-origin' });
   if (r.status === 401) { renderLogin(); throw new Error('signed out'); }
-  return r.json();
+  const j = await r.json();
+  if (j?.stale) refreshSoon();
+  return j;
+}
+
+// The server answered from an old build and is rebuilding it: ask again now, and the server answers when
+// the rebuild is ready (not on the next 15 s tick).
+function refreshSoon() {
+  if (refreshSoon.timer || refreshSoon.tries >= 5) return; // a few tries per 15 s refresh, in case a rebuild keeps failing
+  refreshSoon.tries = (refreshSoon.tries || 0) + 1;
+  refreshSoon.timer = setTimeout(() => {
+    refreshSoon.timer = null;
+    if (document.hidden || !state) return;
+    if (busy()) return refreshSoon(); // don't redraw under the owner; check again later
+    refresh(true).catch(() => {});
+  }, 300);
 }
 
 async function act(body, done = 'Done') {
@@ -77,13 +92,15 @@ function toast(text) {
   clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), 2600);
 }
 
-async function refresh() {
-  state = await get('/api/overview');
+async function refresh(wait) {
+  const s = await get(`/api/overview${wait ? '?wait' : ''}`);
+  if (wait && busy()) return refreshSoon(); // the owner started typing while we waited
+  state = s;
   // A new version of the dashboard was installed: reload so the owner always sees the latest.
   if (loadedVersion && state.version && state.version !== loadedVersion) return location.reload();
   loadedVersion = loadedVersion || state.version;
   renderChrome();
-  await route();
+  await route({ refreshing: true, wait });
 }
 
 // ---------- chrome: sidebar + phone tab bar ----------
@@ -122,10 +139,10 @@ function renderChrome() {
 const topbar = (crumbs, right = '') => `<div class="top"><div class="crumbs">${crumbs}</div><div class="spacer"></div>${right}</div>`;
 
 // ---------- routing ----------
-async function route() {
+async function route({ refreshing = false, wait = false } = {}) {
   const [, kind, a, b, c] = (location.hash || '#/inbox').split('/');
   try {
-    if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c);
+    if (kind === 'p' && a) return await renderProject(decodeURIComponent(a), b || 'overview', c, refreshing, wait);
     if (kind === 't' && a) return await renderTask(decodeURIComponent(a));
     if (kind === 'new') return renderNew();
     if (kind === 'projects') return renderProjects();
@@ -352,8 +369,21 @@ function renderActivity() {
 }
 
 // ---------- project (Vercel) ----------
-async function renderProject(alias, tab, sub) {
-  const p = await get(`/api/project/${encodeURIComponent(alias)}`);
+// The last data seen for each project, so switching tabs paints at once; fresh data fills in when it arrives.
+const projectSeen = new Map();
+async function renderProject(alias, tab, sub, refreshing, wait) {
+  const hash = location.hash;
+  const seen = refreshing ? null : projectSeen.get(alias);
+  if (seen) drawProject(seen.p, tab, sub);
+  const p = await get(`/api/project/${encodeURIComponent(alias)}${wait ? '?wait' : ''}`);
+  if (location.hash !== hash) return; // the owner has already moved on
+  const text = JSON.stringify(p);
+  projectSeen.set(alias, { p, text });
+  if (seen && (seen.text === text || busy())) return; // already on screen, or the owner is typing in it
+  drawProject(p, tab, sub);
+}
+
+function drawProject(p, tab, sub) {
   const a = esc(p.alias);
   const own = state.queue.filter(q => q.project === p.alias);
   const step = nextStep(p, own);
@@ -576,7 +606,9 @@ function projSettings(p) {
 
 // ---------- task (Cursor / Devin agent view) ----------
 async function renderTask(id) {
+  const hash = location.hash;
   const t = await get(`/api/task/${encodeURIComponent(id)}`);
+  if (location.hash !== hash) return; // the owner has already moved on
   const m = t.meta;
   const s = taskStatus(m);
   const crit = t.criteria || [];
@@ -744,14 +776,18 @@ document.addEventListener('change', e => {
   if (sp) return act({ action: 'pace', spread: sp.checked }, sp.checked ? 'Spread over the week' : 'No weekly pacing');
 });
 
-// Refresh every 15 seconds while visible; never while the owner is typing or reading an open finding.
-setInterval(() => {
-  if (document.hidden || !state) return;
+// The owner is typing or reading an open finding: don't redraw under them.
+function busy() {
   const el = document.activeElement;
-  if (el && ['TEXTAREA', 'INPUT', 'SELECT'].includes(el.tagName)) return;
-  if (document.querySelector("details[open]:not([data-auto])")) return;
+  return (el && ['TEXTAREA', 'INPUT', 'SELECT'].includes(el.tagName)) || !!document.querySelector("details[open]:not([data-auto])");
+}
+
+// Refresh every 15 seconds while visible; never while the owner is busy.
+setInterval(() => {
+  refreshSoon.tries = 0;
+  if (document.hidden || !state || busy()) return;
   refresh().catch(() => {});
 }, 15000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && state) refresh().catch(() => {}); });
+document.addEventListener('visibilitychange', () => { refreshSoon.tries = 0; if (!document.hidden && state) refresh().catch(() => {}); });
 
 refresh().catch(() => {});
