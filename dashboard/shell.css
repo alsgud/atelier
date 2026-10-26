@@ -82,8 +82,13 @@ a { color: inherit; text-decoration: none; }
   .hf-head { padding: var(--space-2) var(--space-6); border-radius: 0; }
   .hf-body { padding: var(--space-6); }
 }
+/* Keyboard focus never lands under a sticky bar: scrolling to the focused control leaves room for the page head and a
+   project's tabs above, and on a phone for the tab bar below (WCAG 2.4.11). */
+html { scroll-padding-top: calc(var(--size-topbar) + var(--space-3)); scroll-padding-bottom: var(--space-3); }
+html:has(.p-tabs) { scroll-padding-top: calc(var(--size-topbar) + 44px + var(--space-3)); }
 /* ── Phone < 768: top bar, one column, tab bar ── */
 @media (max-width: 767px) {
+  html { scroll-padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-3)); }
   .hf { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom)); }
   .hf-rail { display: none; }
   .hf-top { display: flex; }

@@ -11,7 +11,7 @@
 /* dashboard: real finding titles run to three lines; give the fold's row air like the design's two-line ones */
 .p-doc > summary { padding: var(--space-2-5) 0; }
 .is-shot .p-tabs { position: relative; top: auto; }
-.p-doc { scroll-margin-top: calc(var(--size-topbar) + 44px + var(--space-4)); }
+.p-doc { scroll-margin-top: var(--space-1); } /* on top of the page's scroll-padding (shell.css) */
 .project .md { max-width: var(--measure); color: var(--text); font-size: var(--text-base); line-height: var(--leading-base); overflow-wrap: anywhere; }
 .project .md > :first-child { margin-top: 0; }
 .project .md p { margin: 0 0 var(--space-3); }
