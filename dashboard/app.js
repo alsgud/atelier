@@ -125,6 +125,8 @@ function st(status, title = status) {
   }
 }
 const taskStatus = t => t.status === 'failed' && /cancelled/.test(t.reason || '') ? 'cancelled' : t.status;
+// A running task the runner holds for the plan window (the server's 'paced' state): waiting, not working, never quiet.
+const pacedWords = x => `Waiting for your plan window${x?.resumesAt ? `, carries on at ${x.resumesAt}` : ''}`;
 const STATUS_WORD = { 'needs-you': 'Needs you', running: 'Working', queued: 'Queued', planned: 'Waiting for your OK', requested: 'Request', review: 'In review', done: 'Done', stalled: 'Stalled', failed: 'Failed', cancelled: 'Cancelled', paused: 'Paused' };
 
 // ---------- data ----------
@@ -544,7 +546,7 @@ const Inbox = (() => {
   // Decide each: a batch of outcomes becomes one Outcome item per draft, as the server lists a single draft
   // (same kind, same key), so each is approved or retired with that item's own dock and Undo.
   const expand = q => q.flatMap(x => x.kind !== 'criteria' || !S.each.has(x.project) ? [x]
-    : String(x.id).split(',').map((id, i) => ({ ...x, kind: 'criterion', id, title: x.statements?.[i] || id, statement: x.statements?.[i] || id, key: `criterion:${x.project}:${id}` })));
+    : String(x.id).split(',').map((id, i) => ({ ...x, kind: 'criterion', id, title: x.statements?.[i] || id, statement: x.statements?.[i] || id, key: `criterion:${x.project}:${id}`, from: x.key })));
   function decideEach() {
     const x = list().find(y => y.id === S.open);
     if (!x || x.q.kind !== 'criteria') return;
@@ -612,8 +614,10 @@ const Inbox = (() => {
   }
   function head() {
     const C = counts(), L = list(), n = C ? C.waiting : 0, u = C ? C.needsNow : 0;
-    const i = L.findIndex(x => x.id === S.open);
-    const pager = L.length > 1 ? `<div class="pager"><span class="of num">${i + 1} of ${L.length}</span>
+    // The pager counts the server's items, as the summary does: the outcomes split out of one batch are one item.
+    const src = L.map(x => x.q?.from || x.id), i = src.indexOf(src[L.findIndex(x => x.id === S.open)]);
+    const pos = new Set(src.slice(0, i + 1)).size, of = new Set(src).size;
+    const pager = L.length > 1 ? `<div class="pager"><span class="of num">${pos} of ${of}</span>
       <button class="btn btn-ghost btn-icon btn-sm" data-go="-1" aria-label="Previous item">${I('chevron-left')}</button>
       <button class="btn btn-ghost btn-icon btn-sm" data-go="1" aria-label="Next item">${I('chevron-right')}</button>
       <span class="hint"><span class="kbd">J</span><span class="kbd">K</span> to move</span></div>` : '';
@@ -1012,6 +1016,7 @@ const Office = (() => {
       if (x.kind === 'reviewer') d.what = `Reviewing ${x.what}`;
       if (x.state === 'needs') Object.assign(d, { k: 'needs', step: 'It asked you something. Answer it on its page' });
       else if (x.state === 'stuck') d.step = 'Stalled. The lead decides what happens next';
+      else if (x.state === 'paced') Object.assign(d, { step: pacedWords(x), prog: x.prog || null });
       else working();
     } else if (x.kind === 'reviewer') {
       d.step = 'Checks every task before it ships';
@@ -1033,7 +1038,7 @@ const Office = (() => {
   const strip = f => `<span class="strip" aria-hidden="true">${f.desks.map(d => `<i data-k="${d.k}"></i>`).join('')}</span>`;
   // Money in words (UX-11 C): the limit in red, "most of it used" from 80 %.
   const moneyLine = s => `${money(s.spentToday)} today${s.atLimit ? ', <span class="is-needs">at its limit</span>' : s.dayLimit && s.spentToday >= 0.8 * s.dayLimit ? ', most of it used' : ''}`;
-  const floorSum = f => `${f.s.working} working · ${moneyLine(f.s)}`;
+  const floorSum = f => `${f.s.working} working${f.s.paced ? ` · ${f.s.paced} waiting for your plan window` : ''} · ${moneyLine(f.s)}`;
   const quietNote = f => `Lead off · nothing running${f.s.waiting ? ` · ${f.s.waiting} waiting on you in the Inbox` : ''}`;
 
   function model() {
@@ -1042,13 +1047,13 @@ const Office = (() => {
       const keys = new Set();
       const desks = p.team.agents.map(x => deskOf(p, x, keys)).map((d, i) => [d, i]).sort((x, y) => ORDER[x[0].k] - ORDER[y[0].k] || x[1] - y[1]).map(x => x[0]);
       const s = C.projects[p.alias] || {};
-      return { a: p.alias, s, desks, quiet: !p.lead?.running && !s.working && !s.agentsNeed };
+      return { a: p.alias, s, desks, quiet: !p.lead?.running && !s.working && !s.paced && !s.agentsNeed };
     });
     floors.sort((x, y) => (y.s.working - x.s.working) || (y.s.agentsNeed - x.s.agentsNeed) || (+y.s.lead - +x.s.lead));
     return { C, floors };
   }
 
-  const head = C => `<h1>Office</h1>${C ? `<span class="hf-sum num"><span data-count="working">${C.working}</span> working · <span${C.agentsNeed ? ' class="is-needs"' : ''}>${C.agentsNeed} need${C.agentsNeed === 1 ? 's' : ''} you</span> · ${C.onDuty} on duty</span>` : ''}<span class="end">${liveLine()}</span>`;
+  const head = C => `<h1>Office</h1>${C ? `<span class="hf-sum num"><span data-count="working">${C.working}</span> working · ${C.paced ? `${C.paced} waiting for your plan window · ` : ''}<span${C.agentsNeed ? ' class="is-needs"' : ''}>${C.agentsNeed} need${C.agentsNeed === 1 ? 's' : ''} you</span> · ${C.onDuty} on duty</span>` : ''}<span class="end">${liveLine()}</span>`;
 
   const board = floors => `<div class="board${failedAt ? ' is-stale' : ''}">
     ${floors.filter(f => !f.quiet).map(f => `<section class="floor" aria-labelledby="fl-${esc(f.a)}" data-floor="${esc(f.a)}">
@@ -1252,7 +1257,9 @@ const Project = (() => {
     const PH = { brief: 'The lead is shaping the brief.', spec: 'The spec is being written.', design: 'The design is being drawn.', contracts: 'The contracts are being drafted.' };
     if (PH[p.phase]) return [PH[p.phase], 'It comes to your Inbox for your OK when it is ready.', null];
     const queued = S.tasks?.queued || 0;
-    if (S.working) return ['The team is building.', `${S.working} working${queued ? `, ${queued} queued` : ''}. Nothing needs you right now.`, null];
+    const paced = S.paced ? `${S.paced} waiting for your plan window` : '';
+    if (S.working) return ['The team is building.', `${S.working} working${paced ? `, ${paced}` : ''}${queued ? `, ${queued} queued` : ''}. Nothing needs you right now.`, null];
+    if (S.paced) return ['The team is waiting for your plan window.', `${S.paced === 1 ? 'Its task carries' : `${S.paced} tasks carry`} on by ${S.paced === 1 ? 'itself' : 'themselves'} when the window has room. Nothing needs you right now.`, null];
     if (queued) return ['Work is queued.', `${queued} task${queued === 1 ? '' : 's'} start${queued === 1 ? 's' : ''} as soon as a teammate is free.`, null];
     if (p.tasks.length) return ['All current work is finished.', `Tell the lead what’s next: talk to “${a} lead” in the Claude app.`, null];
     return ['The lead is planning the build.', 'Task plans come to your Inbox for your OK.', null];
@@ -1265,6 +1272,7 @@ const Project = (() => {
   };
   const figs = S => `<p class="p-figs num">
       <span><b>${S.working}</b> working</span>
+      ${S.paced ? `<span><b>${S.paced}</b> waiting for your plan window</span>` : ''}
       ${S.needsNow ? `<span class="is-needs"><b>${S.needsNow}</b> need${S.needsNow === 1 ? 's' : ''} you now</span>` : ''}
       <span><b>${S.waiting}</b> waiting on you</span>
       ${S.outcomes?.of ? `<span><b>${S.outcomes.met}</b> of ${S.outcomes.of} outcomes met</span>` : ''}
@@ -1292,13 +1300,14 @@ const Project = (() => {
     else if (s === 'done') Object.assign(v, { k: 'done', stage: 4, step: t.reason ? cap1(t.reason) : 'Finished' });
     else if (s === 'needs-you') v.step = 'It asked you something. Answer it on its page';
     else if (s === 'stalled') v.step = 'Stalled. The lead decides what happens next';
+    else if (x.state === 'paced') Object.assign(v, { stage: review ? 3 : 1, step: pacedWords(x), paced: true });
     else if (review) Object.assign(v, { k: x.state === 'reviewing' ? 'active' : '', stage: 3, step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'The reviewer is checking it' });
     else if (s === 'running') Object.assign(v, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started on this try' });
     else v.step = t.reason ? cap1(t.reason) : STATUS_WORD[s] || s;
     const n = x.prog || (t.iteration ? [t.iteration, t.iterations, 'try'] : null);
     if (n && s !== 'queued' && s !== 'done') v.prog = `Try ${n[0]} of ${n[1]}`;
-    v.ago = x.lastAt ? longAgo(x.lastAt) : s === 'done' ? longAgo(t.updated) : '';
-    v.word = v.k === 'active' ? 'Working' : v.k === 'done' ? 'Done' : s === 'needs-you' ? 'Needs you' : v.who === 'Next' ? 'Next' : STATUS_WORD[s] || 'Waiting';
+    v.ago = v.paced ? '' : x.lastAt ? longAgo(x.lastAt) : s === 'done' ? longAgo(t.updated) : '';
+    v.word = v.k === 'active' ? 'Working' : v.k === 'done' ? 'Done' : s === 'needs-you' ? 'Needs you' : v.paced ? 'Waiting' : v.who === 'Next' ? 'Next' : STATUS_WORD[s] || 'Waiting';
     return v;
   }
   const stageTrack = st => `<span class="p-stages" role="img" aria-label="Stage: ${STAGES[st]}">${STAGES.map((n, i) => `<i class="${i < st ? 'past' : i === st ? 'now' : ''}"></i>`).join('')}</span>`;
@@ -1369,9 +1378,10 @@ const Project = (() => {
     const groups = GROUP.filter(([s]) => by[s]).map(([s, label, k]) => {
       const rows = p.tasks.filter(t => taskStatus(t) === s).map(t => {
         const v = taskView(p, t);
-        const sub = s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${t.reason ? ` · ${t.reason}` : ''}`;
-        const eta = s === 'running' && t.eta ? `about ${t.eta.low}–${t.eta.high} min left` : '';
-        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(t.updated)}`)}">${dot(k, label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${tries(t)}<span class="p-id">${esc(t.id)}</span>${esc(when(t.updated))}</span></a>`;
+        // A paced task stays in its status group (the summary counts it there) but reads as waiting: no ETA, not lit.
+        const sub = v.paced ? `${v.who} · ${v.step}${v.prog ? ` · ${v.prog}` : ''}` : s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${t.reason ? ` · ${t.reason}` : ''}`;
+        const eta = s === 'running' && t.eta && !v.paced ? `about ${t.eta.low}–${t.eta.high} min left` : '';
+        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${v.paced ? v.word : label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(t.updated)}`)}">${dot(v.paced ? '' : k, v.paced ? v.word : label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${tries(t)}<span class="p-id">${esc(t.id)}</span>${esc(when(t.updated))}</span></a>`;
       }).join('');
       return `<section class="p-sec"><h3 class="p-h3">${label} <span class="n">${by[s]}</span></h3><div class="p-rows">${rows}</div></section>`;
     }).join('');
@@ -1718,6 +1728,7 @@ const Task = (() => {
     const T = { ...m, ...row };
     const s = taskStatus(T), reason = T.reason || '';
     const reviewing = ag.kind === 'reviewer' || /in review/.test(reason);
+    const paced = s === 'running' && (ag.state === 'paced' || /^paced:/.test(reason));
     const live = row.live || t.live || {};
     const of = Number(T.iterations) || 0, n = live.current?.n || 0;
     const tries = [...(live.history || []).map(h => h.check === 'pass' ? 'p' : h.check === 'fail' ? 'f' : 'x'), ...(live.current ? ['n'] : [])];
@@ -1730,11 +1741,13 @@ const Task = (() => {
     const passed = /verdict:\s*\**\s*approve/i.test(t.review || '');
     const role = cap1(reviewing ? 'reviewer' : m.role || 'builder');
     const v = { id: m.id, title: m.title, a, role, k: '', word: STATUS_WORD[s] || cap1(s), stage: 1, step: '', why: '', stop: '', dock: '',
-      tries, used, of, n, outs, spent, limit, eta: s === 'running' && !reviewing ? T.eta : null, t, m, ag, s, last: '', quiet: ag.quietMin || 0 };
+      tries, used, of, n, outs, spent, limit, eta: s === 'running' && !reviewing && !paced ? T.eta : null, t, m, ag, s, last: '', quiet: paced ? 0 : ag.quietMin || 0 };
     const merge = m.pr ? 'its pull request is ready for you to merge' : m.where === 'local' || T.autonomy === 'branch' ? `it waits on ${m.branch || 'its branch'} for you to merge` : 'it lands by itself';
     switch (s) {
       case 'running':
-        Object.assign(v, reviewing
+        Object.assign(v, paced
+          ? { word: 'Waiting', stage: reviewing ? 3 : 1, step: pacedWords(ag), why: 'Your Claude plan window is nearly full, so it waits instead of running into the limit. It carries on by itself; nothing it did is lost.' }
+          : reviewing
           ? { k: 'active', word: 'In review', stage: 3, step: ag.step || 'Checking the work against its outcomes', why: 'The reviewer checks the work against its outcomes, and looks at the proof, before it ships.' }
           : { k: 'active', word: 'Working', step: ag.step || 'Getting started on this try', why: `Each try ends with its check. Once the check passes, the reviewer looks at the work.${T.eta ? ` Likely ${T.eta.low}–${T.eta.high} min left.` : ''}` });
         v.stop = 'Stop task…'; break;
@@ -1749,7 +1762,7 @@ const Task = (() => {
       case 'paused': Object.assign(v, { step: /owner/.test(reason) ? 'You stopped it' : 'Paused', why: 'This try’s work is kept as it is. The lead decides what happens next.' }); break;
       default: Object.assign(v, { step: v.word, why: reason ? `${cap1(reason)}.` : '' });
     }
-    v.label = v.k === 'done' ? `${role} · finished ${longAgo(T.updated)}` : s === 'running' || s === 'needs-you' ? `${role} · now` : `${role} · ${when(T.updated)}`;
+    v.label = v.k === 'done' ? `${role} · finished ${longAgo(T.updated)}` : (s === 'running' && !paced) || s === 'needs-you' ? `${role} · now` : `${role} · ${when(T.updated)}`;
     v.last = ag.lastAt || T.updated;
     // Building fills to tries used of those it is likely to need; other stages have no measure, so their bar is whole.
     v.fill = v.stage === 1 && n ? Math.round(100 * n / Math.max(n, Number(T.eta?.expected) || of || n)) : 100;
