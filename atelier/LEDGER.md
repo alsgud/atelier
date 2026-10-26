@@ -45,6 +45,9 @@
 
 - Why these review tasks wait (2026-10-26): 68h6, 57cv, hspr, ysk4, 6umt and pjv7 are the design chain, each built on the last. Under `branch` autonomy the lead can't land them; they reach main when the owner approves the design gate and merges atelier/pjv7 (the chain tip). Right now the gate is blocked because the main checkout has the owner's uncommitted README line. The owner has been asked to commit or drop it.
 
+## Lead lesson: leaked watches (2026-10-27)
+- Every expired Monitor left its `atelier watch` node process running (Windows doesn't kill the child). Found 107 orphans: 71 atelier-ui (mine, killed), 29 replay, 7 voice-assistant (other leads': owner told). They re-read every board card on each event: likely cause of the owner's lag and the frequent EPERM crashes. ALWAYS arm the watch as `timeout 1750 node "C:/Users/oiyew/AppData/Roaming/npm/node_modules/atelier/bin/atelier.mjs" watch atelier-ui` (exits itself before the Monitor's 30 min; tested: no leftover). Core fix for the owner: `atelier watch` should exit when its parent is gone.
+
 ## Lead lesson
 - `atelier answer` on a needs-you task already requeues and starts it. Do not also run `retry` or `tick`: pjv7 started twice and failed with EPERM on the board file rename (2026-10-26). One retry after that.
 
