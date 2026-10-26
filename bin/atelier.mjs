@@ -12,7 +12,6 @@ import { tick } from '../lib/tick.mjs';
 import { run, killTree, alive, atelierEnv, spawnDetached, runCheck } from '../lib/runner.mjs';
 import * as budget from '../lib/budget.mjs';
 import * as toolkit from '../lib/toolkit.mjs';
-import * as projenv from '../lib/projenv.mjs';
 import * as project from '../lib/project.mjs';
 import * as guard from '../lib/guard.mjs';
 import * as decisions from '../lib/decisions.mjs';
@@ -166,8 +165,7 @@ function add() {
   if (!flags.check) throw new Error('every task needs --check: a command that exits 0 only when the task is done');
   const repoPath = resolveRepo(repoArg);
   const d = cfg.defaults;
-  // A project may name its integration branch (e.g. 'v2' while main runs live); otherwise the checkout's branch.
-  const base = flags.base || project.tryLoad(repoAlias(repoPath))?.base || gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || d.base;
+  const base = flags.base || gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || d.base;
   const alias = repoAlias(repoPath);
   const p = project.tryLoad(alias);
   const role = flags.role || '';
@@ -197,7 +195,7 @@ function add() {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
       criteria: decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '').join(','),
-      ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.evidence === 'none' ? { evidence: 'none' } : {}), ...(after.length ? { waits_on: after.join(','), reason: `waiting for ${after.join(', ')} to be done` } : {}), ...(typeof flags.paid === 'string' ? { paid: flags.paid } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
+      ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.evidence === 'none' ? { evidence: 'none' } : {}), ...(after.length ? { waits_on: after.join(','), reason: `waiting for ${after.join(', ')} to be done` } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
       repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
       model: flags.model || p?.roster.find(r => r.role === role)?.model, effort: flags.effort, priority: num(flags.priority, 3),
@@ -475,52 +473,6 @@ function projectCmd() {
       owner.setDial(alias, sub, more[0]);
       return console.log(`${alias} ${sub} → ${more[0]}`);
     }
-    case 'base': {
-      owner.assertOwner('set the project base branch');
-      const p = project.load(alias);
-      p.base = more[0] || '';
-      project.save(p);
-      return console.log(p.base ? `${alias}: tasks branch from and land on ${p.base}` : `${alias}: tasks use the checkout's branch`);
-    }
-    case 'setup': {
-      // Run once in every new worktree before its first iteration (dependencies, builds).
-      const p = project.load(alias);
-      p.setup = more.join(' ');
-      project.save(p);
-      return console.log(p.setup ? `${alias}: new worktrees run \`${p.setup}\` first` : `${alias}: no setup command`);
-    }
-    case 'data': {
-      // Files the code needs that git doesn't hold, copied into each new worktree (never the live folder).
-      owner.assertOwner('choose project data copies');
-      const p = project.load(alias);
-      p.dataCopy = more.join(' ').split(/[\s,]+/).filter(Boolean);
-      project.save(p);
-      return console.log(p.dataCopy.length ? `${alias}: new worktrees get a copy of ${p.dataCopy.join(', ')}` : `${alias}: worktrees get no data copies`);
-    }
-    case 'guard': {
-      // Project-specific commands: 'live' ones need the owner's OK (speakers, mic, live accounts);
-      // 'paid' ones need the lead's approval on the task. Patterns are regular expressions.
-      owner.assertOwner('change project guards');
-      const [kind, pattern, ...label] = more;
-      if (!['live', 'paid'].includes(kind) || !pattern) throw new Error('usage: atelier project guard <alias> live|paid "<regex>" <label>');
-      const p = project.load(alias);
-      const key = kind === 'live' ? 'liveCommands' : 'paidCommands';
-      p[key] = [...(p[key] || []).filter(x => x.pattern !== pattern), { pattern, label: label.join(' ') || pattern }];
-      project.save(p);
-      return console.log(`${alias} ${kind} commands: ${p[key].map(x => x.label).join(', ')}`);
-    }
-    case 'env': {
-      // The project's keys: imported once by the owner, kept in Atelier's state, given to its runs.
-      const [action, from] = more;
-      if (action === 'import') {
-        owner.assertOwner('import project keys');
-        if (!from || !fs.existsSync(from)) throw new Error('usage: atelier project env <alias> import <path to .env> [--drop KEY,KEY] [--keep-live]');
-        const r = projenv.importFile(alias, from, { drop: typeof flags.drop === 'string' ? flags.drop.split(',').map(s => s.trim()) : [], keepLive: !!flags['keep-live'] });
-        return console.log(`${alias}: ${r.kept.length} keys stored for its runs (values not shown)${r.dropped.length ? `; left out: ${r.dropped.join(', ')}` : ''}`);
-      }
-      const e = projenv.load(alias);
-      return console.log(e ? `${alias}: ${Object.keys(e.env).length} keys from ${e.from} (${e.importedAt.slice(0, 10)}): ${Object.keys(e.env).join(', ')}${e.dropped.length ? `\nleft out: ${e.dropped.join(', ')}` : ''}` : `${alias}: no keys imported`);
-    }
     case 'suite': {
       // The project's full test suite: run when a task claims done and again on merge.
       const p = project.load(alias);
@@ -574,7 +526,6 @@ function approve(id) {
   const patch = { status: 'queued', reason: '' };
   if (typeof flags.check === 'string') patch.check = flags.check;
   if (typeof flags.criteria === 'string') patch.criteria = decisions.criteriaIds(flags.criteria).join(',');
-  if (typeof flags.paid === 'string') patch.paid = flags.paid;
   if (!m.check && !patch.check) throw new Error(`${id} has no done-check yet; approve it with --check "<cmd>"`);
   cards.update(id, patch);
   events.emit(id, 'approved', `request approved by lead: ${m.title}`);
@@ -885,7 +836,7 @@ function request() {
     meta: {
       id, title: `Request: ${text.slice(0, 70)}${text.length > 70 ? '…' : ''}`, status: 'requested',
       project: alias, role: to, requested_by: fromId || '', kind: typeof flags.kind === 'string' ? flags.kind : '', repo: repoPath,
-      base: from?.base || p.base || gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || d.base,
+      base: from?.base || gitx.git(repoPath, 'symbolic-ref', '--short', 'HEAD').out || d.base,
       where: 'local', autonomy: d.autonomy, check: '', iterations: 6, hours: 2, priority: 2, iteration: 0,
       created: new Date().toISOString(),
     },

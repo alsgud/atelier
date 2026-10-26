@@ -28,6 +28,3 @@ _2026-10-25 · owner chat 2026-10-26: work us through layout, design, workflow, 
 
 ## R-9: Spend is not a constraint for this project: the only limit is the owner's weekly Claude plan window. The lead still spends with care (right-sized tasks, cheapest capable model) but does not hold back owner-requested work or quality to save money.
 _2026-10-25 · owner chat 2026-10-26: don't worry about credit usage, you're limited only to the weekly limit reset, you have full access to credits_
-
-## R-10: Until the weekly plan reset (Tue 2026-10-27 02:00), spend freely and use all capacity; budgets and the daily limit are not a reason to slow down. Atelier's own stop at 75% of the week still applies.
-_2026-10-26 · owner chat 2026-10-26: dont worry about limits or budgets. go full usage until next weekly reset_
