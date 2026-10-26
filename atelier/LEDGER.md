@@ -57,6 +57,7 @@
 - Tasks left in review on purpose (autonomy `branch`, `atelier land` refuses): 6dug waits for the owner's merge; 68h6 -> 57cv -> hspr -> ysk4 -> 6umt -> pjv7 is the design chain, each based on the last; the whole chain reaches main in one owner merge at the design gate. All of them reach main in one owner merge at the design gate.
 - 6dug round 2: tab switch paint 838 ms median / 4.5 s max -> 2 ms / under 40 ms; warm API 4 ms. Must-fix: after being unwatched it shows old data for 15 s. Lead answered with the fix (stale flag + quick re-fetch). $5.90 of $10.
 - Atelier core bug (owner's code): a task fails when its end-of-iteration leftovers commit finds nothing to commit (ysk4, 2026-10-25). Lead used `atelier retry` with an answer note. Mention to owner.
+- Atelier core (owner's call), from request 45nt 2026-10-26: card writes fail with EPERM on Windows when the atomic rename races a reader (a dashboard Stop answers 500 in about 2 of 8 tries; same error as the pjv7 double start). Fix: retry the rename on EPERM/EBUSY in the card writer. Lead told the frontend to retry once in lib/dashboard.mjs meanwhile.
 - Follow-ups outside the frontend's files (Atelier core, owner's call): memoize cards.all() by board mtime (lib/card.mjs:67), tail-read audit logs in budget.auditRuns (lib/budget.mjs:66), tick log grows ~15 KB/day. Mention to owner with the hotfix.
 - Live dashboard too slow to use (R-4). 6dug measuring and fixing on its branch; reviewer must show before/after timings.
 - 68h6 stays in review on branch atelier/68h6 (autonomy `branch`); 57cv builds on it.
