@@ -212,7 +212,7 @@ function counts() {
 
 // ---------- shell: sidebar, rail, top bar, tab bar ----------
 function place() {
-  const [, kind, a] = (location.hash || '#/inbox').split('/');
+  const [, kind, a] = (location.hash || '#/inbox').split('?')[0].split('/');
   if (kind === 'p' && a) return decodeURIComponent(a);
   return kind || 'inbox';
 }
@@ -288,7 +288,7 @@ let shownTab = null;
 async function route({ refreshing = false, wait = false } = {}) {
   if (!state && !failedAt) return renderLoading();
   renderChrome();
-  const [, kind, a, b, c] = (location.hash || '#/inbox').split('/');
+  const [, kind, a, b, c] = (location.hash || '#/inbox').split('?')[0].split('/');
   const tab = tabOf(place());
   const prev = shownTab;
   const moved = prev && prev !== tab && !refreshing;
@@ -297,11 +297,13 @@ async function route({ refreshing = false, wait = false } = {}) {
       if (kind === 'inbox' || !kind) return Inbox.show(a ? decodeURIComponent(a) : null, { refreshing });
       Inbox.leave();
       if (!state) return renderPageError();
+      // A project's Activity tab is the Activity screen filtered to it (D6); old links land there too.
+      if (kind === 'p' && a && b === 'activity') { history.replaceState(null, '', `#/activity?p=${a}`); return await Activity.show(false); }
       if (kind === 'p' && a) return await Project.show(decodeURIComponent(a), b || 'overview', c ? decodeURIComponent(c) : c, refreshing, wait);
       if (kind === 't' && a) return await Task.show(decodeURIComponent(a), refreshing);
       if (kind === 'new') return renderNew();
       if (kind === 'projects') return Projects.show();
-      if (kind === 'activity') return renderActivity();
+      if (kind === 'activity') return await Activity.show(refreshing, wait);
       if (kind === 'office') return Office.show();
       if (kind === 'settings') return renderSettings();
       return Inbox.show(null, { refreshing });
@@ -336,6 +338,7 @@ function renderLoading() {
   if (!$('view')) return;
   if (place() === 'office') return Office.loading();
   if (place() === 'projects') return Projects.loading();
+  if (place() === 'activity') return Activity.loading();
   // First load only: skeletons where the Inbox will be, counts hidden in the chrome (DESIGN §5).
   const sk = (w, h = 12) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
   $('view').innerHTML = `<header class="page-head"><h1>${place() === 'inbox' ? 'Inbox' : 'Atelier'}</h1><span class="summary">Loading…</span></header>
@@ -353,6 +356,7 @@ function pageLoading(crumbs) {
 }
 function renderPageError() {
   if (place() === 'projects') return Projects.error();
+  if (place() === 'activity') return void ($('view').innerHTML = `<div class="scr acts"><header class="hf-head"><h1>Activity</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('Activity')}</div></div>`);
   if (place() === 'office') return void ($('view').innerHTML = `<header class="hf-head"><h1>Office</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('The Office')}</div>`);
   legacy(`<div class="top"><div class="crumbs"><b>Atelier</b></div></div><div class="page">${loadError('This page')}</div>`);
 }
@@ -1213,17 +1217,191 @@ const Projects = (() => {
 
 // ---------- activity ----------
 const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iteration', criteria: 'Criteria', suite: 'Full suite', 'review-started': 'Review started', reviewed: 'Reviewed', done: 'Finished', review: 'Ready for review', 'needs-you': 'Needs you', stalled: 'Stalled', failed: 'Failed', approved: 'Approved', answered: 'Answered', gate: 'Gate', 'gate-request': 'Gate requested', audit: 'Audit', 'audit-started': 'Audit started', 'finding-confirmed': 'You asked for a fix', 'finding-dismissed': "You said it's fine", 'finding-to-lead': 'Auditor → lead', 'finding-fixed': 'Lead fixed', 'criterion-draft': 'Criterion drafted', 'criterion-approve': 'Criterion approved', 'criterion-accept': 'Criterion accepted', 'criterion-reject': 'Criterion rejected', ruling: 'Ruling', message: 'Message', requested: 'Request', 'test-touch': 'Tests changed', 'owner-review': 'Needs your judgement', trust: 'Gating', reporting: 'Reporting', autonomy: 'Shipping', lead: 'Lead', charter: 'Charter', demoted: 'Trust tightened', ownership: 'Out-of-bounds edit reverted', paced: 'Paused for plan limits', queued: 'Queued', project: 'Project' };
-function eventLine(e, showProject = true) {
-  const bad = /failed|stalled|FAIL|demoted|tampered|reverted/.test(`${e.type} ${e.msg}`);
-  const good = /^(done|approved|criterion-accept|finding-confirmed)$/.test(e.type) || / pass|approve/.test(e.msg);
-  return `<li><span>${st(bad ? 'needs-you' : good ? 'done' : 'queued')}</span>
-    <span>${showProject ? `<span class="mono faint">${esc(e.id)}</span> ` : ''}<span class="ev-k">${esc(EVENT_WORD[e.type] || e.type.replace(/-/g, ' '))}</span> <span class="muted">${esc(e.msg)}</span></span>
-    <span class="when">${esc(ago(e.ts))}</span></li>`;
-}
 
-function renderActivity() {
-  legacy(`${topbar('<b>Activity</b>')}<div class="page"><ul class="timeline">${state.events.slice(0, 120).map(e => eventLine(e)).join('') || '<div class="empty">No activity yet</div>'}</ul></div>`);
-}
+// =====================================================================================================
+// Activity (D6 design/screens2/activity.html; UX-13 A). One feed by day, newest first, each event a line you can read
+// aloud: its name, what happened, the project and task under it. Red only for problems, green for good news. Two
+// filters: a project picker and Only problems; both live in the address (#/activity?p=<alias>&only=problems), so back
+// and reload keep them. A project's Activity tab is this screen filtered to the project. Data: GET /api/activity
+// (the last 3 days) and /api/activity/<alias> (the project's, at least its last 100). A refresh adds new events at the
+// top of Today and leaves the rest alone, so scroll and focus stay (R7).
+// =====================================================================================================
+const Activity = (() => {
+  const PAGE = 150; // rows drawn at once; real data has hundreds of events in 3 days
+  const seen = new Map(); // read key → { events, since }
+  let f = { p: '', only: false }, limit = PAGE, drawnKeys = [], drawnHTML = '', mounted = '';
+  const DAY = 86_400_000;
+
+  const keyOf = e => `${e.ts}|${e.id}|${e.type}`;
+  const word = e => EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' '));
+  const KW = { needs: 'Problem: ', done: 'Good news: ', '': '' };
+  const dayOf = ts => {
+    const d = new Date(ts), t = new Date(); t.setHours(0, 0, 0, 0);
+    const diff = Math.round((t - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / DAY);
+    return diff <= 0 ? 'Today' : diff === 1 ? 'Yesterday' : d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }).replace(',', '');
+  };
+  const linkOf = e => e.task ? `#/t/${encodeURIComponent(e.id)}` : e.project ? `#/p/${encodeURIComponent(e.project)}/overview` : '';
+  const sub = e => [e.project, e.task || (e.id !== e.project ? e.id : '')].filter(Boolean).join(' · ');
+  const label = e => `${hhmm(e.ts)}, ${[e.project, e.task].filter(Boolean).join(', ') || e.id}. ${KW[e.k]}${word(e)}. ${e.msg}`;
+  const row = e => {
+    const href = linkOf(e), tag = href ? 'a' : 'div';
+    return `<li data-key="${esc(keyOf(e))}"><${tag} class="act-row"${href ? ` href="${href}"` : ''} data-k="${e.k}" aria-label="${esc(label(e))}">
+      <time class="num" datetime="${esc(e.ts)}">${hhmm(e.ts)}</time><span class="dot${e.k ? ` dot-${e.k}` : ''}" aria-hidden="true"></span>
+      <span class="act-t"><span class="act-l"><b>${esc(word(e))}</b> ${esc(e.msg)}</span>${sub(e) ? `<span class="act-s">${esc(sub(e))}</span>` : ''}</span></${tag}></li>`;
+  };
+
+  const readKey = () => f.p ? `p:${f.p}` : 'all';
+  // What's on hand for the current filter: the project's own read, else the 3-day read filtered to it (until it lands).
+  const data = () => seen.get(readKey()) || (f.p && seen.has('all') ? { ...seen.get('all'), events: seen.get('all').events.filter(e => e.project === f.p), partial: true } : null);
+  const shown = d => d.events.filter(e => !f.only || e.k === 'needs');
+  const span = d => d.since < Date.now() - 3 * DAY - 600_000 ? `Since ${new Date(d.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Last 3 days';
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const summary = d => { const l = shown(d); return `${span(d)} · ${plural(l.length, 'event')}${f.only ? '' : ` · ${plural(l.filter(e => e.k === 'needs').length, 'problem')}`}`; };
+
+  function feed(d) {
+    const list = shown(d);
+    if (!list.length) {
+      const where = f.p ? ` in ${esc(f.p)}` : '', when = span(d) === 'Last 3 days' ? 'in the last 3 days' : 'lately';
+      return { keys: [], html: `<div class="act-none"><p>${f.only ? `No problems${where} ${when}.` : `Nothing happened${where} ${when}.`}</p><button class="btn btn-secondary" type="button" data-act-all>Show everything</button></div>` };
+    }
+    const top = list.slice(0, limit), days = new Map();
+    for (const e of list) { const k = dayOf(e.ts); days.set(k, (days.get(k) || 0) + 1); }
+    const groups = new Map();
+    for (const e of top) { const k = dayOf(e.ts); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); }
+    const id = k => `ad-${k.replace(/\W/g, '')}`;
+    const html = [...groups].map(([k, rows]) => `<section class="act-day" aria-labelledby="${id(k)}"><h2 id="${id(k)}">${esc(k)}<span class="n num">${days.get(k)}</span></h2>
+      <ol class="act-list" data-day="${esc(k)}">${rows.map(row).join('')}</ol></section>`).join('')
+      + (list.length > top.length ? `<button class="btn btn-secondary act-more" type="button" data-act-more>Show ${Math.min(PAGE, list.length - top.length)} older events</button>` : '');
+    return { keys: top.map(keyOf), html };
+  }
+
+  const options = () => ['', ...state.projects.map(p => p.alias)].map(a => `<option value="${esc(a)}"${a === f.p ? ' selected' : ''}>${a ? esc(a) : 'All projects'}</option>`).join('');
+  const filters = () => `<div class="act-filters" role="group" aria-label="Filter">
+      <label class="sr-only" for="a-proj">Project</label>
+      <span class="act-select"><select class="input" id="a-proj">${options()}</select>${I('chevron-down')}</span>
+      <button class="btn btn-secondary act-only" type="button" aria-pressed="${f.only}" data-act-only><span class="dot dot-needs" aria-hidden="true"></span>Only problems</button></div>`;
+  const head = d => `${f.p ? `<a class="back" href="#/p/${encodeURIComponent(f.p)}/overview">${I('chevron-left')}<span>${esc(f.p)}</span></a>` : ''}<h1>Activity</h1>${d ? `<span class="hf-sum num" data-act-sum aria-live="polite">${summary(d)}</span>` : ''}<span class="end">${liveLine()}</span>`;
+  const frame = (h, body) => `<div class="scr acts"><header class="hf-head" data-act-head>${h}</header><div class="hf-body">${body}</div></div>`;
+  const firstRun = () => `<div class="hf-empty"><h2>Nothing has happened yet.</h2><p>Once a project starts, everything its team does shows up here, newest first: steps, proof, checks, reviews and what you decided.</p><a class="btn btn-primary" href="#/new">${I('plus')}New project</a></div>`;
+
+  function loading() {
+    const sk = (w, h) => `<span class="skeleton" style="width:${w};height:${h}px"></span>`;
+    $('view').innerHTML = frame(head(null), `<div class="act" aria-busy="true" aria-label="Loading activity">${sk('260px', 36)}${[5, 3].map(n => `<section class="act-day">${sk('80px', 14)}${Array.from({ length: n }, () => sk('100%', 44)).join('')}</section>`).join('')}</div>`);
+    mounted = '';
+  }
+  function error() { $('view').innerHTML = frame(head(null), loadError('Activity')); mounted = ''; }
+
+  // Draw the whole screen, or (same filter, same screen) only what changed: new events slide in at the top of Today.
+  function draw() {
+    const d = data(), view = $('view');
+    if (!d) return loading();
+    const root = view.querySelector(':scope > .acts');
+    const sig = `${f.p}|${f.only}`;
+    if (!d.events.length && !f.p && !f.only) { view.innerHTML = frame(`<h1>Activity</h1>`, firstRun()); mounted = ''; return; }
+    const fd = feed(d);
+    if (root && mounted === sig && root.querySelector('[data-act-feed]')) {
+      const h = root.querySelector('[data-act-head]'), hh = head(d);
+      if (h.dataset.html !== hh) {
+        // Same project as drawn, so the same back link: only the summary (ticking when it changes) and the live line move.
+        const s = h.querySelector('[data-act-sum]'), nowSum = summary(d);
+        if (s && h.dataset.p === f.p) { if (s.textContent !== nowSum) { s.textContent = nowSum; tick(s); } h.querySelector('.end').innerHTML = liveLine(); }
+        else h.innerHTML = hh;
+        h.dataset.html = hh; h.dataset.p = f.p;
+      }
+      root.querySelector('.act').classList.toggle('is-stale', !!failedAt);
+      if (fd.html === drawnHTML) return;
+      const box = root.querySelector('[data-act-feed]');
+      const fresh = fd.keys.slice(0, fd.keys.indexOf(drawnKeys[0]));
+      const today = box.querySelector('.act-list[data-day="Today"]');
+      // Only new events at the head, and Today already drawn: add them in place, the rest stays (scroll, focus, hover).
+      if (drawnKeys.length && fresh.length && fd.keys.indexOf(drawnKeys[0]) > 0 && today && box.querySelector('.act-list')?.dataset.day === 'Today') {
+        const byKey = new Map(shown(d).map(e => [keyOf(e), e]));
+        today.insertAdjacentHTML('afterbegin', fresh.map(k => row(byKey.get(k))).join(''));
+        for (const li of [...today.children].slice(0, fresh.length)) li.classList.add('is-entering');
+        const n = today.closest('.act-day').querySelector('h2 .n'), nn = String(shown(d).filter(e => dayOf(e.ts) === 'Today').length);
+        if (n.textContent !== nn) { n.textContent = nn; tick(n); }
+        limit += fresh.length;
+        drawnKeys = [...fresh, ...drawnKeys]; drawnHTML = feed(d).html;
+        return;
+      }
+      box.innerHTML = fd.html; drawnKeys = fd.keys; drawnHTML = fd.html;
+      return;
+    }
+    view.innerHTML = frame(head(d), `<div class="act${failedAt ? ' is-stale' : ''}">${filters()}<div class="act-feed" data-act-feed>${fd.html}</div></div>`);
+    Object.assign(view.querySelector('[data-act-head]').dataset, { html: head(d), p: f.p });
+    drawnKeys = fd.keys; drawnHTML = fd.html; mounted = sig;
+  }
+  const tick = el => { el.classList.remove('is-tick'); void el.offsetWidth; el.classList.add('is-tick'); };
+
+  // The address is the filter: #/activity?p=<alias>&only=problems
+  function fromHash() {
+    const q = new URLSearchParams(location.hash.split('?')[1] || '');
+    const p = q.get('p') || '';
+    return { p: state.projects.some(x => x.alias === p) ? p : '', only: q.get('only') === 'problems' };
+  }
+  const hashOf = () => { const q = new URLSearchParams(); if (f.p) q.set('p', f.p); if (f.only) q.set('only', 'problems'); const s = q.toString(); return `#/activity${s ? `?${s}` : ''}`; };
+
+  async function load(wait) {
+    const k = readKey(), path = f.p ? `/api/activity/${encodeURIComponent(f.p)}` : '/api/activity';
+    const d = await get(`${path}${wait ? '?wait' : ''}`);
+    seen.set(k, { events: d.events || [], since: d.since || Date.now() - 3 * DAY });
+    return k;
+  }
+
+  async function show(refreshing, wait) {
+    const next = fromHash();
+    if (!refreshing || next.p !== f.p || next.only !== f.only) { if (next.p !== f.p || next.only !== f.only || !refreshing) limit = PAGE; f = next; }
+    const hash = location.hash, had = data();
+    if (had) draw(); else loading();
+    try { const k = await load(wait); if (location.hash !== hash || k !== readKey()) return; } catch (e) {
+      if (e.message === 'signed out') throw e;
+      if (location.hash === hash && !had) error();
+      else if (had) draw(); // keep what's shown; the live line says it's retrying
+      return;
+    }
+    draw();
+  }
+
+  // Changing a filter redraws the feed in place (p-in) and rewrites the address without a new history entry.
+  function refilter(focusPicker) {
+    history.replaceState(null, '', hashOf());
+    limit = PAGE;
+    const root = $('view').querySelector(':scope > .acts');
+    const d = data();
+    if (root && d) {
+      const fd = feed(d), box = root.querySelector('[data-act-feed]');
+      box.innerHTML = fd.html; drawnKeys = fd.keys; drawnHTML = fd.html; mounted = `${f.p}|${f.only}`;
+      box.classList.remove('is-entering'); void box.offsetWidth; box.classList.add('is-entering');
+      const h = root.querySelector('[data-act-head]'); h.innerHTML = head(d); Object.assign(h.dataset, { html: head(d), p: f.p });
+      root.querySelector('[data-act-only]').setAttribute('aria-pressed', String(f.only));
+      $('a-proj').value = f.p;
+    } else if (root) {
+      // Not read yet for this filter: the filters stay (and keep focus), the feed waits as skeleton rows.
+      const box = root.querySelector('[data-act-feed]');
+      if (box) box.innerHTML = `<section class="act-day" aria-busy="true" aria-label="Loading activity">${Array.from({ length: 5 }, () => '<span class="skeleton" style="width:100%;height:44px"></span>').join('')}</section>`;
+      drawnKeys = []; drawnHTML = ''; mounted = `${f.p}|${f.only}`;
+      root.querySelector('[data-act-only]')?.setAttribute('aria-pressed', String(f.only));
+      if ($('a-proj')) $('a-proj').value = f.p;
+    } else draw();
+    if (focusPicker) $('a-proj')?.focus();
+    if (!seen.has(readKey())) load().then(k => { if (k === readKey() && /^#\/activity/.test(location.hash)) draw(); }).catch(() => {});
+  }
+
+  document.addEventListener('change', e => { if (e.target.id === 'a-proj') { f.p = e.target.value; refilter(); } });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.acts')) return;
+    if (e.target.closest('[data-act-only]')) { f.only = !f.only; refilter(); }
+    else if (e.target.closest('[data-act-all]')) { f = { p: '', only: false }; refilter(true); }
+    else if (e.target.closest('[data-act-more]')) {
+      const b = e.target.closest('[data-act-more]'), d = data(), at = drawnKeys.length;
+      limit += PAGE; const fd = feed(d);
+      b.closest('[data-act-feed]').innerHTML = fd.html; drawnKeys = fd.keys; drawnHTML = fd.html;
+      // Focus moves to the first of the newly shown events, so the keyboard carries on where it was.
+      document.querySelector(`.acts li[data-key="${CSS.escape(fd.keys[at])}"] .act-row`)?.focus({ preventScroll: true });
+    }
+  });
+  return { show, loading };
+})();
 
 // ---------- settings (global): appearance, plan pacing, about ----------
 // Plan-limit ceilings are global: changing one saves straight away.
@@ -1398,7 +1576,7 @@ const Project = (() => {
   const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${esc(eventWords(p, e))}</span></li>`).join('')}</ol>`;
   const recent = p => `<section class="p-sec" aria-labelledby="rec-h" data-r="recent"><h2 class="p-h" id="rec-h">Recent</h2>
       ${p.events.length ? feed(p, p.events.slice(0, 4)) : '<p class="p-quiet">Nothing has happened here yet.</p>'}
-      <a class="link p-more" href="${href(p.alias, 'activity')}">All activity for ${esc(p.alias)}</a></section>`;
+      <a class="link p-more" href="#/activity?p=${encodeURIComponent(p.alias)}">All activity for ${esc(p.alias)}</a></section>`;
 
   // ── Facts (R14): money, the plan, the team, how it runs ──
   function facts(p, S, C) {
@@ -1579,7 +1757,7 @@ const Project = (() => {
   };
   const tabs = (a, tab, S) => `<nav class="tabs p-tabs" aria-label="${esc(a)}" data-r="tabs">${[
     ['overview', 'Overview'], ['tasks', 'Tasks', S?.tasksOpen || ''], ['outcomes', 'Outcomes', S?.outcomes?.of ? `${S.outcomes.met}/${S.outcomes.of}` : ''], ['audits', 'Audits', S?.findingsOpen || ''], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings'],
-  ].map(([k, t, c]) => `<a class="tab" href="${href(a, k)}"${tab === k ? ' aria-current="page"' : ''}>${t}${c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}</nav>`;
+  ].map(([k, t, c]) => `<a class="tab" href="${k === 'activity' ? `#/activity?p=${encodeURIComponent(a)}` : href(a, k)}"${tab === k ? ' aria-current="page"' : ''}>${t}${c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}</nav>`;
 
   // ── Mounting and patching ──
   const dialogs = a => `<dialog class="p-dialog" id="p-stop" aria-labelledby="pstop-t" aria-describedby="pstop-d"><h2 id="pstop-t">Stop the lead for ${esc(a)}?</h2>
@@ -1604,7 +1782,7 @@ const Project = (() => {
       body = `<div class="p-grid${failedAt ? ' is-stale' : ''}">${r[0][1]}${r[1][1]}<div class="p-col">${r[2][1]}${r[3][1]}${r[4][1]}</div></div>`;
     } else {
       const html = tab === 'tasks' ? tasksTab(p, S) : tab === 'outcomes' ? outcomesTab(p, S) : tab === 'audits' ? auditsTab(p, S) : tab === 'docs' ? docsTab(p, sub)
-        : `<div class="legacy">${tab === 'activity' ? projActivity(p) : projSettings(p)}</div>`;
+        : `<div class="legacy">${projSettings(p)}</div>`;
       const one = `<div class="p-col p-list" data-r="list">${html}</div>`;
       regions.push(['list', one]);
       body = one;
@@ -1720,10 +1898,6 @@ const Project = (() => {
 
   return { show, nowOf };
 })();
-
-function projActivity(p) {
-  return `<ul class="timeline" style="margin-top:12px">${p.events.map(e => eventLine(e)).join('') || '<div class="hint">Nothing yet.</div>'}</ul>`;
-}
 
 function projSettings(p) {
   const a = esc(p.alias);
