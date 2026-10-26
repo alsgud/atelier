@@ -249,13 +249,13 @@
   .p-facts-in { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6) var(--space-8); }
   .p-fact, .p-fact:last-child { border-bottom: 0; padding-bottom: 0; }
 }
-/* ── Phone < 768: tabs scroll, facts fold under Now ── */
+/* ── Phone < 768: tabs scroll, facts fold under Now (the head rules are the project, task and slice 3 pages’ own, as their mockups load this file; unscoped they also reordered the Office head) ── */
 @media (max-width: 767px) {
-  .hf-head h1 { font-size: var(--text-lg); line-height: var(--leading-lg); flex-basis: 100%; order: 2; }
-  .hf-head .back { order: 1; }
-  .hf-head .p-lead, .hf-head .p-gh { order: 3; }
-  .hf-head .p-menu, .hf-head [data-start] { order: 4; margin-left: auto; }
-  .hf-head .end { order: 5; flex-basis: 100%; margin: 0; }
+  :is(.project, .scr) .hf-head h1 { font-size: var(--text-lg); line-height: var(--leading-lg); flex-basis: 100%; order: 2; }
+  :is(.project, .scr) .hf-head .back { order: 1; }
+  :is(.project, .scr) .hf-head .p-lead, .hf-head .p-gh { order: 3; }
+  :is(.project, .scr) .hf-head .p-menu, .hf-head [data-start] { order: 4; margin-left: auto; }
+  :is(.project, .scr) .hf-head .end { order: 5; flex-basis: 100%; margin: 0; }
   .hf-head .btn { height: var(--size-control-lg); }
   .p-tabs { padding: 0 var(--space-4); position: static; }
   .p-pop { left: auto; right: 0; }

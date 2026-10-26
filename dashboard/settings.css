@@ -57,4 +57,8 @@
   .s-team td:nth-of-type(1) { grid-column: 1 / -1; grid-row: 2; }
   .s-team td:last-child { grid-row: 1; grid-column: 2; }
   .s-sec .f-actions .btn { flex: 1 1 100%; }
+  /* as the mockup: back, Settings, scope on one line (the project page's phone head rule would put the scope first) */
+  .sets .hf-head h1 { order: 2; flex-basis: auto; }
+  .sets .hf-head .hf-sum { order: 3; }
+  .sets .hf-head .end { order: 4; }
 }
