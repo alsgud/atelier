@@ -217,7 +217,9 @@
     .btn { height: 44px; padding: 0 14px; }
     .tick { min-height: 44px; }
     select, input[type=text], input[type=password] { min-height: 44px; }
-    .crumbs a, .floor-h a { min-height: 44px; display: inline-flex; align-items: center; }
+    .crumbs a, .floor-h a { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; }
+    summary { padding-block: 12px; } /* 44 px to tap */
+    summary.sec { margin-block: 10px 0; } /* same spacing to the eye */
     .floor { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   }
 }
