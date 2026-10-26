@@ -3,6 +3,7 @@
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
 ## Slice 3 done 2026-10-27 ~04:30
+- 66eq and xhen wait in review on purpose: both are inside a46b, which the owner merges once; then the lead closes them with `atelier close` (chained branches don't close themselves).
 - xhen APPROVED round 1. Lead checked projects-1440-dark (real data, matches) and the inventory table (95 lines, 0 missing). Owner has NOT merged 66eq; xhen contains 5u8q + 66eq, so one merge later brings everything.
 - main has the owner's core commits (voice projects: audio proof in the old task page; window guard fix 489552d) and conflicts with xhen in dashboard/app.js. a46b integration task: base xhen, merge main, carry audio proof, small follow-ups. Then: second-port try for the owner (`node bin/atelier.mjs dashboard --port 4750 --no-tailscale` from the a46b worktree), owner merges atelier/a46b, audit.
 - Tell owner: xhen's settings test accidentally started a real "replay lead" (claude --remote-control) in a fixture for ~3.5 h; the frontend stopped it. A stale "replay lead" remote session may show in the owner's Claude app.
