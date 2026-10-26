@@ -67,6 +67,7 @@
 - 6dug round 2: tab switch paint 838 ms median / 4.5 s max -> 2 ms / under 40 ms; warm API 4 ms. Must-fix: after being unwatched it shows old data for 15 s. Lead answered with the fix (stale flag + quick re-fetch). $5.90 of $10.
 - Atelier core bug (owner's code): a task fails when its end-of-iteration leftovers commit finds nothing to commit (ysk4, 2026-10-25). Lead used `atelier retry` with an answer note. Mention to owner.
 - Atelier core (owner's call), from request 45nt 2026-10-26: card writes fail with EPERM on Windows when the atomic rename races a reader (a dashboard Stop answers 500 in about 2 of 8 tries; same error as the pjv7 double start). Fix: retry the rename on EPERM/EBUSY in the card writer. Lead told the frontend to retry once in lib/dashboard.mjs meanwhile.
+- Atelier core (owner's call), from request kghe 2026-10-26: lib/newproject.mjs passes the whole New project description to `gh repo create --description`; a long brief (UX-12 B) makes GitHub refuse it, so the repo isn't made. Fix: pass the first line, cut to ~300 chars. The dashboard now shows a toast when it fails.
 - Follow-ups outside the frontend's files (Atelier core, owner's call): memoize cards.all() by board mtime (lib/card.mjs:67), tail-read audit logs in budget.auditRuns (lib/budget.mjs:66), tick log grows ~15 KB/day. Mention to owner with the hotfix.
 - Live dashboard too slow to use (R-4). 6dug measuring and fixing on its branch; reviewer must show before/after timings.
 - 68h6 stays in review on branch atelier/68h6 (autonomy `branch`); 57cv builds on it.
