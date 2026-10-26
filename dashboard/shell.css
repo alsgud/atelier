@@ -164,7 +164,10 @@ html:has(.p-tabs) { scroll-padding-top: calc(var(--size-topbar) + 44px + var(--s
 /* Phone: the top bar sticks, the head scrolls; live line drops (the top bar's spend is the freshness cue) */
 @media (max-width: 767px) {
   .hf .page-head { padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); }
-  .hf .page-head .hf-live { display: none; }
+  .hf .page-head .hf-live[data-live] { display: none; }
+  /* ...but a stale page says so, on its own line under the title (as the Projects head does) */
+  .hf .page-head:has(.hf-live[role="status"]) { flex-wrap: wrap; padding-bottom: var(--space-3); }
+  .hf .page-head .hf-live[role="status"] { order: 9; flex-basis: 100%; margin-left: 0; white-space: normal; }
   .focus-head .eyebrow a.proj { display: inline-block; min-width: 44px; text-align: center; padding: 13px 0; margin: -13px 0; }
   .dock-row:not(:has(.btn)) .dock-hint { display: block; }
 }
