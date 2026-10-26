@@ -2,6 +2,9 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+## PAUSED BY OWNER 2026-10-26 ~23:30
+- Owner asked to stop all workers (lag, being tabbed out). xhen stopped at try 3/17 (`atelier resume xhen` when the owner says resume). Nothing else was running. Leftover headless Edge pid 40788: owner given the command. Do not start new work until the owner says so.
+
 ## Slice 2 done 2026-10-26 ~23:00
 - 66eq APPROVED round 3. Lead checked office-1440-dark on real data: matches the mockup. Owner to merge atelier/66eq. xhen slice 3 started on base atelier/66eq with all reviewer follow-ups. After xhen: second-port try (R25), owner tries it, audit (`atelier audit atelier-ui run --bg`), file the contracts (owner OK pending).
 
