@@ -147,3 +147,8 @@
 /* dashboard: the Inbox drops the "+N more" tile on the phone; here it is the way to the rest of the proof, so it stays */
 @media (max-width: 767px) { .t-proof .frames.is-hero > .frame-more { display: block; } }
 @media (max-width: 767px) { .t-files .link { display: inline-flex; align-items: center; min-height: 44px; } }
+
+/* dashboard: reduced motion (DESIGN Motion › Reduced motion): the viewer fades in instead of zooming, and a proof
+   frame neither lifts on hover nor presses in */
+[data-motion="reduce"] .t-lb[open] { animation-name: rm-fade; }
+[data-motion="reduce"] .frame .frame-img { transform: none !important; }

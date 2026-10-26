@@ -123,3 +123,8 @@
 /* dashboard: a floor off screen is not styled or laid out until it nears the view (AC-18: the first switch to the
    Office on a phone was one long style + layout task). The clip margin keeps focus halos on edge desks whole. */
 .floor { content-visibility: auto; contain-intrinsic-block-size: auto 560px; overflow-clip-margin: var(--space-3); }
+
+/* dashboard: reduced motion: a desk neither lifts nor presses, and the scene's light, hand and tick change by fading
+   only (their scale and turn jump straight to the end) */
+[data-motion="reduce"] .desk { transform: none !important; }
+[data-motion="reduce"] :is(.sc-patch, .sc-hand, .sc-tick, .desk-track i) { transition-property: opacity; }

@@ -296,3 +296,6 @@
    project or task page on a phone was one long style + layout task). Not the task's question: its dock is sticky.
    The clip margin keeps focus halos on edge rows whole. */
 .p-sec:not(.t-ask), .p-fact { content-visibility: auto; contain-intrinsic-block-size: auto 320px; overflow-clip-margin: var(--space-3); }
+
+/* dashboard: reduced motion: a task row neither lifts nor presses */
+[data-motion="reduce"] .p-task { transform: none !important; }
