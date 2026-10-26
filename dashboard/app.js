@@ -367,7 +367,8 @@ const Inbox = (() => {
   const rowsMove = () => wide();
   const tok = v => parseFloat(getComputedStyle(ROOT).getPropertyValue(v)) || 0;
   const wait = ms => new Promise(r => setTimeout(r, ms));
-  const S = { open: null, dock: 'ready', which: '', note: '', choice: '', items: [], hidden: new Map(), decided: [], ghost: null, active: false };
+  const S = { open: null, dock: 'ready', which: '', note: '', choice: '', items: [], hidden: new Map(), decided: [], ghost: null, active: false, each: new Set() };
+  // each: projects whose batch of outcomes the owner chose to decide one at a time (Decide each)
   // hidden: key → { x, i, body, r, committed } for decisions inside their Undo window or sent and not yet gone from the server's list
   let ownHash = false;
 
@@ -496,8 +497,8 @@ const Inbox = (() => {
       case 'criteria': {
         const list = q.statements || [];
         return { ...base, glyph: 'outcome', kind: 'Outcomes to approve', short: 'outcomes', title: `Approve ${list.length} outcomes the lead wrote from your brief`,
-          body: () => `<p class="lede">Each one is a sentence the lead checks before it calls the work done. Approve them together, or decide each on the project’s Criteria tab.</p><ol class="olist">${list.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`,
-          dock: { primary: `Approve all ${list.length}`, ghost: 'Decide each', ghostHref: `${P}/criteria`,
+          body: () => `<p class="lede">Each one is a sentence the lead checks before it calls the work done. Approve them together, or decide each one here.</p><ol class="olist">${list.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`,
+          dock: { primary: `Approve all ${list.length}`, ghost: 'Decide each', ghostAct: 'each',
             send: () => ({ action: 'criteria-approve-all', project: a, ids: q.id }),
             done: `Approved. The lead adds all ${list.length} to the checks.`, toast: `Approved ${list.length} outcomes.`, log: `Approved ${list.length} outcomes for ${a}` } };
       }
@@ -540,8 +541,19 @@ const Inbox = (() => {
   const figure = a => a.unit === 'try' ? `try ${a.n} of ${a.of}` : `${a.n} of ${a.of} ${a.unit}`;
 
   // The list as the owner sees it: the server's queue, minus decisions made here that the server still lists.
+  // Decide each: a batch of outcomes becomes one Outcome item per draft, as the server lists a single draft
+  // (same kind, same key), so each is approved or retired with that item's own dock and Undo.
+  const expand = q => q.flatMap(x => x.kind !== 'criteria' || !S.each.has(x.project) ? [x]
+    : String(x.id).split(',').map((id, i) => ({ ...x, kind: 'criterion', id, title: x.statements?.[i] || id, statement: x.statements?.[i] || id, key: `criterion:${x.project}:${id}` })));
+  function decideEach() {
+    const x = list().find(y => y.id === S.open);
+    if (!x || x.q.kind !== 'criteria') return;
+    S.each.add(x.project);
+    const first = `criterion:${x.project}:${String(x.q.id).split(',')[0]}`;
+    transition('open', () => { S.open = first; sync(); S.dock = 'ready'; S.note = ''; S.choice = ''; setHash(first); scrollTo({ top: 0 }); }, 1, () => [first]).then(focusTitle);
+  }
   function sync() {
-    const q = state?.queue || [];
+    const q = expand(state?.queue || []);
     const keys = new Set(q.map(x => x.key));
     for (const [k, h] of S.hidden) if (h.committed && !keys.has(k)) S.hidden.delete(k); // the server has caught up
     S.decided = S.decided.filter(d => !(d.committed && !keys.has(d.id))); // from here on the server's own ledger lists it
@@ -592,7 +604,8 @@ const Inbox = (() => {
     const err = invalid ? `<span class="field-error" id="noteErr">${I('alert')}${esc(d.required || 'Say what’s wrong so the team can fix it.')}</span>` : '';
     const primary = d.primary ? `<button class="btn btn-primary" data-act="primary"${dis}><span class="lbl">${esc(d.primary)}</span></button>` : '';
     const second = d.secondary ? `<button class="btn btn-secondary" data-act="secondary"${dis}><span class="lbl">${esc(d.secondary)}</span></button>` : '';
-    const ghost = d.ghost ? `<a class="btn btn-ghost" href="${esc(d.ghostHref || '#/inbox')}">${esc(d.ghost)}</a>` : '';
+    const ghost = !d.ghost ? '' : d.ghostAct ? `<button class="btn btn-ghost" data-act="${esc(d.ghostAct)}"${dis}>${esc(d.ghost)}</button>`
+      : `<a class="btn btn-ghost" href="${esc(d.ghostHref || '#/inbox')}">${esc(d.ghost)}</a>`;
     const msg = offline ? `<span class="dock-hint" style="white-space:normal">Waiting for Atelier to answer; decide once it’s back.</span>`
       : d.hint ? `<span class="dock-hint">${esc(d.hint)}</span>` : d.note ? `<span class="dock-hint"><span class="kbd">Ctrl</span><span class="kbd">↵</span> to send</span>` : '';
     return `<div class="dock" aria-label="Your decision" role="group"${vt('dock')}>${field ? `<div class="field">${field}${err}</div>` : ''}<div class="dock-row">${primary}${second}${ghost}${msg}</div></div>`;
@@ -756,7 +769,7 @@ const Inbox = (() => {
     const r = which === 'secondary' && d.alt || d;
     let next;
     await transition(list().length === 1 ? 'zero' : 'decide', () => {
-      const L = list(), i = L.indexOf(x);
+      const L = list(), i = L.findIndex(y => y.id === x.id);
       S.hidden.set(x.id, { x, i, body, r, committed: false, project: x.project, needs: x.needs });
       S.ghost = null;
       S.items = S.items.filter(y => y.id !== x.id);
@@ -823,6 +836,7 @@ const Inbox = (() => {
     if (!a) return;
     const act = a.dataset.act;
     if (act === 'primary' || act === 'secondary') decide(act);
+    if (act === 'each') decideEach();
     if (act === 'toast-undo') undo();
     if (act === 'toast-retry') retry();
   });
