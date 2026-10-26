@@ -8,6 +8,8 @@
 
 - 2026-10-26 13:23: owner accepted AC-7 (feels calm) in the dashboard and said "good, continue" in chat. The design gate is still only requested, and building can't start until the owner approves it in the dashboard (the lead can't approve it). Asked the owner to press approve.
 
+- Why these review tasks wait (2026-10-26): 68h6, 57cv, hspr, ysk4, 6umt and pjv7 are the design chain, each built on the last. Under `branch` autonomy the lead can't land them; they reach main when the owner approves the design gate and merges atelier/pjv7 (the chain tip). Right now the gate is blocked because the main checkout has the owner's uncommitted README line. The owner has been asked to commit or drop it.
+
 ## Lead lesson
 - `atelier answer` on a needs-you task already requeues and starts it. Do not also run `retry` or `tick`: pjv7 started twice and failed with EPERM on the board file rename (2026-10-26). One retry after that.
 
