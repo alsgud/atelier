@@ -340,6 +340,22 @@ const screenOf = h => { const [p, q] = (h || '#/inbox').split('?'), [, kind, a] 
 const scrollAt = new Map();
 let shownScreen = null, traverse = false;
 window.navigation?.addEventListener('navigate', e => { traverse = e.navigationType === 'traverse'; });
+// A screen's live data can land well after its first draw and grow the page (the Office on real history), and scroll
+// anchoring then carries the view past the spot. Keep putting it back as the page grows, until the owner scrolls or
+// leaves, or the data has had 3 s to land.
+let unhold = null;
+function holdY(y) {
+  unhold?.();
+  if (!y) return;
+  const screen = screenOf(location.hash), ro = new ResizeObserver(() => {
+    if (screenOf(location.hash) !== screen) return unhold();
+    if (Math.abs(scrollY - y) > 1) scrollTo({ top: y });
+  });
+  const stop = () => unhold?.(), ev = ['wheel', 'touchstart', 'pointerdown', 'keydown'], timer = setTimeout(stop, 3000);
+  ro.observe(document.body);
+  ev.forEach(n => addEventListener(n, stop, { capture: true, passive: true }));
+  unhold = () => { ro.disconnect(); clearTimeout(timer); ev.forEach(n => removeEventListener(n, stop, { capture: true })); unhold = null; };
+}
 async function route({ refreshing = false, wait = false } = {}) {
   if (!state && !failedAt) return renderLoading();
   renderChrome();
@@ -351,8 +367,10 @@ async function route({ refreshing = false, wait = false } = {}) {
   const newScreen = !refreshing && shownScreen !== null && screen !== shownScreen;
   const wantY = newScreen ? (traverse && scrollAt.get(screen)) || 0 : null;
   if (!refreshing && shownScreen) scrollAt.set(shownScreen, y0);
-  if (!refreshing) { shownScreen = screen; traverse = false; }
-  // Called once the new screen has drawn (again once its data is in): it can only scroll as far as the page is tall.
+  // The first draw after a page load comes from refresh(): it still names the screen, so the first switch counts.
+  if (!refreshing || shownScreen === null) { shownScreen = screen; traverse = false; }
+  if (newScreen) holdY(wantY);
+  // Called once the new screen has drawn: it can only scroll as far as the page is tall so far (holdY does the rest).
   const toY = () => { if (wantY !== null && screenOf(location.hash) === screen && Math.abs(scrollY - wantY) > 1) scrollTo({ top: wantY }); };
   const draw = async () => {
     try {
@@ -929,6 +947,11 @@ const Inbox = (() => {
           retryKey = k; retryBody = h;
           render(); renderChrome();
           showToast(/fetch|network|Failed/i.test(err.message) ? `Couldn’t reach Atelier. Nothing was sent: ${h.x.title}` : `That didn’t go through: ${err.message}`, { error: true, retry: true });
+        } else if (!opts.keepalive) {
+          // The owner has moved on to another screen: still say so, and the item waits in the Inbox again.
+          renderChrome();
+          toast(`${/fetch|network|Failed/i.test(err.message) ? 'Couldn’t reach Atelier. Nothing was sent' : 'That didn’t go through'}: ${h.x.title}. It’s back in your Inbox.`, { error: true });
+          refresh().catch(() => {});
         }
       });
     }
