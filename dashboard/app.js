@@ -151,6 +151,24 @@ function st(status, title = status) {
 const taskStatus = t => t.status === 'failed' && /cancelled/.test(t.reason || '') ? 'cancelled' : t.status;
 // A running task the runner holds for the plan window (the server's 'paced' state): waiting, not working, never quiet.
 const pacedWords = x => `Waiting for your plan window${x?.resumesAt ? `, carries on at ${x.resumesAt}` : ''}`;
+// A task's reason as one plain sentence (F-6, SPEC R3). The runner's raw note (prefixes, commands, hashes, branch names)
+// stays on the task page under Details; rows and steps show only this.
+function reasonWords(t) {
+  const r = String(t?.reason || '').trim();
+  if (!r) return '';
+  if (/^paced:/.test(r)) return 'Waiting for your plan window';
+  if (/cancelled by (the )?owner/i.test(r)) return 'You cancelled it';
+  if (/cancelled/i.test(r)) return 'The lead cancelled it';
+  if (/superseded/i.test(r)) return 'Replaced by later work';
+  if (/^(merged|landed|in main)\b/i.test(r)) { const b = r.match(/\b(?:into|on|in) (main|v\d+)\b/i)?.[1]; return b ? `Merged into ${b}` : 'Merged'; }
+  if (/^ready on (local )?branch/i.test(r)) return 'Ready on its branch for you to merge';
+  if (/^(waiting on request|request:)/i.test(r)) return 'Waiting on another teammate';
+  if (/in review/i.test(r)) return 'In review';
+  if (/owner/i.test(r) && /stop|pause/i.test(r)) return 'You stopped it';
+  // Anything else: keep it only if it already reads as a short plain sentence.
+  const s = r.replace(/^[a-z-]+:\s*/i, '').replace(/\s*\([0-9a-f]{7,40}\)/g, '').trim();
+  return s.length <= 70 && !/[`/\\#{}<>=]|\b[0-9a-f]{7,40}\b|\b[a-z]+\/[a-z0-9-]+\b|\.(md|mjs|js|json)\b/i.test(s) ? cap1(s) : '';
+}
 const STATUS_WORD = { 'needs-you': 'Needs you', running: 'Working', queued: 'Queued', planned: 'Waiting for your OK', requested: 'Request', review: 'In review', done: 'Done', stalled: 'Stalled', failed: 'Failed', cancelled: 'Cancelled', paused: 'Paused' };
 
 // ---------- data ----------
@@ -1853,14 +1871,14 @@ const Project = (() => {
     const x = p.team.agents.find(a => a.id === t.id) || {};
     const s = taskStatus(t), review = s === 'review' || x.kind === 'reviewer';
     const v = { id: t.id, title: t.title, k: '', who: cap1(review ? 'reviewer' : t.role || 'builder'), stage: 1, step: '', prog: '', ago: '' };
-    if (s === 'queued') Object.assign(v, { who: 'Next', stage: 0, step: t.reason ? cap1(t.reason) : 'Starts when a teammate is free' });
-    else if (s === 'done') Object.assign(v, { k: 'done', stage: 4, step: t.reason ? cap1(t.reason) : 'Finished' });
+    if (s === 'queued') Object.assign(v, { who: 'Next', stage: 0, step: reasonWords(t) || 'Starts when a teammate is free' });
+    else if (s === 'done') Object.assign(v, { k: 'done', stage: 4, step: reasonWords(t) || 'Finished' });
     else if (s === 'needs-you') v.step = 'It asked you something. Answer it on its page';
     else if (s === 'stalled') v.step = 'Stalled. The lead decides what happens next';
     else if (x.state === 'paced') Object.assign(v, { stage: review ? 3 : 1, step: pacedWords(x), paced: true });
     else if (review) Object.assign(v, { k: x.state === 'reviewing' ? 'active' : '', stage: 3, step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'The reviewer is checking it' });
     else if (s === 'running') Object.assign(v, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started' });
-    else v.step = t.reason ? cap1(t.reason) : STATUS_WORD[s] || s;
+    else v.step = reasonWords(t) || STATUS_WORD[s] || s;
     v.ago = v.paced ? '' : x.lastAt ? longAgo(x.lastAt) : s === 'done' ? longAgo(t.updated) : '';
     // The runner's heartbeat touches a paced task's card every minute: its time is when it last did something.
     v.at = v.paced && x.lastAt ? x.lastAt : t.updated;
@@ -1884,8 +1902,10 @@ const Project = (() => {
 
   // ── Recent: the newest few events, in words ──
   const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || / pass|approve/.test(e.msg || '');
-  const eventWords = (p, e) => { const t = p.tasks.find(x => x.id === e.id); const w = EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' ')); return t ? `${w}: ${t.title}` : `${w}${e.msg ? `: ${e.msg}` : ''}`; };
-  const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${esc(eventWords(p, e))}</span></li>`).join('')}</ol>`;
+  // A failed push reads as a plain sentence; git's own error waits under Details (F-6).
+  const eventWords = (p, e) => { if (e.type === 'push-failed') return 'Couldn’t reach GitHub, will retry'; const t = p.tasks.find(x => x.id === e.id); const w = EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' ')); return t ? `${w}: ${t.title}` : `${w}${e.msg ? `: ${e.msg}` : ''}`; };
+  const rawOf = e => e.type === 'push-failed' && e.msg ? `<details class="details p-raw"><summary>Details${I('chevron-down')}</summary><div class="details-body"><code>${esc(e.msg)}</code></div></details>` : '';
+  const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${esc(eventWords(p, e))}${rawOf(e)}</span></li>`).join('')}</ol>`;
   const recent = p => `<section class="p-sec" aria-labelledby="rec-h" data-r="recent"><h2 class="p-h" id="rec-h">Recent</h2>
       ${p.events.length ? feed(p, p.events.slice(0, 4)) : '<p class="p-quiet">Nothing has happened here yet.</p>'}
       <a class="link p-more" href="#/activity?p=${encodeURIComponent(p.alias)}">All activity for ${esc(p.alias)}</a></section>`;
@@ -1940,7 +1960,7 @@ const Project = (() => {
       const rows = p.tasks.filter(t => groupOf(p, t) === s).map(t => {
         const v = taskView(p, t);
         // A paced task stays in its status group (the summary counts it there) but reads as waiting: no ETA, not lit.
-        const sub = v.paced ? `${v.who} · ${v.step}${v.prog ? ` · ${v.prog}` : ''}` : s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${t.reason ? ` · ${t.reason}` : ''}`;
+        const sub = v.paced ? `${v.who} · ${v.step}${v.prog ? ` · ${v.prog}` : ''}` : s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${reasonWords(t) ? ` · ${reasonWords(t)}` : ''}`;
         const eta = s === 'running' && t.eta && !v.paced ? `about ${t.eta.low}–${t.eta.high} min left` : '';
         return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${v.paced ? v.word : label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(v.paced ? '' : k, v.paced ? v.word : label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${tries(t)}<span class="p-id">${esc(t.id)}</span>${esc(when(v.at))}</span></a>`;
       }).join('');
@@ -2242,6 +2262,7 @@ const Task = (() => {
       if (x) return `Try ${x[1]} ended${x[3] === 'pass' ? ': the check passed' : x[3] === 'fail' ? ': the check failed' : ''}`;
     }
     if (e.type === 'evidence') return 'Showed its work';
+    if (e.type === 'paced') return 'Waiting for your plan window';
     if (e.type === 'reviewed') { const x = m.match(/round (\d+): (\w+)/); if (x) return `Review round ${x[1]}: ${/approve/.test(x[2]) ? 'passed' : 'changes asked'}`; }
     if (e.type === 'review-started') return `The reviewer started${m ? ` ${m}` : ''}`;
     if (e.type === 'criteria') { const x = m.match(/(\d+)\/(\d+)/); if (x) return `Outcomes checked: ${x[1]} of ${x[2]} pass`; }
@@ -2275,7 +2296,7 @@ const Task = (() => {
     const passed = /verdict:\s*\**\s*approve/i.test(t.review || '');
     const role = cap1(reviewing ? 'reviewer' : m.role || 'builder');
     const v = { id: m.id, title: m.title, a, role, k: '', word: STATUS_WORD[s] || cap1(s), stage: 1, step: '', why: '', stop: '', dock: '',
-      tries, used, of, n, outs, spent, limit, eta: s === 'running' && !reviewing && !paced ? T.eta : null, t, m, ag, s, last: '', quiet: paced ? 0 : ag.quietMin || 0 };
+      tries, used, of, n, outs, spent, limit, reason, eta: s === 'running' && !reviewing && !paced ? T.eta : null, t, m, ag, s, last: '', quiet: paced ? 0 : ag.quietMin || 0 };
     const merge = m.pr ? 'its pull request is ready for you to merge' : m.where === 'local' || T.autonomy === 'branch' ? `it waits on ${m.branch || 'its branch'} for you to merge` : 'it lands by itself';
     switch (s) {
       case 'running':
@@ -2287,14 +2308,14 @@ const Task = (() => {
         v.stop = 'Stop task…'; break;
       case 'needs-you': Object.assign(v, { k: 'needs', step: 'Asked you a question', why: 'It stopped to ask before choosing. It carries on as soon as you answer; nothing it did is lost.', stop: 'Stop task…', dock: 'answer' }); break;
       case 'planned': Object.assign(v, { stage: 0, step: 'Planned, and waits for your OK to start', why: `Up to ${of} tries${limit ? `, at most ${money(limit)}` : ''}.${m.files ? ` It owns ${m.files}.` : ''} Approve it here or in the Inbox.`, stop: 'Stop it', dock: 'plan' }); break;
-      case 'queued': Object.assign(v, { stage: n || used ? 1 : 0, step: 'Queued, and starts when a teammate is free', why: reason ? `${cap1(reason)}.` : 'Nothing to do: it starts by itself.', stop: 'Stop task…' }); break;
+      case 'queued': Object.assign(v, { stage: n || used ? 1 : 0, step: 'Queued, and starts when a teammate is free', why: reasonWords(T) ? `${reasonWords(T)}.` : 'Nothing to do: it starts by itself.', stop: 'Stop task…' }); break;
       case 'review': Object.assign(v, passed
         ? { k: 'done', word: 'Passed review', stage: 4, step: `Passed review; ${merge}`, why: 'Its check and the reviewer both passed it. What the reviewer checked is under Review.' }
         : { stage: 3, step: 'Waiting for the reviewer', why: 'Its check passed. The reviewer looks at the work next.' }); break;
-      case 'done': Object.assign(v, { k: 'done', stage: 4, step: reason ? cap1(reason) : 'Finished', why: 'It passed its check and review.' }); break;
+      case 'done': Object.assign(v, { k: 'done', stage: 4, step: reasonWords(T) || 'Finished', why: 'It passed its check and review.' }); break;
       case 'stalled': Object.assign(v, { step: 'Stopped making progress', why: 'The lead decides what happens next: another try, a new plan, or a question for you.', stop: 'Stop task…' }); break;
       case 'paused': Object.assign(v, { step: /owner/.test(reason) ? 'You stopped it' : 'Paused', why: 'This try’s work is kept as it is. The lead decides what happens next.' }); break;
-      default: Object.assign(v, { step: v.word, why: reason ? `${cap1(reason)}.` : '' });
+      default: Object.assign(v, { step: v.word, why: reasonWords(T) ? `${reasonWords(T)}.` : '' });
     }
     v.label = v.k === 'done' ? `${role} · finished ${longAgo(T.updated)}` : (s === 'running' && !paced) || s === 'needs-you' ? `${role} · now` : `${role} · ${when(paced && ag.lastAt ? ag.lastAt : T.updated)}`; // a paced card's updated is the runner's heartbeat
     v.last = ag.lastAt || T.updated;
@@ -2332,7 +2353,6 @@ const Task = (() => {
     return `<ol class="p-phases t-stages" data-k="${v.k}" aria-label="Stage: ${STAGES[v.stage]}">${STAGES.map((name, i) => `<li class="${i < v.stage || (v.k === 'done' && i === v.stage) ? 'past' : i === v.stage ? 'now' : ''}"${i === v.stage ? ' aria-current="step"' : ''}>
       <span class="bar">${i === v.stage && v.k !== 'done' ? `<span class="fill" style="--f:${v.fill}%"></span>` : ''}</span><span class="n">${name}</span></li>`).join('')}</ol>`;
   };
-  const triesText = v => v.of > 1 && v.used ? `Try ${v.n || v.used} of ${v.of}` : '';
   const figs = v => `<p class="p-figs num">
       ${v.eta ? `<span>likely <b>${v.eta.low}–${v.eta.high}</b> min left</span>` : ''}
       ${v.outs.length ? `<span><b>${v.outs.filter(met).length}</b> of ${v.outs.length} outcomes met</span>` : ''}
@@ -2363,8 +2383,11 @@ const Task = (() => {
     const ev = v.t.evidence, list = v.shots, tl = v.t.timeline || [];
     const at = tl.filter(e => e.type === 'evidence').at(-1);
     const tryOf = at && [...tl.slice(0, tl.indexOf(at))].reverse().find(e => e.type === 'iteration')?.msg?.match(/#(\d+)/)?.[1];
-    const note = plain((ev?.notes || '').split(/\n\s*\n/).find(b => b.trim() && !/^\s*(#|[-*] |\d+\. )/.test(b)) || '');
     const others = (ev?.files || []).filter(f => !f.image && !f.video && !f.audio && f.url), heard = (ev?.files || []).filter(f => f.audio && f.url);
+    // It leads with a plain sentence of what is shown (F-6); the agent's own notes are folded under it.
+    const nOf = (n, one) => n ? `${n} ${one}${n === 1 ? '' : 's'}` : '';
+    const shownList = [nOf(list.filter(x => x.kind !== 'rec').length, 'screenshot'), nOf(list.filter(x => x.kind === 'rec').length, 'recording'), nOf(heard.length, 'sound')].filter(Boolean);
+    const note = shownList.length ? `The ${v.role.toLowerCase()} showed ${shownList.length > 1 ? `${shownList.slice(0, -1).join(', ')} and ${shownList.at(-1)}` : shownList[0]}.` : ev?.notes ? `The ${v.role.toLowerCase()} wrote notes on what it did.` : '';
     const lines = (v.t.lastCheck || '').trim().split('\n').filter(l => l.trim()).slice(-4);
     const frame = (x, i) => `<button class="frame${x.kind === 'phone' ? ' is-phone' : ''}" type="button" data-ta="shot" data-i="${i}" aria-label="${esc(x.cap)}${x.kind === 'rec' ? ', recording' : ''}. Open large">
         <span class="frame-img">${x.kind === 'rec' ? `<video src="${esc(x.src)}" preload="metadata" muted playsinline data-len></video><span class="play">${I('play')}<span>Recording</span></span>` : `<img src="${esc(x.src)}" alt="" decoding="async" loading="lazy">`}</span>
@@ -2372,7 +2395,7 @@ const Task = (() => {
     const shown = list.length > 3 ? list.slice(0, 2) : list;
     const more = list.length > 3 ? `<button class="frame frame-more" type="button" data-ta="shot" data-i="2" aria-label="See all ${list.length} pictures and recordings, from the third"><span class="frame-img"><b>+${list.length - 2}</b>more</span><span class="frame-cap"><b>See them all</b><span>${list.length} in all</span></span></button>` : '';
     if (ev?.notes) lazy.set('t-pnote', () => md(ev.notes));
-    const body = list.length || heard.length || note ? `${note ? `<p class="t-note">${esc(clip(note, 320))}</p>` : ''}
+    const body = list.length || heard.length || note ? `${note ? `<p class="t-note">${esc(note)}</p>` : ''}
         ${list.length ? `<div class="frames ${shown.length + (more ? 1 : 0) > 2 ? 'is-hero' : 't-two'}">${shown.map(frame).join('')}${more}</div>` : ''}
         ${sounds(heard, f => viewAt(ev.viewPort, f.url))}
         ${lines.length ? `<details class="details t-log" data-key="t-log"><summary>${I('log')}Run log · last ${lines.length} line${lines.length === 1 ? '' : 's'}${I('chevron-down')}</summary><div class="details-body"><pre>${lines.map(l => `<span${/✗|\bFAIL|\bfailed\b|Error/.test(l) ? ' class="bad"' : /✓|\bPASS|\bpassed\b|exit(ed)?( with)? 0\b/i.test(l) ? ' class="ok"' : ''}>${esc(l)}</span>`).join('\n')}</pre></div></details>` : ''}
@@ -2433,7 +2456,7 @@ const Task = (() => {
     const words = c => met(c) ? `Met ${when((c.history || []).at(-1)?.at)}` : c.status === 'awaiting-owner' ? 'Waiting for your judgement in the Inbox' : c.status === 'fail' ? 'Not yet: its check is failing' : 'Not met yet';
     const pr = m.pr ? `<dt>Pull request</dt><dd><a class="link" href="${esc(m.pr)}" target="_blank" rel="noopener">${esc(m.pr.replace(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\//, 'Draft #'))}${I('external')}</a></dd>` : m.branch ? `<dt>Branch</dt><dd class="mono">${esc(m.branch)}</dd>` : '';
     return `<aside class="p-facts" aria-label="Facts" data-r="facts"><details class="p-factsfold is-fold" data-key="facts">
-      <summary><span>Details</span><span class="num">${triesText(v) ? `${triesText(v)} · ` : ''}${money(v.spent)}${v.limit ? ` of ${money(v.limit)}` : ''}</span>${I('chevron-down')}</summary>
+      <summary><span>Details</span><span class="num">${money(v.spent)}${v.limit ? ` of ${money(v.limit)}` : ''}</span>${I('chevron-down')}</summary>
       <div class="p-facts-in">
         <section class="p-fact" aria-labelledby="f-st"><h3 class="section-label" id="f-st">Status</h3>
           <p class="t-st" data-k="${v.k}">${dot(v.k, v.word)}<b>${esc(v.word)}</b></p>
@@ -2447,7 +2470,7 @@ const Task = (() => {
         ${v.outs.length ? `<section class="p-fact" aria-labelledby="f-out"><h3 class="section-label" id="f-out">Outcomes · ${v.outs.filter(met).length} of ${v.outs.length}</h3>
           <ul class="p-outs t-outs">${v.outs.map(c => `<li data-met="${met(c)}"><span class="p-ok" role="img" aria-label="${met(c) ? 'Met' : 'Not met yet'}">${met(c) ? I('check') : ''}</span><span class="t"><b>${esc(c.statement)}</b><span class="s">${esc(c.id)} · ${esc(words(c))}</span></span></li>`).join('')}</ul></section>` : ''}
         <section class="p-fact" aria-labelledby="f-code"><h3 class="section-label" id="f-code">The work</h3>
-          <dl class="p-dl"><dt>Check</dt><dd><code>${esc(m.check || 'none')}</code>${m.last_check ? ` · ${m.last_check === 'pass' ? 'last run passed' : m.last_check === 'fail' ? 'last run failed' : esc(m.last_check)}` : ''}</dd>
+          <dl class="p-dl">${(v.reason) ? `<dt>Runner’s note</dt><dd>${esc(v.reason)}</dd>` : ''}<dt>Check</dt><dd><code>${esc(m.check || 'none')}</code>${m.last_check ? ` · ${m.last_check === 'pass' ? 'last run passed' : m.last_check === 'fail' ? 'last run failed' : esc(m.last_check)}` : ''}</dd>
             ${m.files ? `<dt>Files</dt><dd class="mono">${esc(m.files)}</dd>` : ''}
             ${m.test_touch ? `<dt class="is-needs">Tests</dt><dd class="is-needs">Changed an existing test: <code>${esc(m.test_touch)}</code>. Look before you merge</dd>` : m.files ? '<dt>Tests</dt><dd>Didn’t change existing tests</dd>' : ''}
             ${pr}</dl></section>

@@ -136,6 +136,9 @@
 .p-feed li { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: var(--space-3); font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
 .p-feed time { color: var(--text-3); font-size: var(--text-xs); }
 .p-feed li[data-k="done"] span { color: var(--text); }
+.p-raw { margin-top: var(--space-1); }
+.p-raw summary { min-height: 28px; font-size: var(--text-xs); color: var(--text-3); }
+.p-raw code { font-size: var(--text-xs); overflow-wrap: anywhere; }
 
 /* Facts column */
 /* The fold's summary shows on the phone, and at every width for a fold that hides detail (.is-fold: the task page's Facts, F-6). */
