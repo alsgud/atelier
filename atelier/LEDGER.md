@@ -2,6 +2,8 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
+- 2026-10-27: owner: A3 best of 9pfh but all feel cheap (overrule #4, R-11). Started 3e5b reference board ($25). Next: owner picks style numbers, then designer draws polished directions in that style. a7nb still not merged.
+
 ## Slice 3 done 2026-10-27 ~04:30
 - 9pfh (Office characters) APPROVED, waits for the owner's pick: A1, A2, A3 (designer's top pick), or "bolder". Lead told the owner honestly the stills look close to each other and still minimal, and offered a bolder round 2. Page: worktrees/9pfh/atelier/design/office-chars/index.html. Review follow-ups: frame budget at the edge on phone; webms add 23 MB (keep them out of the merge); pick-page nav order.
 - a7nb APPROVED: lead verified it differs from main only in dashboard/ + lib/dashboard.mjs (plus an older LEDGER line; merge keeps main's), equals a46b's dashboard, keeps the owner's audio lines, merges cleanly. Owner: try it on port 4750 from the a7nb worktree, then merge atelier/a7nb. After the merge: close 66eq, xhen, a7nb; cancel a46b; run the audit.

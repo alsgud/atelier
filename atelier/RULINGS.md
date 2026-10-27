@@ -31,3 +31,6 @@ _2026-10-25 · owner chat 2026-10-26: don't worry about credit usage, you're lim
 
 ## R-10: Until the weekly plan reset (Tue 2026-10-27 02:00), spend freely and use all capacity; budgets and the daily limit are not a reason to slow down. Atelier's own stop at 75% of the week still applies.
 _2026-10-26 · owner chat 2026-10-26: dont worry about limits or budgets. go full usage until next weekly reset_
+
+## R-11: Office characters must look polished, not cheap. Before any more directions, the owner picks a character style type from a broad board of real references (games and similar). A3 is the closest so far.
+_2026-10-27 · owner, 2026-10-27, on 9pfh_
