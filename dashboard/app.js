@@ -44,6 +44,8 @@ const resetAt = sec => {
   if (t - now > 864e5) return `${DMY.format(d)}, ${hhmm(t)}`;
   return `${d.toDateString() === now.toDateString() ? 'today' : 'tomorrow'} ${hhmm(t)}`;
 };
+// The 5-hour window keeps its countdown after the time: "today 14:00, in 25 min".
+const resetSoon = sec => `${resetAt(sec)}${resetIn(sec) === 'now' ? '' : `, ${resetIn(sec)}`}`;
 const resetDay = sec => sec * 1000 - Date.now() > 864e5 ? DMY.format(new Date(sec * 1000)) : resetAt(sec);
 // The Claude plan in words, the same on every screen (F-4): both windows, the week's reset, and what is left for the
 // owner before Atelier's own stop (Settings › pause at this much of the week).
@@ -1562,7 +1564,7 @@ const Settings = (() => {
     const rows = (state.projects || []).filter(p => !p.error).map(p => `<a class="p-row" href="#/settings?p=${encodeURIComponent(p.alias)}">${Office.dotOf(p.lead?.running ? 'active' : '', p.lead?.running ? 'Lead on' : 'Lead off')}<span class="t"><b>${esc(p.alias)}</b><span class="s">${TRUST[p.trust] || cap1(p.trust)} gating · ${money(p.budget?.day)} a day · ${SHIP[p.autonomy] || esc(p.autonomy)}</span></span><span class="m">${I('chevron-right')}</span></a>`).join('');
     return [
       ['plan', 'Claude plan', `
-        <div class="s-meters">${meter('5‑hour window', plan.fiveHour, plan.fiveHour ? `Resets ${resetIn(plan.fiveHour.resetsAt)}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, plan.sevenDay ? `Resets ${esc(resetAt(plan.sevenDay.resetsAt))}` : 'Shows after the first run')}</div>
+        <div class="s-meters">${meter('5‑hour window', plan.fiveHour, plan.fiveHour ? `Resets ${esc(resetSoon(plan.fiveHour.resetsAt))}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, plan.sevenDay ? `Resets ${esc(resetAt(plan.sevenDay.resetsAt))}` : 'Shows after the first run')}</div>
         ${planWords(plan, pace).left ? `<p class="field-help">${esc(planWords(plan, pace).left)}.</p>` : ''}
         <p class="field-help s-spent">Atelier spent <b class="num">${money(C?.spentToday)}</b> today on finished work${C?.working ? `; ${C.working} agent${C.working === 1 ? ' is' : 's are'} still working, so it will rise` : ''}. <span class="num">${tokens.toFixed(1)}</span> M tokens. API-equivalent cost, not a bill.</p>
         ${holding}
@@ -1959,7 +1961,7 @@ const Project = (() => {
             <dl class="p-dl num"><dt>Tasks</dt><dd>${money(sp.tasks)}</dd><dt>Lead</dt><dd>${money(sp.lead)}</dd><dt>Audits</dt><dd>${money(sp.audits)}</dd></dl>
             <span>API-equivalent cost, not a bill.</span></div></details></section>
         <section class="p-fact" aria-labelledby="f-plan"><h3 class="section-label" id="f-plan">Your Claude plan</h3>
-          ${planMeter('5‑hour window', plan, plan ? `Resets ${resetIn(plan.resetsAt)} · shared by every project` : 'Shows after the first run')}
+          ${planMeter('5‑hour window', plan, plan ? `Resets ${esc(resetSoon(plan.resetsAt))} · shared by every project` : 'Shows after the first run')}
           ${planMeter('This week', week, week ? `Resets ${resetAt(week.resetsAt)}` : 'Shows after the first run')}
           ${left ? `<p class="meter-foot">${esc(left)}</p>` : ''}</section>
         <section class="p-fact" aria-labelledby="f-team"><h3 class="section-label" id="f-team">Team</h3>
