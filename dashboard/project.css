@@ -138,7 +138,16 @@
 .p-feed li[data-k="done"] span { color: var(--text); }
 
 /* Facts column */
-.p-factsfold > summary { display: none; }
+/* The fold's summary shows on the phone, and at every width for a fold that hides detail (.is-fold: the task page's Facts, F-6). */
+.p-factsfold > summary { display: none; align-items: center; gap: var(--space-2); min-height: 52px; list-style: none; cursor: pointer; font-size: var(--text-sm); color: var(--text-2); }
+.p-factsfold.is-fold > summary { display: flex; }
+.p-factsfold.is-fold[open] > summary { margin-bottom: var(--space-4); }
+.p-factsfold > summary::-webkit-details-marker { display: none; }
+.p-factsfold > summary > span:first-child { color: var(--text); font-weight: var(--weight-medium); }
+.p-factsfold > summary .num { margin-left: auto; }
+.p-factsfold > summary .num.is-needs { color: var(--needs); }
+.p-factsfold > summary .icon { transition: transform var(--dur-base) var(--ease-out); }
+.p-factsfold[open] > summary .icon { transform: rotate(180deg); }
 .p-facts-in { display: grid; gap: var(--space-6); }
 .p-fact { display: grid; align-content: start; gap: var(--space-3); padding-bottom: var(--space-6); border-bottom: var(--border-width) solid var(--border); }
 .p-fact:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -267,13 +276,7 @@
   .p-grid { gap: var(--space-6); }
   .p-facts { padding: 0; border: 0; }
   .p-factsfold { border-top: var(--border-width) solid var(--border); border-bottom: var(--border-width) solid var(--border); }
-  .p-factsfold > summary { display: flex; align-items: center; gap: var(--space-2); min-height: 52px; list-style: none; cursor: pointer; font-size: var(--text-sm); color: var(--text-2); }
-  .p-factsfold > summary::-webkit-details-marker { display: none; }
-  .p-factsfold > summary > span:first-child { color: var(--text); font-weight: var(--weight-medium); }
-  .p-factsfold > summary .num { margin-left: auto; }
-  .p-factsfold > summary .num.is-needs { color: var(--needs); }
-  .p-factsfold > summary .icon { transition: transform var(--dur-base) var(--ease-out); }
-  .p-factsfold[open] > summary .icon { transform: rotate(180deg); }
+  .p-factsfold > summary { display: flex; }
   .p-facts-in { grid-template-columns: minmax(0, 1fr); padding: var(--space-2) 0 var(--space-5); }
   .p-col { gap: var(--space-8); }
   .p-row { min-height: 60px; }

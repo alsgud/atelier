@@ -30,8 +30,10 @@ a { color: inherit; text-decoration: none; }
 .hf-rail .push { margin-top: auto; }
 .hf-top { align-items: center; gap: var(--space-2); height: var(--size-topbar); padding: 0 var(--space-1) 0 var(--space-4); border-bottom: var(--border-width) solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 20; }
 .hf-top .brand { display: inline-flex; align-items: center; min-height: 44px; }
-.hf-top .spend { margin-left: auto; font-size: var(--text-sm); color: var(--text-2); display: flex; align-items: center; gap: var(--space-1); min-height: 44px; padding: 0 var(--space-2); }
+.hf-top .spend { margin-left: auto; font-size: var(--text-sm); color: var(--text-2); display: flex; flex-direction: column; align-items: flex-end; justify-content: center; min-height: 44px; padding: 0 var(--space-2); min-width: 0; text-align: right; }
+.hf-top .spend-l { display: flex; align-items: baseline; gap: var(--space-1); }
 .hf-top .spend b { color: var(--text); font-weight: var(--weight-medium); }
+.hf-top .spend-p { font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-3); }
 .hf-top .gear { display: grid; place-items: center; width: 44px; height: 44px; color: var(--text-2); border-radius: var(--radius-sm); }
 .hf-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; }
 

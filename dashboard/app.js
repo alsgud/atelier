@@ -32,9 +32,28 @@ const longAgo = iso => {
 const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
 const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000); return m <= 0 ? 'now' : m < 60 ? `in ${m} min` : `in ${Math.floor(m / 60)} h ${m % 60} min`; };
-const money = n => `$${(n || 0).toFixed(2)}`;
+// The one money formatter (F-9): $250 for whole dollars, $72.02 otherwise.
+const money = n => { const c = Math.round((Number(n) || 0) * 100); return `$${c % 100 ? (c / 100).toFixed(2) : c / 100}`; };
 const HHMM = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit' }); // one formatter: building one per call is slow on a phone
 const hhmm = t => HHMM.format(new Date(t));
+const DMY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+// A reset time (epoch seconds) that can't be misread (F-13): "today 14:00", "tomorrow 02:00", or "Tue 3 Nov, 02:00".
+const resetAt = sec => {
+  const t = sec * 1000, d = new Date(t), now = new Date();
+  if (t - now > 864e5) return `${DMY.format(d)}, ${hhmm(t)}`;
+  return `${d.toDateString() === now.toDateString() ? 'today' : 'tomorrow'} ${hhmm(t)}`;
+};
+const resetDay = sec => sec * 1000 - Date.now() > 864e5 ? DMY.format(new Date(sec * 1000)) : resetAt(sec);
+// The Claude plan in words, the same on every screen (F-4): both windows, the week's reset, and what is left for the
+// owner before Atelier's own stop (Settings › pause at this much of the week).
+const planWords = (plan, pace) => {
+  const f = plan?.fiveHour, w = plan?.sevenDay, stop = Number(pace?.sevenDay) || 0;
+  if (!f && !w) return { line: '', short: '', left: '' };
+  const short = [f && `5‑hour ${f.used}%`, w && `week ${w.used}%`].filter(Boolean).join(', ');
+  const line = short + (w ? `, resets ${resetDay(w.resetsAt)}` : '');
+  const left = w && stop ? (w.used < stop ? `Left for you: ${stop - w.used}% of the week before Atelier stops at ${stop}%` : `Atelier has stopped for the week at ${stop}%; the rest is yours`) : '';
+  return { line, short, left };
+};
 
 // ---------- icons (the design's set, atelier/design/icons.js, as one inline sprite) ----------
 const ICON = {
@@ -233,7 +252,7 @@ function renderChrome() {
   const aria = c => (cur === c ? ' aria-current="page"' : '');
   const inboxLabel = k ? `Inbox, ${now.waiting} waiting${now.needs ? `, ${now.needs} need${now.needs === 1 ? 's' : ''} you now` : ''}` : 'Inbox';
   const pw = a => C?.projects[a]?.waiting || 0;
-  const plan = C?.plan?.fiveHour;
+  const plan = C?.plan?.fiveHour, pw4 = planWords(C?.plan, state?.pace);
   const atLimit = C?.atLimit || [];
   const limitLine = !P.length ? 'No projects yet' : atLimit.length ? `${atLimit.join(', ')} ${atLimit.length === 1 ? 'is' : 'are'} at ${atLimit.length === 1 ? 'its' : 'their'} daily limit` : 'Every project within its budget';
   const spent = k ? money(C.spentToday) : '–';
@@ -250,7 +269,7 @@ function renderChrome() {
       <a class="nav-item" href="#/new"${aria('new')}>${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
-      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span><b>${k && plan ? plan.used + '%' : '–'}</b></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${k && plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${k && plan ? Math.min(100, plan.used) : 0}%"></i></div><span class="meter-foot">${plan ? `5‑hour window · resets ${resetIn(plan.resetsAt)}` : 'Shows after the first run'}</span></div>
+      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${k && plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${k && plan ? Math.min(100, plan.used) : 0}%"></i></div><span class="meter-foot">${k && pw4.line ? esc(pw4.line) : 'Shows after the first run'}</span>${pw4.left ? `<span class="meter-foot">${esc(pw4.left)}</span>` : ''}</div>
       <div class="meter"><div class="meter-head"><span>Spent today</span><b class="num">${spent}</b></div><span class="meter-foot">${esc(limitLine)}</span></div>
       <a class="nav-item" href="#/settings"${aria('settings')} style="margin:0 calc(-1 * var(--space-2))">${I('settings')}Settings</a>
     </div>`;
@@ -265,7 +284,7 @@ function renderChrome() {
     <a class="push" href="#/settings" aria-label="Settings${k && plan ? `, plan ${plan.used}% used` : ''}${k ? `, ${spent} spent today` : ''}"${aria('settings')}>${I('settings')}</a>`;
   $('top').innerHTML = `
     <a class="brand" href="#/inbox" aria-label="Atelier, Inbox">${lockup(20)}</a>
-    <a class="spend" href="#/settings" aria-label="Spent today ${k ? spent : 'not known yet'}, plan settings">Today<b class="num">${spent}</b></a>
+    <a class="spend" href="#/settings" aria-label="Spent today on all projects ${k ? spent : 'not known yet'}${k && pw4.line ? `. Plan: ${pw4.line}` : ''}. Plan settings"><span class="spend-l">Today, all projects<b class="num">${spent}</b></span>${k && pw4.line ? `<span class="spend-p num">Plan: ${esc(pw4.short)}</span>` : ''}</a>
     <a class="gear" href="#/settings" aria-label="Settings">${I('settings')}</a>`;
   const tabIs = t => ((t === 'projects' ? ['projects', 'new', 't', ...P.map(p => p.alias)] : [t]).includes(cur) ? ' aria-current="page"' : '');
   $('tabs').innerHTML = `
@@ -430,9 +449,9 @@ const Inbox = (() => {
         const rows = [...(sp.tasks || []).map(t => [t.title, t.spent]), ['The lead', sp.lead], ['Audits', sp.audits]].filter(([, v]) => v > 0);
         const plan = state?.summary?.plan?.fiveHour;
         return { ...base, glyph: 'budget', kind: 'Budget', short: 'budget',
-          title: `${a} used today’s ${money(q.limit).replace(/\.00$/, '')}, so new work is paused`,
+          title: `${a} used today’s ${money(q.limit)}, so new work is paused`,
           body: () => `<p class="lede">The work already running finishes its current try. Nothing new starts until you raise the limit, or until midnight.</p>
-            <div class="meter" style="max-width:var(--measure)"><div class="meter-head"><span>Spent today on ${A}</span><b>${money(q.spent)} of ${money(q.limit).replace(/\.00$/, '')}</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div></div>
+            <div class="meter" style="max-width:var(--measure)"><div class="meter-head"><span>Spent today on ${A}</span><b>${money(q.spent)} of ${money(q.limit)}</b></div><div class="meter-track is-full"><i style="--value:100%"></i></div></div>
             ${rows.length ? `<dl class="facts is-money">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="num">${money(v)}</dd>`).join('')}</dl>` : ''}
             <p class="faint" style="margin:0;font-size:var(--text-sm)">API‑equivalent cost, not a bill.${plan ? ` Your Claude plan is ${plan.used} % used.` : ''}</p>`,
           dock: { primary: `Raise today to $${q.to}`, ghost: 'Budget settings', ghostHref: `${P}/settings`, hint: 'Or do nothing: work starts again at midnight',
@@ -524,7 +543,7 @@ const Inbox = (() => {
       }
       case 'plan':
         return { ...base, glyph: 'plan', kind: 'Task plan', short: 'task plan', title: `Start a task: ${q.title}`,
-          body: () => `<p class="lede">The ${esc(q.role)} works on it: up to ${esc(q.iterations)} tries${q.budgetLimit ? `, at most ${money(q.budgetLimit).replace(/\.00$/, '')}` : ''}. Read the brief for what it will change.</p>
+          body: () => `<p class="lede">The ${esc(q.role)} works on it: up to ${esc(q.iterations)} tries${q.budgetLimit ? `, at most ${money(q.budgetLimit)}` : ''}. Read the brief for what it will change.</p>
             <details class="details"><summary>${I('chevron-down')}What it will be checked against</summary><div class="details-body"><span>${q.criteria ? `Outcomes ${esc(q.criteria)}.` : 'No outcomes cited yet.'}</span></div></details>`,
           dock: { primary: 'Approve plan', ghost: 'Read the brief', ghostHref: `#/t/${encodeURIComponent(q.id)}`,
             send: () => ({ action: 'plan-approve', id: q.id }),
@@ -553,12 +572,14 @@ const Inbox = (() => {
       if (!['working', 'reviewing', 'auditing'].includes(x.state)) continue;
       const c = x.live?.current;
       const who = x.kind === 'lead' ? 'lead' : x.reviewingFor ? 'reviewer' : x.who;
-      const fig = x.audit?.checkers ? { n: x.audit.finished, of: x.audit.checkers, unit: 'checks' } : x.id && x.iterations ? { n: c?.n || x.iteration || 1, of: x.iterations, unit: 'try' } : null;
-      out.push({ id: `${p.alias}-${x.id || x.kind}`, what: x.what, meta: `${p.alias} · ${who}`, when: c ? `${c.minutes} min in` : x.kind === 'auditor' ? (x.meta || '').replace(/ · .*/, '') : 'now', href: x.href || '', ...(fig || {}) });
+      // A task says its stage and latest step in words, its bar filled by stage (F-3); tries live on the task page.
+      const stage = x.state === 'reviewing' || x.kind === 'reviewer' ? 3 : 1;
+      const fig = x.audit?.checkers ? { n: x.audit.finished, of: x.audit.checkers, unit: 'checks' } : x.id ? { n: stage + 1, of: STAGES.length, unit: 'stage', words: [STAGES[stage], x.quietMin ? `Quiet for ${x.quietMin} min` : x.step].filter(Boolean).join(' · ') } : null;
+      out.push({ id: `${p.alias}-${x.id || x.kind}`, what: x.what, meta: `${p.alias} · ${who}`, when: x.id && x.lastAt ? longAgo(x.lastAt) : c ? `${c.minutes} min in` : x.kind === 'auditor' ? (x.meta || '').replace(/ · .*/, '') : 'now', href: x.href || '', ...(fig || {}) });
     }
     return out;
   }
-  const figure = a => a.unit === 'try' ? `try ${a.n} of ${a.of}` : `${a.n} of ${a.of} ${a.unit}`;
+  const figure = a => a.unit === 'stage' ? a.words : `${a.n} of ${a.of} ${a.unit}`;
 
   // The list as the owner sees it: the server's queue, minus decisions made here that the server still lists.
   // Decide each: a batch of outcomes becomes one Outcome item per draft, as the server lists a single draft
@@ -599,7 +620,7 @@ const Inbox = (() => {
   }
   function agent(a, named) {
     const fig = a.of ? figure(a) : '';
-    return `<a href="${esc(a.href || '#/office')}" class="agent" data-agent="${esc(a.id)}"${named && rowsMove() ? vt(`w-${cssId(a.id)}`, 'row') : ''} aria-label="${esc(a.what)}. ${esc(a.meta)}${fig ? `. ${fig}` : ''}"><span class="agent-dot"><span class="dot dot-active${failedAt ? '' : ' is-live'}" role="img" aria-label="Working"></span></span><span class="agent-what">${esc(a.what)}</span><span class="agent-meta">${esc(a.meta)} · <span class="when">${esc(a.when)}</span></span>${a.of ? `<span class="agent-progress"><span class="track"><i style="--v:${Math.min(1, a.n / a.of).toFixed(4)}"></i></span><span class="fig">${fig}</span></span>` : ''}</a>`;
+    return `<a href="${esc(a.href || '#/office')}" class="agent" data-agent="${esc(a.id)}"${named && rowsMove() ? vt(`w-${cssId(a.id)}`, 'row') : ''} aria-label="${esc(a.what)}. ${esc(a.meta)}${fig ? `. ${fig}` : ''}"><span class="agent-dot"><span class="dot dot-active${failedAt ? '' : ' is-live'}" role="img" aria-label="Working"></span></span><span class="agent-what">${esc(a.what)}</span><span class="agent-meta">${esc(a.meta)} · <span class="when">${esc(a.when)}</span></span>${a.of ? `<span class="agent-progress"><span class="track"><i style="--v:${Math.min(1, a.n / a.of).toFixed(4)}"></i></span><span class="fig">${esc(fig)}</span></span>` : ''}</a>`;
   }
   function ledgerRows(rows) {
     return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#/p/${encodeURIComponent(r.project)}/overview" class="ledger-row"${r.id ? ` data-lid="${esc(r.id)}"` : ''} aria-label="${esc(r.what)}. ${esc(r.project)}, ${r.age === 'now' ? 'just now' : `${esc(r.age)} ago`}"${(r.id || r.key) && rowsMove() ? vt(`l-${cssId(r.id || r.key)}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${esc(r.age)}</span><span class="meta">${esc(r.project)}</span></a>`; }).join('');
@@ -1010,8 +1031,11 @@ const Office = (() => {
   const firstSeen = new Map(); // finished task id → when this page first showed it
   let sig = '', shown = new Map(), timer = null;
 
-  const progText = p => !p ? '' : p[2] === 'try' ? `Try ${p[0]} of ${p[1]}` : `${p[0]} of ${p[1]} ${p[2]}`;
-  const meta = d => [progText(d.prog), d.ago].filter(Boolean).join(' · ');
+  // A desk says its stage and when it last did something, as the task page does (F-3); tries live on the task page.
+  // An audit's figure is its checks done; a task's bar fills by stage, never by tries.
+  const progText = p => !p || p[2] === 'try' ? '' : `${p[0]} of ${p[1]} ${p[2]}`;
+  const meta = d => [d.stage !== undefined && STAGES[d.stage], progText(d.prog), d.ago].filter(Boolean).join(' · ');
+  const fillOf = d => d.stage !== undefined ? (d.stage + 1) / STAGES.length : d.prog && d.prog[1] && d.prog[2] !== 'try' ? Math.min(1, d.prog[0] / d.prog[1]) : 0;
   const dotOf = (k, word) => `<span class="dot${k && k !== 'off' ? ` dot-${k}` : ''}${k === 'active' && !failedAt ? ' is-live' : ''}" role="img" aria-label="${esc(word)}"></span>`;
 
   // One desk from one team entry. Every word is the server's or a fixed phrase; agent text goes through esc().
@@ -1022,7 +1046,7 @@ const Office = (() => {
     if (keys.has(key)) key += `-${x.id || keys.size}`;
     keys.add(key);
     const d = { key, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: propOf(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.what || '', step: '', quiet: false, prog: null, ago: '' };
-    const working = () => Object.assign(d, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started on this try', quiet: !!x.quietMin, prog: x.prog || null, ago: longAgo(x.lastAt) });
+    const working = () => Object.assign(d, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started', quiet: !!x.quietMin, stage: x.kind === 'reviewer' ? 3 : 1, ago: longAgo(x.lastAt) });
     if (x.kind === 'lead') {
       if (x.state === 'working') Object.assign(d, { k: 'active', step: `In the Claude app as “${a} lead”` });
       else if (x.state === 'duty') d.step = `In the Claude app as “${a} lead”`;
@@ -1034,14 +1058,14 @@ const Office = (() => {
       if (x.kind === 'reviewer') d.what = `Reviewing ${x.what}`;
       if (x.state === 'needs') Object.assign(d, { k: 'needs', step: 'It asked you something. Answer it on its page' });
       else if (x.state === 'stuck') d.step = 'Stalled. The lead decides what happens next';
-      else if (x.state === 'paced') Object.assign(d, { step: pacedWords(x), prog: x.prog || null });
+      else if (x.state === 'paced') Object.assign(d, { step: pacedWords(x), stage: x.kind === 'reviewer' ? 3 : 1 });
       else working();
     } else if (x.kind === 'reviewer') {
       d.step = 'Checks every task before it ships';
     } else {
       const f = x.finished;
       if (f && !firstSeen.has(f.id)) firstSeen.set(f.id, Date.now());
-      if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: f.title, step: 'Finished just now', prog: [1, 1, ''], ago: '' });
+      if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: f.title, step: 'Finished just now', stage: 4, ago: '' });
       else d.step = f ? `Finished “${f.title}”` : 'Starts when the lead hands it a task';
     }
     d.word = WORD[d.k];
@@ -1051,7 +1075,7 @@ const Office = (() => {
   const label = d => `${d.role}, ${d.word}. ${d.what}. ${d.step ? `${d.step}. ` : ''}${meta(d)}`.trim();
   const deskBody = d => `<span class="desk-who"><b>${esc(d.role)}</b><span class="desk-st">${dotOf(d.k, d.word)}<span class="w">${esc(d.word)}</span></span></span>
     <span class="desk-what">${esc(d.what)}</span>${d.step ? `<span class="desk-step">${esc(d.step)}</span>` : ''}
-    <span class="desk-prog"><span class="desk-track"><i style="--p:${d.prog && d.prog[1] ? Math.min(1, d.prog[0] / d.prog[1]).toFixed(3) : 0}"></i></span><span class="desk-meta num">${esc(meta(d))}</span></span>`;
+    <span class="desk-prog"><span class="desk-track"><i style="--p:${fillOf(d).toFixed(3)}"></i></span><span class="desk-meta num">${esc(meta(d))}</span></span>`;
   const desk = d => `<a class="desk" href="${esc(d.href)}" data-key="${esc(d.key)}" data-k="${d.k}"${d.quiet ? ' data-quiet' : ''} aria-label="${esc(label(d))}"><span class="desk-scene">${scene(d.prop)}</span><span class="desk-body">${deskBody(d)}</span></a>`;
   const strip = f => `<span class="strip" aria-hidden="true">${f.desks.map(d => `<i data-k="${d.k}"></i>`).join('')}</span>`;
   // Money in words (UX-11 C): the limit in red, "most of it used" from 80 %.
@@ -1155,8 +1179,10 @@ const isBusy = s => s === 'working' || s === 'reviewing' || s === 'auditing';
 const Projects = (() => {
   let shown = new Map(); // card id → the words on screen
   const needWord = n => `${n} need${n === 1 ? 's' : ''} you now`;
-  const tasksLine = T => {
-    const parts = [[T.running, 'working'], [T.paced, 'waiting for your plan window'], [T['needs-you'], n => `${n} need${n === 1 ? 's' : ''} you`], [T.queued, 'queued'], [T.done, 'done']]
+  // "working" is agents working (the summary's S.working), the same figure as the project page and the Office (F-7).
+  const tasksLine = S => {
+    const T = S.tasks || {};
+    const parts = [[S.working, 'working'], [S.paced, 'waiting for your plan window'], [T['needs-you'], n => `${n} need${n === 1 ? 's' : ''} you`], [T.queued, 'queued'], [T.done, 'done']]
       .filter(([n]) => n).map(([n, w]) => typeof w === 'function' ? w(n) : `${n} ${w}`);
     return parts.length ? parts.join(' · ') : 'No tasks yet';
   };
@@ -1171,7 +1197,7 @@ const Projects = (() => {
     const desks = Office.desks(p).map(d => d.k);
     return { p, S, now: nowT, desks: desks.length ? desks : ['off'], ph: Math.max(0, PHASES.indexOf(p.phase)) };
   }
-  const label = ({ p, S, now, ph }) => `${p.alias}, lead ${S.lead ? 'on' : 'off'}. ${now} ${waitWords(S)}. Phase ${cap1(PHASES[ph])}${S.outcomes?.of ? `, ${S.outcomes.met} of ${S.outcomes.of} outcomes met` : ''}. ${tasksLine(S.tasks || {})}. ${moneyWords(S)}.`;
+  const label = ({ p, S, now, ph }) => `${p.alias}, lead ${S.lead ? 'on' : 'off'}. ${now} ${waitWords(S)}. Phase ${cap1(PHASES[ph])}${S.outcomes?.of ? `, ${S.outcomes.met} of ${S.outcomes.of} outcomes met` : ''}. ${tasksLine(S)}. ${moneyWords(S)}.`;
   const inner = m => {
     const { p, S, now, ph } = m;
     return `<span class="pj-top">
@@ -1182,7 +1208,7 @@ const Projects = (() => {
       <span class="pj-now">${esc(now)}</span>
       <span class="pj-foot num">
         <span class="pj-ph"><span class="pj-phase" aria-hidden="true">${PHASES.map((n, i) => `<i class="${i < ph ? 'past' : i === ph ? 'now' : ''}"></i>`).join('')}</span><span><b>${cap1(PHASES[ph])}</b>${S.outcomes?.of ? ` · ${S.outcomes.met} of ${S.outcomes.of} outcomes met` : ''}</span></span>
-        <span>${tasksLine(S.tasks || {})}</span>
+        <span>${tasksLine(S)}</span>
         <span class="pj-money${S.atLimit ? ' is-needs' : ''}">${moneyWords(S)}</span>
       </span>`;
   };
@@ -1444,8 +1470,6 @@ const Settings = (() => {
   const proj = a => (state?.projects || []).find(p => p.alias === a);
   const themePick = () => store.get('atelier-theme') || (!firstRun && isPhone() ? 'device' : 'dark');
   const setTheme = v => { if (v) store.set('atelier-theme', v); else try { localStorage.removeItem('atelier-theme'); } catch { /* private mode */ } applyTheme(); };
-  const when = sec => new Date(sec * 1000).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
-  const dollars = n => `$${Number(n) % 1 ? Number(n).toFixed(2) : Number(n)}`;
 
   const radio = (name, val, title, sub, cur, tag = '') => `<label class="choice is-two"><input type="radio" name="${name}" value="${val}"${cur === val ? ' checked' : ''} data-say="${esc(title)}"><span><b>${title}${tag ? `<span class="tag">${tag}</span>` : ''}</b>${sub ? `<small>${sub}</small>` : ''}</span></label>`;
   const amount = (key, label, val, unit, help) => `
@@ -1487,12 +1511,13 @@ const Settings = (() => {
     const upd = plan.savedAt ? ` · updated ${longAgo(new Date(plan.savedAt * 1000).toISOString())}` : '';
     const tokens = ((t.tokens || 0) + (t.liveTokens || 0)) / 1e6;
     const holding = pace.holdingUntil
-      ? `<p class="s-hold is-holding" role="status">${I('refresh')}<span><b>Holding new work until ${esc(when(pace.holdingUntil))}.</b> ${holdWhy(pace, plan)} Running tasks finish first.</span></p>`
+      ? `<p class="s-hold is-holding" role="status">${I('refresh')}<span><b>Holding new work until ${esc(resetAt(pace.holdingUntil))}.</b> ${holdWhy(pace, plan)} Running tasks finish first.</span></p>`
       : `<p class="s-hold" role="status"><span class="dot dot-done" aria-hidden="true"></span><span>Not holding: work runs as planned.</span></p>`;
-    const rows = (state.projects || []).filter(p => !p.error).map(p => `<a class="p-row" href="#/settings?p=${encodeURIComponent(p.alias)}">${Office.dotOf(p.lead?.running ? 'active' : '', p.lead?.running ? 'Lead on' : 'Lead off')}<span class="t"><b>${esc(p.alias)}</b><span class="s">${TRUST[p.trust] || cap1(p.trust)} gating · ${dollars(p.budget?.day)} a day · ${SHIP[p.autonomy] || esc(p.autonomy)}</span></span><span class="m">${I('chevron-right')}</span></a>`).join('');
+    const rows = (state.projects || []).filter(p => !p.error).map(p => `<a class="p-row" href="#/settings?p=${encodeURIComponent(p.alias)}">${Office.dotOf(p.lead?.running ? 'active' : '', p.lead?.running ? 'Lead on' : 'Lead off')}<span class="t"><b>${esc(p.alias)}</b><span class="s">${TRUST[p.trust] || cap1(p.trust)} gating · ${money(p.budget?.day)} a day · ${SHIP[p.autonomy] || esc(p.autonomy)}</span></span><span class="m">${I('chevron-right')}</span></a>`).join('');
     return [
       ['plan', 'Claude plan', `
-        <div class="s-meters">${meter('5‑hour window', plan.fiveHour, plan.fiveHour ? `Resets ${resetIn(plan.fiveHour.resetsAt)}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, plan.sevenDay ? `Resets ${esc(when(plan.sevenDay.resetsAt))}` : 'Shows after the first run')}</div>
+        <div class="s-meters">${meter('5‑hour window', plan.fiveHour, plan.fiveHour ? `Resets ${resetIn(plan.fiveHour.resetsAt)}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, plan.sevenDay ? `Resets ${esc(resetAt(plan.sevenDay.resetsAt))}` : 'Shows after the first run')}</div>
+        ${planWords(plan, pace).left ? `<p class="field-help">${esc(planWords(plan, pace).left)}.</p>` : ''}
         <p class="field-help s-spent">Atelier spent <b class="num">${money(C?.spentToday)}</b> today on finished work${C?.working ? `; ${C.working} agent${C.working === 1 ? ' is' : 's are'} still working, so it will rise` : ''}. <span class="num">${tokens.toFixed(1)}</span> M tokens. API-equivalent cost, not a bill.</p>
         ${holding}
         ${amount('fiveHour', 'Pause Atelier at this much of the 5‑hour window', pace.fiveHour, '%', 'New work waits until the window resets. Running tasks finish.')}
@@ -1517,7 +1542,7 @@ const Settings = (() => {
     const model = r => r.model || (r.role === 'reviewer' ? p.reviewer?.model : '');
     const lead = p.lead?.running;
     const spent = Number(S.spentToday || 0), lim = Number(S.dayLimit || p.budget?.day || 0);
-    const dayHelp = `Today ${money(spent)} of ${dollars(lim)}${S.atLimit ? ', at its limit' : ''}. Resets at midnight.`;
+    const dayHelp = `Today ${money(spent)} of ${money(lim)}${S.atLimit ? ', at its limit' : ''}. Resets at midnight.`;
     const trustNote = earned
       ? `<p class="s-earned">${I('outcome')}<span><b>The team has earned ${earned.dial === 'trust' ? `${earned.to} gating` : `${(REPORT[earned.to] || earned.to).toLowerCase()} reporting`}.</b> ${whyWords(earned.why)}</span></p>`
       : sg ? `<p class="field-help">Next to earn: ${sg.dial === 'trust' ? `${esc(sg.to)} gating` : `${esc((REPORT[sg.to] || sg.to).toLowerCase())} reporting`}. So far ${whyWords(sg.why).replace(/^./, c => c.toLowerCase())}</p>` : '';
@@ -1771,7 +1796,8 @@ const Project = (() => {
   const win = k => `<span class="p-win" data-k="${k}" aria-hidden="true"><svg viewBox="0 0 12 16"><path d="M1 15V6a5 5 0 0 1 10 0v9z"/><path class="t" d="M3.4 9.6 5.3 11.5 8.8 7.6"/></svg></span>`;
   const moneyWords = S => `${money(S.spentToday)} of ${money(S.dayLimit)} today${S.atLimit ? ', at its limit' : S.dayLimit && S.spentToday >= 0.8 * S.dayLimit ? ', most of it used' : ''}`;
   const SHIP = { merge: 'Straight to main after review', pr: 'Draft pull requests you merge', branch: 'Local branches only' };
-  const GATING = { strict: 'You approve every phase and task', standard: 'You approve each phase', loose: 'You approve the brief only' };
+  // What the owner approves is the project's ownerGates, the list the server enforces (F-5): "You approve the brief and the design".
+  const gating = p => { const g = (p.ownerGates || []).filter(x => PHASES.includes(x)).map(x => `the ${x}`); return g.length ? `You approve ${g.length > 1 ? `${g.slice(0, -1).join(', ')} and ${g.at(-1)}` : g[0]}` : 'The lead approves every phase'; };
   const SEVERITY = { high: 'important', medium: 'worth fixing', low: 'minor' };
   const FINDING_STATE = { open: 'waiting for you', confirmed: 'you asked for a fix · with the lead', 'sent-to-lead': 'small: the auditor sent it to the lead', fixed: 'the lead fixed it · the next audit checks', dismissed: 'you said it’s fine', withdrawn: 'withdrawn: nothing was built yet' };
 
@@ -1779,7 +1805,7 @@ const Project = (() => {
   function nowOf(p, S, own) {
     const a = p.alias, top = own[0];
     if (p.charter?.tampered) return ['Your charter changed after you approved it.', 'Read what changed, and approve it again if the change is yours.', ['Open the charter', href(a, 'docs', 'charter')]];
-    if (top?.kind === 'budget') return [`Today’s ${money(S.dayLimit).replace(/\.00$/, '')} is used, so new work waits.`, 'The tries already running finish. Nothing new starts until midnight, unless you raise today’s limit.', ['Review the budget', `#/inbox/${encodeURIComponent(top.key)}`]];
+    if (top?.kind === 'budget') return [`Today’s ${money(S.dayLimit)} is used, so new work waits.`, 'The tries already running finish. Nothing new starts until midnight, unless you raise today’s limit.', ['Review the budget', `#/inbox/${encodeURIComponent(top.key)}`]];
     if (top && S.waiting) return [S.needsNow ? (S.needsNow === 1 ? 'Something here needs you now.' : `${S.needsNow} things here need you now.`) : S.waiting === 1 ? 'One decision waits for you.' : `${S.waiting} decisions wait for you.`,
       `First: ${Inbox.describe(top).title}. The team keeps going on anything that doesn’t depend on it.`, [S.waiting === 1 ? 'Open it in the Inbox' : 'Open the first in the Inbox', `#/inbox/${encodeURIComponent(top.key)}`]];
     if (!S.lead) return S.working ? ['The lead is off; the work already started carries on.', 'Nothing new starts until you start the lead again.', null]
@@ -1833,10 +1859,8 @@ const Project = (() => {
     else if (s === 'stalled') v.step = 'Stalled. The lead decides what happens next';
     else if (x.state === 'paced') Object.assign(v, { stage: review ? 3 : 1, step: pacedWords(x), paced: true });
     else if (review) Object.assign(v, { k: x.state === 'reviewing' ? 'active' : '', stage: 3, step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'The reviewer is checking it' });
-    else if (s === 'running') Object.assign(v, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started on this try' });
+    else if (s === 'running') Object.assign(v, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started' });
     else v.step = t.reason ? cap1(t.reason) : STATUS_WORD[s] || s;
-    const n = x.prog || (t.iteration ? [t.iteration, t.iterations, 'try'] : null);
-    if (n && s !== 'queued' && s !== 'done') v.prog = `Try ${n[0]} of ${n[1]}`;
     v.ago = v.paced ? '' : x.lastAt ? longAgo(x.lastAt) : s === 'done' ? longAgo(t.updated) : '';
     // The runner's heartbeat touches a paced task's card every minute: its time is when it last did something.
     v.at = v.paced && x.lastAt ? x.lastAt : t.updated;
@@ -1868,7 +1892,9 @@ const Project = (() => {
 
   // ── Facts (R14): money, the plan, the team, how it runs ──
   function facts(p, S, C) {
-    const a = esc(p.alias), plan = C.plan?.fiveHour, sp = S.split || {};
+    const a = esc(p.alias), plan = C.plan?.fiveHour, week = C.plan?.sevenDay, left = planWords(C.plan, state.pace).left, sp = S.split || {};
+    const planMeter = (label, w, foot) => `<div class="meter"><div class="meter-head"><span>${label}</span><b class="num">${w ? `${w.used}%` : '–'} <small>used</small></b></div><div class="meter-track${w && w.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${w ? `${label}: ${w.used}% used` : `${label}: not known yet`}"><i style="--value:${w ? Math.min(100, w.used) : 0}%"></i></div>
+            <span class="meter-foot">${esc(foot)}</span></div>`;
     const pct = S.dayLimit ? Math.min(100, Math.round(S.spentToday / S.dayLimit * 100)) : 0;
     const gh = p.autonomy === 'branch' || !p.github ? '' : p.github.problem ? `<span class="is-needs">Not on GitHub</span>: ${esc(p.github.problem)}` : 'On GitHub';
     const team = Office.desks(p);
@@ -1884,13 +1910,14 @@ const Project = (() => {
             <dl class="p-dl num"><dt>Tasks</dt><dd>${money(sp.tasks)}</dd><dt>Lead</dt><dd>${money(sp.lead)}</dd><dt>Audits</dt><dd>${money(sp.audits)}</dd></dl>
             <span>API-equivalent cost, not a bill.</span></div></details></section>
         <section class="p-fact" aria-labelledby="f-plan"><h3 class="section-label" id="f-plan">Your Claude plan</h3>
-          <div class="meter"><div class="meter-head"><span>5‑hour window</span><b class="num">${plan ? `${plan.used}%` : '–'} <small>used</small></b></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${plan ? Math.min(100, plan.used) : 0}%"></i></div>
-            <span class="meter-foot">${plan ? `Resets ${resetIn(plan.resetsAt)} · shared by every project` : 'Shows after the first run'}</span></div></section>
+          ${planMeter('5‑hour window', plan, plan ? `Resets ${resetIn(plan.resetsAt)} · shared by every project` : 'Shows after the first run')}
+          ${planMeter('This week', week, week ? `Resets ${resetAt(week.resetsAt)}` : 'Shows after the first run')}
+          ${left ? `<p class="meter-foot">${esc(left)}</p>` : ''}</section>
         <section class="p-fact" aria-labelledby="f-team"><h3 class="section-label" id="f-team">Team</h3>
           <ul class="p-team">${team.map(d => `<li>${dot(d.k === 'off' ? '' : d.k, d.word)}<b>${esc(d.role)}</b><span class="w${d.k && d.k !== 'off' ? ` is-${d.k}` : ''}">${esc(d.word)}</span></li>`).join('')}</ul>
           <a class="link p-more" href="#/office">Open the Office</a></section>
         <section class="p-fact" aria-labelledby="f-how"><h3 class="section-label" id="f-how">How it runs</h3>
-          <dl class="p-dl is-stack"><dt>Shipping</dt><dd>${SHIP[p.autonomy] || esc(p.autonomy)}</dd><dt>Gating</dt><dd>${GATING[p.trust] || esc(p.trust)}</dd>
+          <dl class="p-dl is-stack"><dt>Shipping</dt><dd>${SHIP[p.autonomy] || esc(p.autonomy)}</dd><dt>Gating</dt><dd>${esc(gating(p))}</dd>
             <dt>In the Claude app</dt><dd>${S.lead ? `“${a} lead”` : 'Not running: start the lead'}</dd>${gh ? `<dt>GitHub</dt><dd>${gh}</dd>` : ''}</dl>
           <a class="link p-more" href="#/settings?p=${encodeURIComponent(p.alias)}">Change in Settings</a></section>
       </div></details></aside>`;
@@ -1909,7 +1936,6 @@ const Project = (() => {
   function tasksTab(p, S) {
     if (!p.tasks.length) return empty('Tasks', 'No tasks yet', 'The lead plans tasks after you approve the spec. They appear here, grouped by status.');
     const by = S.tasks || {};
-    const hidden = GROUP.filter(([s]) => !by[s]).map(([, l]) => l.toLowerCase());
     const groups = GROUP.filter(([s]) => by[s]).map(([s, label, k]) => {
       const rows = p.tasks.filter(t => groupOf(p, t) === s).map(t => {
         const v = taskView(p, t);
@@ -1920,8 +1946,8 @@ const Project = (() => {
       }).join('');
       return `<section class="p-sec"><h3 class="p-h3">${label} <span class="n">${by[s]}</span></h3><div class="p-rows">${rows}</div></section>`;
     }).join('');
-    return `<section class="p-sec"><h2 class="p-h">Tasks <span class="n">${p.tasks.length}</span></h2>
-      <p class="p-quiet">Grouped by status.${hidden.length ? ` Nothing is ${hidden.length > 1 ? `${hidden.slice(0, -1).join(', ')} or ${hidden.at(-1)}` : hidden[0]} right now, so ${hidden.length > 1 ? 'those groups are' : 'that group is'} hidden.` : ''}</p></section>${groups}`;
+    return `<section class="p-sec"><h2 class="p-h">Tasks <span class="n">${S.tasksOpen} open of ${p.tasks.length}</span></h2>
+      <p class="p-quiet">Grouped by status; empty groups are hidden.</p></section>${groups}`;
   }
 
   // ── Outcomes (UX-14 A): the owner's outcomes with a ring each; the team's checks folded under them ──
@@ -2303,13 +2329,11 @@ const Task = (() => {
     return `<p class="t-pulse">${v.k === 'active' ? dot('active', 'Working') : ''}<span>Last active <b class="num">${esc(longAgo(v.last))}</b>${into}</span></p>`;
   };
   const stageTrack = v => {
-    const prog = v.stage === 1 && v.n ? `, try ${v.n}${v.eta?.expected ? `, about ${Math.max(v.n, v.eta.expected)} likely` : ` of ${v.of}`}` : '';
-    return `<ol class="p-phases t-stages" data-k="${v.k}" aria-label="Stage: ${STAGES[v.stage]}${prog}">${STAGES.map((name, i) => `<li class="${i < v.stage || (v.k === 'done' && i === v.stage) ? 'past' : i === v.stage ? 'now' : ''}"${i === v.stage ? ' aria-current="step"' : ''}>
+    return `<ol class="p-phases t-stages" data-k="${v.k}" aria-label="Stage: ${STAGES[v.stage]}">${STAGES.map((name, i) => `<li class="${i < v.stage || (v.k === 'done' && i === v.stage) ? 'past' : i === v.stage ? 'now' : ''}"${i === v.stage ? ' aria-current="step"' : ''}>
       <span class="bar">${i === v.stage && v.k !== 'done' ? `<span class="fill" style="--f:${v.fill}%"></span>` : ''}</span><span class="n">${name}</span></li>`).join('')}</ol>`;
   };
   const triesText = v => v.of > 1 && v.used ? `Try ${v.n || v.used} of ${v.of}` : '';
   const figs = v => `<p class="p-figs num">
-      ${triesText(v) ? `<span>Try <b>${v.n || v.used}</b> of ${v.of}</span>` : ''}
       ${v.eta ? `<span>likely <b>${v.eta.low}–${v.eta.high}</b> min left</span>` : ''}
       ${v.outs.length ? `<span><b>${v.outs.filter(met).length}</b> of ${v.outs.length} outcomes met</span>` : ''}
       ${v.limit ? `<span><b>${money(v.spent)}</b> of ${money(v.limit)}</span>` : `<span><b>${money(v.spent)}</b> spent</span>`}</p>`;
@@ -2408,8 +2432,8 @@ const Task = (() => {
       : fails ? `${fails === 1 ? 'One try' : `${fails} tries`} failed the check; each new try starts from what the last one learned.` : v.used ? 'Each try ends with its check.' : `It may use up to ${v.of}.`;
     const words = c => met(c) ? `Met ${when((c.history || []).at(-1)?.at)}` : c.status === 'awaiting-owner' ? 'Waiting for your judgement in the Inbox' : c.status === 'fail' ? 'Not yet: its check is failing' : 'Not met yet';
     const pr = m.pr ? `<dt>Pull request</dt><dd><a class="link" href="${esc(m.pr)}" target="_blank" rel="noopener">${esc(m.pr.replace(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\//, 'Draft #'))}${I('external')}</a></dd>` : m.branch ? `<dt>Branch</dt><dd class="mono">${esc(m.branch)}</dd>` : '';
-    return `<aside class="p-facts" aria-label="Facts" data-r="facts"><details class="p-factsfold" data-key="facts" open>
-      <summary><span>Facts</span><span class="num">${triesText(v) ? `${triesText(v)} · ` : ''}${money(v.spent)}${v.limit ? ` of ${money(v.limit)}` : ''}</span>${I('chevron-down')}</summary>
+    return `<aside class="p-facts" aria-label="Facts" data-r="facts"><details class="p-factsfold is-fold" data-key="facts">
+      <summary><span>Details</span><span class="num">${triesText(v) ? `${triesText(v)} · ` : ''}${money(v.spent)}${v.limit ? ` of ${money(v.limit)}` : ''}</span>${I('chevron-down')}</summary>
       <div class="p-facts-in">
         <section class="p-fact" aria-labelledby="f-st"><h3 class="section-label" id="f-st">Status</h3>
           <p class="t-st" data-k="${v.k}">${dot(v.k, v.word)}<b>${esc(v.word)}</b></p>
