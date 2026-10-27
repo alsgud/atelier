@@ -1080,13 +1080,18 @@ const Office = (() => {
       else working();
     } else if (x.kind === 'reviewer') {
       d.step = 'Checks every task before it ships';
+    } else if (x.held) {
+      // A paused or held task stays at its desk (F-11): what it is, and why it isn't moving.
+      const why = reasonWords(x.held);
+      d.step = x.held.status === 'paused' ? `${why === 'You stopped it' ? 'You stopped it' : 'Paused'}. ${why && why !== 'You stopped it' ? `${why}. ` : ''}The lead decides what happens next` : `${why || 'Waiting'}. It starts once that is done`;
+      d.held = x.held.status === 'paused' ? 'Paused' : 'Waiting';
     } else {
       const f = x.finished;
       if (f && !firstSeen.has(f.id)) firstSeen.set(f.id, Date.now());
       if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: f.title, step: 'Finished just now', stage: 4, ago: '' });
       else d.step = f ? `Finished “${f.title}”` : 'Starts when the lead hands it a task';
     }
-    d.word = WORD[d.k];
+    d.word = d.held || WORD[d.k];
     return d;
   }
 
@@ -1290,7 +1295,10 @@ const Activity = (() => {
 
   const keyOf = e => `${e.ts}|${e.id}|${e.type}`;
   const word = e => EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' '));
-  const KW = { needs: 'Problem: ', done: 'Good news: ', '': '' };
+  const KW = { needs: 'Needs you: ', past: 'Problem: ', done: 'Good news: ', '': '' };
+  // Red only for what needs the owner now (SPEC R8, F-10): a problem whose task still waits on the owner. Past problems are muted.
+  let waitingIds = new Set();
+  const kOf = e => e.k === 'needs' && !waitingIds.has(e.id) ? 'past' : e.k;
   // One label per calendar day, worked out once (hundreds of events share a handful of days; date formatting is slow on a phone).
   const dayNames = new Map();
   const dayOf = ts => {
@@ -1307,11 +1315,11 @@ const Activity = (() => {
   };
   const linkOf = e => e.task ? `#/t/${encodeURIComponent(e.id)}` : e.project ? `#/p/${encodeURIComponent(e.project)}/overview` : '';
   const sub = e => [e.project, e.task || (e.id !== e.project ? e.id : '')].filter(Boolean).join(' · ');
-  const label = e => `${hhmm(e.ts)}, ${[e.project, e.task].filter(Boolean).join(', ') || e.id}. ${KW[e.k]}${word(e)}. ${e.msg}`;
+  const label = e => `${hhmm(e.ts)}, ${[e.project, e.task].filter(Boolean).join(', ') || e.id}. ${KW[kOf(e)]}${word(e)}. ${e.msg}`;
   const row = e => {
     const href = linkOf(e), tag = href ? 'a' : 'div';
-    return `<li data-key="${esc(keyOf(e))}"><${tag} class="act-row"${href ? ` href="${href}"` : ''} data-k="${e.k}" aria-label="${esc(label(e))}">
-      <time class="num" datetime="${esc(e.ts)}">${hhmm(e.ts)}</time><span class="dot${e.k ? ` dot-${e.k}` : ''}" aria-hidden="true"></span>
+    return `<li data-key="${esc(keyOf(e))}"><${tag} class="act-row"${href ? ` href="${href}"` : ''} data-k="${kOf(e)}" aria-label="${esc(label(e))}">
+      <time class="num" datetime="${esc(e.ts)}">${hhmm(e.ts)}</time><span class="dot${kOf(e) === 'needs' || kOf(e) === 'done' ? ` dot-${kOf(e)}` : ''}" aria-hidden="true"></span>
       <span class="act-t"><span class="act-l"><b>${esc(word(e))}</b> ${esc(e.msg)}</span>${sub(e) ? `<span class="act-s">${esc(sub(e))}</span>` : ''}</span></${tag}></li>`;
   };
 
@@ -1321,9 +1329,10 @@ const Activity = (() => {
   const shown = d => d.events.filter(e => !f.only || e.k === 'needs');
   const span = d => d.since < Date.now() - 3 * DAY - 600_000 ? `Since ${new Date(d.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Last 3 days';
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-  const summary = d => { const l = shown(d); return `${span(d)} · ${plural(l.length, 'event')}${f.only ? '' : ` · ${plural(l.filter(e => e.k === 'needs').length, 'problem')}`}`; };
+  const summary = d => { const l = shown(d); return `${span(d)} · ${plural(l.length, 'event')}${f.only ? '' : ` · ${plural(l.filter(e => e.k === 'needs').length, 'past problem')}`}`; };
 
   function feed(d) {
+    waitingIds = new Set((state?.projects || []).flatMap(p => (p.tasks || []).filter(t => t.status === 'needs-you').map(t => t.id)));
     const list = shown(d);
     if (!list.length) {
       const where = f.p ? ` in ${esc(f.p)}` : '', when = span(d) === 'Last 3 days' ? 'in the last 3 days' : 'lately';
@@ -1344,7 +1353,7 @@ const Activity = (() => {
   const filters = () => `<div class="act-filters" role="group" aria-label="Filter">
       <label class="sr-only" for="a-proj">Project</label>
       <span class="act-select"><select class="input" id="a-proj">${options()}</select>${I('chevron-down')}</span>
-      <button class="btn btn-secondary act-only" type="button" aria-pressed="${f.only}" data-act-only><span class="dot dot-needs" aria-hidden="true"></span>Only problems</button></div>`;
+      <button class="btn btn-secondary act-only" type="button" aria-pressed="${f.only}" data-act-only><span class="dot" aria-hidden="true"></span>Only problems</button></div>`;
   const head = d => `${f.p ? `<a class="back" href="#/p/${encodeURIComponent(f.p)}/overview">${I('chevron-left')}<span>${esc(f.p)}</span></a>` : ''}<h1>Activity</h1>${d ? `<span class="hf-sum num" data-act-sum aria-live="polite">${summary(d)}</span>` : ''}<span class="end">${liveLine()}</span>`;
   const frame = (h, body) => `<div class="scr acts"><header class="hf-head" data-act-head>${h}</header><div class="hf-body">${body}</div></div>`;
   const firstRun = () => `<div class="hf-empty"><h2>Nothing has happened yet.</h2><p>Once a project starts, everything its team does shows up here, newest first: steps, proof, checks, reviews and what you decided.</p><a class="btn btn-primary" href="#/new">${I('plus')}New project</a></div>`;

@@ -6,7 +6,7 @@
 .act-select { position: relative; display: inline-flex; }
 .act-select select { appearance: none; width: auto; min-width: 180px; min-height: var(--size-control); padding-right: var(--space-8); cursor: pointer; font: inherit; }
 .act-select .icon { position: absolute; right: var(--space-2-5); top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--text-2); pointer-events: none; }
-.act-only .dot { opacity: 0.45; transition: opacity var(--dur-fast); }
+.act-only .dot { background: var(--border-strong); opacity: 0.45; transition: opacity var(--dur-fast); }
 .act-only[aria-pressed="true"] { background: var(--surface-selected); border-color: var(--text-2); color: var(--text); }
 .act-only[aria-pressed="true"] .dot { opacity: 1; }
 
@@ -22,7 +22,8 @@
 a.act-row:hover { background: var(--surface-hover); }
 .act-row time { color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
 .act-row .dot { transform: translateY(-1px); }
-.act-row[data-k=""] .dot { background: var(--border-strong); }
+.act-row:is([data-k=""], [data-k="past"]) .dot { background: var(--border-strong); }
+.act-row[data-k="past"] .act-l b { color: var(--text-2); }
 .act-t { display: grid; min-width: 0; }
 .act-l { text-wrap: pretty; overflow-wrap: anywhere; }
 .act-l b { font-weight: var(--weight-medium); }
