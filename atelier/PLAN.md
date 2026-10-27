@@ -35,12 +35,12 @@ Rough split (to be re-priced from real costs after the design task):
 | 6umt | designer | D5: UX research + walkthrough with numbered decisions ($22, 8 it) | R-8 | running |
 | — | designer | D6: every screen high-fi in N1 + K1 dark-first, from D5 answers (old D4 brief below + R-3 motion) | owner answers UX decisions | not started |
 | 5u8q | frontend | Slice 1: shell + summary endpoint + Inbox (17 it, $90) | design gate (approved 2026-10-26) | APPROVED round 2, on atelier/5u8q, owner to merge |
-| 66eq | frontend | Slice 2: Office, project + task pages, plus slice 1 follow-ups (17 it, $90), base atelier/5u8q | slice 1 (merged by owner 21:33) | APPROVED round 3, on atelier/66eq, owner to merge |
-| xhen | frontend | Slice 3: Projects, Activity, New project, Settings, palette, states, inventory sweep, plus slice 1-2 follow-ups (17 it, $90), base atelier/66eq | slice 2 | APPROVED round 1 (inventory 95/95, 0 missing) |
-| a46b | frontend | Integration: merge latest main (owner's audio proof, conflict in app.js), small slice 3 follow-ups (6 it, $30), base atelier/xhen | slice 3 | queued; then owner tries it on a second port, merges a46b, audit |
+| 66eq | frontend | Slice 2: Office, project + task pages, plus slice 1 follow-ups (17 it, $90), base atelier/5u8q | slice 1 (merged by owner 21:33) | merged via a7nb |
+| xhen | frontend | Slice 3: Projects, Activity, New project, Settings, palette, states, inventory sweep, plus slice 1-2 follow-ups (17 it, $90), base atelier/66eq | slice 2 | merged via a7nb |
+| a46b | frontend | Integration: merge latest main (owner's audio proof, conflict in app.js), small slice 3 follow-ups (6 it, $30), base atelier/xhen | slice 3 | cancelled (unsafe revert); replaced by a7nb, merged 2026-10-27 |
 | 9pfh | designer | Office characters: references from games, three directions A1-A3 to pick, base atelier/66eq (10 it, $40). Owner request 2026-10-27; next milestone M2 (build of the picked direction as its own frontend slice after slice 3) | owner request | running |
 | 3e5b | designer | Office characters reference board: 10-14 numbered style families with real refs, owner picks a type (R-11). Base atelier/9pfh (6 it, $25) | owner: A3 best but all feel cheap | running |
-| — | auditor | End-of-milestone audit | slice 3 | not started |
+| — | auditor | End-of-milestone audit | slice 3 | running 2026-10-27 |
 
 ## Ready-to-send briefs
 - **D4 (was D3; designer, `--base atelier/68h6`, ~8 it, $16, check `atelier verify design`)**: every other screen on the D2 system: Office (playful, clearer; R12), project page (R13-R16), task page (live progress, proof, history; R17-R20), new project (R21), settings (R22), Activity. Same process as D2 (ruling R-1): wireframe each first, only D2 tokens and components (extend the sheet if needed, logged), real content and images, 390/768/1440 light and dark, two critique rounds per screen group, a toast-up hit test on any screen with a dock. Cover every line of atelier/design/inventory.md (R1, AC-9) and mark where each lives. Numbers on every screen must match the one-summary rule (R2, AC-11). Hand-off: DESIGN.md complete for frontend, plus an "Endpoint needs" list for slice 1.
