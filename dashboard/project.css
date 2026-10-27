@@ -284,7 +284,7 @@
   .p-col { gap: var(--space-8); }
   .p-row { min-height: 60px; }
   .p-more { min-height: 44px; }
-  .p-split summary { min-height: 44px; }
+  .p-split summary, .p-raw summary { min-height: 44px; }
   .p-feed li { grid-template-columns: 64px minmax(0, 1fr); }
   .p-act .btn, .p-dialog-act .btn { height: var(--size-control-lg); }
   .p-act .btn-primary, .p-act .btn-secondary { flex: 1 1 auto; }

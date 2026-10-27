@@ -2334,7 +2334,7 @@ const Task = (() => {
           ? { word: 'Waiting', stage: reviewing ? 3 : 1, step: pacedWords(ag), why: 'Your Claude plan window is nearly full, so it waits instead of running into the limit. It carries on by itself; nothing it did is lost.' }
           : reviewing
           ? { k: 'active', word: 'In review', stage: 3, step: ag.step || 'Checking the work against its outcomes', why: 'The reviewer checks the work against its outcomes, and looks at the proof, before it ships.' }
-          : { k: 'active', word: 'Working', step: ag.step || 'Getting started on this try', why: `Each try ends with its check. Once the check passes, the reviewer looks at the work.${T.eta ? ` Likely ${T.eta.low}–${T.eta.high} min left.` : ''}` });
+          : { k: 'active', word: 'Working', step: ag.step || 'Getting started', why: `It runs its check when this step is done. Once the check passes, the reviewer looks at the work.${T.eta ? ` Likely ${T.eta.low}–${T.eta.high} min left.` : ''}` });
         v.stop = 'Stop task…'; break;
       case 'needs-you': Object.assign(v, { k: 'needs', step: 'Asked you a question', why: 'It stopped to ask before choosing. It carries on as soon as you answer; nothing it did is lost.', stop: 'Stop task…', dock: 'answer' }); break;
       case 'planned': Object.assign(v, { stage: 0, step: 'Planned, and waits for your OK to start', why: `Up to ${of} tries${limit ? `, at most ${money(limit)}` : ''}.${m.files ? ` It owns ${m.files}.` : ''} Approve it here or in the Inbox.`, stop: 'Stop it', dock: 'plan' }); break;
@@ -2376,7 +2376,7 @@ const Task = (() => {
   const pulse = v => {
     if (v.k === 'done') return '';
     if (v.k === 'active' && v.quiet) return `<p class="t-pulse is-quiet">${I('refresh')}<span>Quiet for ${v.quiet} min, longer than usual. It usually reports every few minutes.</span></p>`;
-    const into = v.k === 'active' && v.t.live?.current ? ` · ${v.t.live.current.minutes} min into this try` : '';
+    const into = v.k === 'active' && v.t.live?.current ? ` · ${v.t.live.current.minutes} min in` : '';
     return `<p class="t-pulse">${v.k === 'active' ? dot('active', 'Working') : ''}<span>Last active <b class="num">${esc(longAgo(v.last))}</b>${into}</span></p>`;
   };
   const stageTrack = v => {
