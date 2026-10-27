@@ -1,0 +1,59 @@
+/* D6 form parts shared by New project and Settings (sheet additions, logged in DESIGN.md › Screens (D6) › Sheet additions).
+   Built from tokens and components.css (.field, .input, .choices, .choice); nothing here changes those. */
+.f-form { display: grid; gap: var(--space-8); max-width: 640px; width: 100%; }
+.f-sec { display: grid; gap: var(--space-4); margin: 0; padding: 0; border: 0; min-width: 0; }
+.f-sec > h2, .f-sec > legend { margin: 0; padding: 0; font-size: var(--text-base); line-height: var(--leading-base); font-weight: var(--weight-semibold); }
+.f-sec > p.f-why { margin: calc(-1 * var(--space-2)) 0 0; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+
+/* A choice with a title and one line under it (team, shipping, gating): .choice grows to two lines */
+.choice.is-two { align-items: flex-start; padding: var(--space-3); }
+.choice.is-two input { margin-top: 3px; }
+.choice.is-two span { display: grid; gap: 2px; }
+.choice.is-two b { font-weight: var(--weight-medium); }
+.choice.is-two small { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.choice .tag { margin-left: var(--space-2); font-size: var(--text-xs); color: var(--text-3); font-weight: var(--weight-regular); }
+.f-row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.f-row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+
+/* Checkbox: an 18 px box in a 44 px row; the label carries a line of help */
+.f-check { display: flex; align-items: flex-start; gap: var(--space-3); min-height: 44px; padding: var(--space-1) 0; cursor: pointer; }
+.f-check input { appearance: none; flex: none; width: 18px; height: 18px; margin: 2px 0 0; border: 1.5px solid var(--border-field); border-radius: var(--radius-xs); background: var(--surface); display: grid; place-items: center; cursor: pointer; transition: background-color var(--dur-fast), border-color var(--dur-fast); }
+.f-check input::after { content: ""; width: 10px; height: 6px; border: solid var(--surface); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg) scale(0); transition: transform var(--dur-fast) var(--ease-out); }
+.f-check input:checked { background: var(--text); border-color: var(--text); }
+.f-check input:checked::after { transform: translateY(-1px) rotate(-45deg) scale(1); }
+.f-check input:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+.f-check:hover input:not(:checked) { border-color: var(--text-3); }
+.f-check > span { display: grid; gap: 2px; }
+.f-check small { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.f-checks { display: grid; gap: 0; }
+
+/* Switch: on / off that takes effect at once (Settings) */
+.f-switch { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); min-height: 44px; cursor: pointer; }
+.f-switch > span { display: grid; gap: 2px; }
+.f-switch small { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.f-switch input { appearance: none; flex: none; position: relative; width: 36px; height: 20px; margin: 2px 0 0; border-radius: var(--radius-full); background: var(--surface-selected); box-shadow: inset 0 0 0 1px var(--border-strong); cursor: pointer; transition: background-color var(--dur-base); }
+.f-switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-2); transition: transform var(--spring-snappy-dur) var(--spring-snappy), background-color var(--dur-base); }
+.f-switch input:checked { background: var(--text); box-shadow: none; }
+.f-switch input:checked::after { transform: translateX(16px); background: var(--surface); }
+.f-switch input:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+
+/* A short value with its unit inside the field: $ 10, 85 % */
+.f-unit { position: relative; display: inline-flex; align-items: center; width: 140px; }
+.f-unit .input { font-variant-numeric: tabular-nums; }
+.f-unit.is-pre .input { padding-left: var(--space-6); }
+.f-unit.is-post .input { padding-right: var(--space-8); }
+.f-unit i { position: absolute; font-style: normal; color: var(--text-2); pointer-events: none; }
+.f-unit.is-pre i { left: var(--space-3); }
+.f-unit.is-post i { right: var(--space-3); }
+.f-inline { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.f-saved { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); opacity: 0; transition: opacity var(--dur-base); }
+.f-saved.is-on { opacity: 1; }
+.f-saved .icon { width: 14px; height: 14px; color: var(--done); }
+.f-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+
+@media (max-width: 767px) {
+  .f-form { gap: var(--space-6); }
+  .f-row3, .f-row2 { grid-template-columns: minmax(0, 1fr); }
+  .f-unit .input { min-height: var(--size-control-lg); }
+  .f-actions .btn { height: var(--size-control-lg); flex: 1; }
+}
