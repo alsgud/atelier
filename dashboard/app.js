@@ -435,6 +435,12 @@ const Inbox = (() => {
         <span class="frame-cap"><b>${esc(cap)}</b><span>Open ${I('external')}</span></span></a>` : '';
   const quote = (text, who) => `<blockquote class="quote" style="margin:0">${text}${who ? `<footer>${who}</footer>` : ''}</blockquote>`;
   const para = s => String(s || '').split(/\n\s*\n/)[0];
+  // The thing itself, inline (AC-15, F-8): a document through md(), folded to about 8 lines with Show all when longer.
+  const shownAll = new Set(); // item ids whose document the owner opened in full
+  const inlineDoc = (id, text) => {
+    const long = String(text).split('\n').filter(l => l.trim()).length > 8 || text.length > 700, open = !long || shownAll.has(id);
+    return `<div class="doc${open ? '' : ' is-clamped'}" id="doc-${cssId(id)}" tabindex="-1">${md(text)}</div>${open ? '' : `<button class="btn btn-secondary doc-all" type="button" data-act="show-all" data-for="${esc(id)}" aria-controls="doc-${cssId(id)}">Show all</button>`}`;
+  };
 
   // One Inbox item, from the server's queue entry: its words, the thing itself, and its dock. The dock's
   // actions are today's, with today's arguments (contracts rule 1).
@@ -452,7 +458,8 @@ const Inbox = (() => {
           title: `The ${q.phase} for ${a} is ready for your OK`,
           body: () => `${q.detail ? `<p class="lede">${esc(para(q.detail).replace(/[*`]/g, ''))}</p>` : ''}
             ${imgs.length ? `<div class="frames is-hero">${imgs.map((im, i) => frame(im.url, im.caption, im.phone && i ? 'is-phone' : '')).join('')}${more && r.open ? `<a href="${esc(viewUrl(r.viewPort, r.open))}" target="_blank" rel="noopener" class="frame frame-more" aria-label="See all ${r.imageCount} pictures, opens in a new tab"><span class="frame-img"><b>+${more}</b>more</span><span class="frame-cap"><b>Everything else</b><span>Open ${I('external')}</span></span></a>` : ''}</div>` : ''}
-            <div class="links">${r.open ? `<a href="${esc(viewUrl(r.viewPort, r.open))}" target="_blank" rel="noopener">${I('external')}Open the clickable screens</a>` : ''}<a href="${P}/docs/${docTab}">${I('log')}Read the ${esc(q.phase)} document</a></div>
+            <div class="links">${r.open ? `<a href="${esc(viewUrl(r.viewPort, r.open))}" target="_blank" rel="noopener">${I('external')}Open the clickable screens</a>` : ''}${r.doc ? '' : `<a href="${P}/docs/${docTab}">${I('log')}Read the ${esc(q.phase)} document</a>`}</div>
+            ${r.doc ? inlineDoc(base.id, r.doc) : ''}
             <details class="details"><summary>${I('chevron-down')}What’s in it</summary><div class="details-body">
               <span>${r.files || 0} file${r.files === 1 ? '' : 's'} for this phase${r.docName ? `, with <code>${esc(r.docName)}</code>` : ''}. ${r.merged ? 'They are on the main branch.' : 'Nothing is merged until you approve.'}</span>
               ${q.detail && q.detail.split(/\n\s*\n/).length > 1 ? `<div>${md(q.detail.split(/\n\s*\n/).slice(1).join('\n\n'))}</div>` : ''}</div></details>`,
@@ -525,6 +532,14 @@ const Inbox = (() => {
             done: 'Approved. The charter stands as it is now.', toast: `Approved ${a}’s changed charter.`, log: `Approved ${a}’s changed charter` } };
       }
       case 'charter':
+        // The charter is still blank and the lead's draft waits beside it (F-2): approving saves the draft as written
+        // (charter-save), then approves it (charter-approve), in that order; Edit first opens it in Docs, prefilled.
+        if (q.draft) return { ...base, glyph: 'log', kind: 'Charter to approve', short: 'charter', title: 'Approve your charter',
+          body: () => `<p class="lede">The lead drafted ${A}’s charter from your brief. Until you approve it, the team has no charter in your words to work from. Approve it as written, or edit it first.</p>
+            ${q.text ? `<div class="doc">${md(q.text.replace(/^# .*\n/, ''))}</div>` : ''}`,
+          dock: { note: 'Approve in your own words', required: 'Say in a few words what you approve. It goes to the lead.', primary: 'Approve as written', ghost: 'Edit first', ghostHref: `${P}/docs/charter`,
+            send: (w, note) => [{ action: 'charter-save', project: a, text: q.draft }, { action: 'charter-approve', project: a, quote: note }],
+            done: 'Approved. The lead plans the next step.', toast: 'Approved the charter as written.', log: `Approved the charter for ${a}` } };
         return { ...base, glyph: 'log', kind: 'Charter to approve', short: 'charter', title: `${a}’s charter is ready for you to approve`,
           body: () => `<p class="lede">The lead drafted it from your brief. Read it here; approve it in your own words, or open it to change anything that isn’t in your words.</p>
             ${q.text ? `<div class="doc">${md(q.text.replace(/^# .*\n/, ''))}</div>` : ''}`,
@@ -561,9 +576,10 @@ const Inbox = (() => {
       }
       case 'plan':
         return { ...base, glyph: 'plan', kind: 'Task plan', short: 'task plan', title: `Start a task: ${q.title}`,
-          body: () => `<p class="lede">The ${esc(q.role)} works on it: up to ${esc(q.iterations)} tries${q.budgetLimit ? `, at most ${money(q.budgetLimit)}` : ''}. Read the brief for what it will change.</p>
+          body: () => `<p class="lede">The ${esc(q.role)} works on it: up to ${esc(q.iterations)} tries${q.budgetLimit ? `, at most ${money(q.budgetLimit)}` : ''}. Its brief says what it will change.</p>
+            ${q.brief ? inlineDoc(base.id, q.brief) : ''}
             <details class="details"><summary>${I('chevron-down')}What it will be checked against</summary><div class="details-body"><span>${q.criteria ? `Outcomes ${esc(q.criteria)}.` : 'No outcomes cited yet.'}</span></div></details>`,
-          dock: { primary: 'Approve plan', ghost: 'Read the brief', ghostHref: `#/t/${encodeURIComponent(q.id)}`,
+          dock: { primary: 'Approve plan', ghost: 'Open the task', ghostHref: `#/t/${encodeURIComponent(q.id)}`,
             send: () => ({ action: 'plan-approve', id: q.id }),
             done: `Approved. The ${q.role} starts within a minute.`, toast: 'Approved the plan.', log: `Approved the plan: ${q.title}` } };
       case 'github':
@@ -865,7 +881,8 @@ const Inbox = (() => {
       if (h.committed || h.sending) continue;
       h.sending = true;
       if (k === last) last = null;
-      post(h.body, { keepalive: !!opts.keepalive }).then(() => {
+      // A decision may be several actions in order (adopting a charter draft: save, then approve).
+      (Array.isArray(h.body) ? h.body.reduce((p, b) => p.then(() => post(b, { keepalive: !!opts.keepalive })), Promise.resolve()) : post(h.body, { keepalive: !!opts.keepalive })).then(() => {
         h.committed = true; h.sending = false;
         const dd = S.decided.find(e => e.id === k); if (dd) dd.committed = true;
         refresh().catch(() => {});
@@ -900,6 +917,7 @@ const Inbox = (() => {
     if (act === 'each') decideEach();
     if (act === 'toast-undo') undo();
     if (act === 'toast-retry') retry();
+    if (act === 'show-all') { shownAll.add(a.dataset.for); const d = $(a.getAttribute('aria-controls')); a.remove(); d?.classList.remove('is-clamped'); d?.focus({ preventScroll: true }); }
   });
   document.addEventListener('change', e => { if (S.active && e.target.name === 'ans') { S.choice = e.target.value; if (S.dock === 'invalid') { S.dock = 'ready'; render(); } } });
   document.addEventListener('input', e => { if (S.active && e.target.id === 'note') S.note = e.target.value; });
@@ -2050,11 +2068,13 @@ const Project = (() => {
       return `<details class="details p-doc" data-doc="${key}" data-key="doc-${key}"${open ? ' open' : ''}><summary><span class="t"><b>${t}</b><span class="s${red ? ' is-needs' : ''}">${s}</span></span>${I('chevron-down')}</summary><div class="details-body"${big ? ' data-lazy' : ''}>${big && !open ? '' : typeof body === 'function' ? body() : body}</div></details>`;
     };
     const ch = p.charter;
+    // A blank charter with the lead's draft waiting (the Inbox's charter item, F-2): the editor starts from the draft, unsaved.
+    const draft = !ch ? (state?.queue || []).find(q => q.kind === 'charter' && q.project === p.alias && q.draft)?.draft : '';
     const charter = `<form class="p-charter" data-pa-form="charter-save">
         <div class="field"><label class="field-label" for="ch-text">The charter, in your words</label>
-          <textarea class="input p-chtext" id="ch-text" rows="9" aria-describedby="ch-h">${esc(p.docs.charter)}</textarea>
-          <span class="field-help" id="ch-h">The team works from this. A change after you approved it asks you to approve again.</span></div>
-        <div class="p-act"><button class="btn btn-secondary" type="submit" data-ch-save disabled>Save changes</button></div></form>
+          <textarea class="input p-chtext" id="ch-text" rows="9" aria-describedby="ch-h"${draft ? ' data-draft' : ''}>${esc(draft || p.docs.charter)}</textarea>
+          <span class="field-help" id="ch-h">${draft ? 'This is the lead’s draft, not saved yet. Change anything that isn’t in your words, then save it or approve it below.' : 'The team works from this. A change after you approved it asks you to approve again.'}</span></div>
+        <div class="p-act"><button class="btn btn-secondary" type="submit" data-ch-save${draft ? '' : ' disabled'}>${draft ? 'Save the draft' : 'Save changes'}</button></div></form>
       ${ch && !ch.tampered ? `<div class="p-approved"><span class="p-lbl">You approved it ${day(ch.approvedAt)}</span>${ch.quote ? `<p>“${esc(ch.quote)}”</p>` : ''}</div>` : ''}
       ${!ch || ch.tampered ? `<form class="p-chapprove" data-pa-form="charter-approve">
         <div class="field"><label class="field-label" for="ch-q">Approve in your own words</label><textarea class="input" id="ch-q" rows="2" placeholder="Say in a few words what you approve" aria-describedby="ch-qe"></textarea><span class="field-error" id="ch-qe" hidden>${I('alert')}Say in a few words what you approve, so the team knows what you read.</span></div>
@@ -2222,7 +2242,7 @@ const Project = (() => {
   document.addEventListener('toggle', e => { const d = e.target; if (d.matches?.('.project details[open]')) fillLazy(d.parentElement); }, true);
   document.addEventListener('input', e => {
     const t = e.target;
-    if (t.id === 'ch-text') { const s = document.querySelector('[data-ch-save]'); if (s) s.disabled = t.value === t.defaultValue; }
+    if (t.id === 'ch-text') { const s = document.querySelector('[data-ch-save]'); if (s) s.disabled = t.value === t.defaultValue && !t.hasAttribute('data-draft'); }
     if (t.id === 'r-new') { const s = document.querySelector('[data-r-add]'); if (s) s.disabled = !t.value.trim(); }
     if (t.id === 'ch-q' && t.value.trim()) { $('ch-qe').hidden = true; t.removeAttribute('aria-invalid'); }
   });
@@ -2238,12 +2258,18 @@ const Project = (() => {
       : f.dataset.paForm === 'charter-approve' ? { action: 'charter-approve', project: a, quote: v } : { action: 'ruling', project: a, text: v };
     const done = { 'charter-save': 'Saved the charter', 'charter-approve': `Approved the charter for ${a}`, ruling: `Added the ruling for ${a}` }[f.dataset.paForm];
     ta.blur();
+    // Approving with unsaved charter text (the lead's draft, or the owner's edits) saves it first, then approves: the
+    // same two actions, in order (F-2).
+    const text = $('ch-text');
+    if (f.dataset.paForm === 'charter-approve' && text && (text.value !== text.defaultValue || text.hasAttribute('data-draft'))) {
+      if (await run(btn, { action: 'charter-save', project: a, text: text.value }, 'Saved the charter') === null) return;
+    }
     const r = await run(btn, body, done);
     // The refresh may have replaced the form: settle the field that is on screen now, not the one sent.
     const cur = $(ta.id);
     if (r !== null && cur) { if (f.dataset.paForm === 'charter-save') cur.defaultValue = cur.value = ta.value; else cur.value = cur.defaultValue = ''; }
   });
-  addEventListener('resize', () => { if (!isPhone()) document.querySelectorAll('.project details[data-key="facts"]').forEach(d => { d.open = true; }); });
+  addEventListener('resize', () => { if (!isPhone()) document.querySelectorAll('.project details[data-key="facts"]:not(.is-fold)').forEach(d => { d.open = true; }); });
 
   return { show, nowOf };
 })();
