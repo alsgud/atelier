@@ -1864,6 +1864,7 @@ const Project = (() => {
     if (S.working) return ['The team is building.', `${S.working} working${paced ? `, ${paced}` : ''}${queued ? `, ${queued} queued` : ''}. Nothing needs you right now.`, null];
     if (S.paced) return ['The team is waiting for your plan window.', `${S.paced === 1 ? 'Its task carries' : `${S.paced} tasks carry`} on by ${S.paced === 1 ? 'itself' : 'themselves'} when the window has room. Nothing needs you right now.`, null];
     if (queued) return ['Work is queued.', `${queued} task${queued === 1 ? '' : 's'} start${queued === 1 ? 's' : ''} as soon as a teammate is free.`, null];
+    if (S.tasks?.paused) return ['Work is paused.', `${S.tasks.paused === 1 ? 'One task is' : `${S.tasks.paused} tasks are`} paused. The lead decides what happens next.`, null];
     if (p.tasks.length) return ['All current work is finished.', `Tell the lead what’s next: talk to “${a} lead” in the Claude app.`, null];
     return ['The lead is planning the build.', 'Task plans come to your Inbox for your OK.', null];
   }
@@ -1918,7 +1919,7 @@ const Project = (() => {
       ${win(v.k)}<span class="p-task-b"><span class="p-task-t">${esc(v.title)}</span><span class="p-task-s">${esc(v.step)}</span>
       <span class="p-task-m">${stageTrack(v.stage)}<span class="w">${esc(v.who === 'Next' ? 'Next' : `${v.who} · ${STAGES[v.stage]}`)}</span><span class="num">${esc([v.prog, v.ago].filter(Boolean).join(' · '))}</span></span></span></a>`;
   const work = (p, S) => {
-    const live = p.tasks.filter(t => ['running', 'needs-you', 'review', 'stalled'].includes(t.status));
+    const live = p.tasks.filter(t => ['running', 'needs-you', 'review', 'stalled', 'paused'].includes(t.status));
     const next = p.tasks.filter(t => t.status === 'queued').slice(0, 3);
     const list = [...live, ...next].map(t => taskView(p, t));
     // The count is the summary's open tasks (the Tasks tab shows the same); more than three queued are left to that tab.
