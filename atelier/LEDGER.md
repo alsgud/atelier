@@ -16,7 +16,6 @@
 2. Office characters style pick from board 3e5b (S1-S14; designer's top 3: S6 flat vector, S3 cosy dioramas, S7 rig, which would change the CSS-only rule). Then: designer draws polished directions in that style, base atelier/3e5b, copy the board summary into DESIGN.md; request design gate again with the pick. Building the pick = M2, its own frontend slice, priced when picked.
 3. Charter: adopt atelier/CHARTER-draft.md in the dashboard (F-2; uey2 adds an Inbox item for it).
 4. Contracts: OK to reopen the contracts gate to file atelier/dashboard-api-draft.md (read-only API shapes from slice 1)?
-5. AC-7 shows awaiting-owner in the hook, though the owner accepted it 2026-10-27; check, and ask once if still pending.
 
 ## Tell the owner (Atelier core bugs, owner's code)
 - EPERM card-write race on Windows (frequent; crashes runners). Top core fix: retry the rename on EPERM/EBUSY.
