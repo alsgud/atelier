@@ -333,6 +333,13 @@ const TAB_ORDER = ['inbox', 'office', 'projects', 'activity', 'settings'];
 const tabOf = c => (TAB_ORDER.includes(c) ? c : c === 'new' || c === 't' || (state?.projects || []).some(p => p.alias === c) ? 'projects' : 'inbox');
 let shownTab = null;
 let vtSeq = 0; // the newest view transition owns ROOT's data-vt/data-dir
+// Scroll per screen: a new screen opens at its top; Back/Forward returns to where you were on it. A project's
+// sub-tabs are one screen (they keep the scroll), and the Inbox keeps its own (it scrolls an opened item to the top).
+history.scrollRestoration = 'manual';
+const screenOf = h => { const [p, q] = (h || '#/inbox').split('?'), [, kind, a] = p.split('/'); return kind === 'p' || kind === 't' ? `#/${kind}/${a}` : !kind || kind === 'inbox' ? '#/inbox' : q ? `${p}?${q}` : p; };
+const scrollAt = new Map();
+let shownScreen = null, traverse = false;
+window.navigation?.addEventListener('navigate', e => { traverse = e.navigationType === 'traverse'; });
 async function route({ refreshing = false, wait = false } = {}) {
   if (!state && !failedAt) return renderLoading();
   renderChrome();
@@ -340,6 +347,13 @@ async function route({ refreshing = false, wait = false } = {}) {
   const tab = tabOf(place());
   const prev = shownTab;
   const moved = prev && prev !== tab && !refreshing;
+  const screen = screenOf(location.hash), y0 = scrollY;
+  const newScreen = !refreshing && shownScreen !== null && screen !== shownScreen;
+  const wantY = newScreen ? (traverse && scrollAt.get(screen)) || 0 : null;
+  if (!refreshing && shownScreen) scrollAt.set(shownScreen, y0);
+  if (!refreshing) { shownScreen = screen; traverse = false; }
+  // Called once the new screen has drawn (again once its data is in): it can only scroll as far as the page is tall.
+  const toY = () => { if (wantY !== null && screenOf(location.hash) === screen && Math.abs(scrollY - wantY) > 1) scrollTo({ top: wantY }); };
   const draw = async () => {
     try {
       if (kind === 'inbox' || !kind) return Inbox.show(a ? decodeURIComponent(a) : null, { refreshing });
@@ -367,13 +381,20 @@ async function route({ refreshing = false, wait = false } = {}) {
     ROOT.dataset.vt = 'tab'; ROOT.dataset.dir = dir;
     const view = $('view'); if (view && !RM) view.style.viewTransitionName = 'page';
     // The slide waits for what draws at once (cached data or a skeleton), never for a read: the new view stays live.
-    const t = document.startViewTransition(async () => { await Promise.race([draw(), new Promise(r => setTimeout(r, 50))]); const v = $('view'); if (v && !RM) v.style.viewTransitionName = 'page'; });
+    // The old page's picture stays where it was on screen while the new one opens at its own scroll (shell.css --vt-dy).
+    const t = document.startViewTransition(async () => {
+      const p = draw(); p.then(toY);
+      await Promise.race([p, new Promise(r => setTimeout(r, 50))]);
+      toY(); ROOT.style.setProperty('--vt-dy', `${scrollY - y0}px`);
+      const v = $('view'); if (v && !RM) v.style.viewTransitionName = 'page';
+    });
     // Only clear our own marks: a later transition (the Inbox's own, or the next switch) may have set its own.
     const mine = ++vtSeq;
-    t.finished.catch(() => {}).finally(() => { if (vtSeq !== mine) return; delete ROOT.dataset.vt; delete ROOT.dataset.dir; $('view')?.style.removeProperty('view-transition-name'); });
+    t.finished.catch(() => {}).finally(() => { if (vtSeq !== mine) return; delete ROOT.dataset.vt; delete ROOT.dataset.dir; ROOT.style.removeProperty('--vt-dy'); $('view')?.style.removeProperty('view-transition-name'); });
     return t.updateCallbackDone.catch(() => {});
   }
-  return draw();
+  const p = draw(); toY(); p.then(toY);
+  return p;
 }
 window.addEventListener('hashchange', () => { if (!Inbox.ownsHash()) route(); });
 

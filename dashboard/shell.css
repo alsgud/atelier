@@ -231,6 +231,15 @@ html:has(.p-tabs) { scroll-padding-top: calc(var(--size-topbar) + 44px + var(--s
    rows for its own motion; left named here they animated on their own (the head blinked out, the dock and rows
    stayed put and arrived before the page). */
 html[data-vt="tab"] #view * { view-transition-name: none !important; }
+/* The new screen opens at its top (or where Back left it); the group doesn't travel, so the old picture is moved back
+   to where it was on screen (app.js route() sets --vt-dy) instead of jumping to the page's top as it leaves. */
+html[data-vt="tab"]::view-transition-old(page) { translate: 0 var(--vt-dy, 0px); }
+/* The phone's bars stay above that picture (it holds what was scrolled under the top bar) and never move. */
+html[data-vt="tab"]:not([data-motion="reduce"]) #top { view-transition-name: top; }
+html[data-vt="tab"]:not([data-motion="reduce"]) #tabs { view-transition-name: tabs; }
+::view-transition-group(top), ::view-transition-group(tabs) { animation: none; z-index: 4; }
+::view-transition-old(top), ::view-transition-old(tabs) { display: none; }
+::view-transition-new(top), ::view-transition-new(tabs) { animation: none; }
 
 /* The rest of the item: out the way it's going, in from where it comes. */
 ::view-transition-group(ih), ::view-transition-group(ib), ::view-transition-group(page), ::view-transition-group(empty), ::view-transition-group(zero-work) { animation: none; }
