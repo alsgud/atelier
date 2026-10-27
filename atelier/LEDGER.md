@@ -2,7 +2,7 @@
 
 <!-- The lead updates this at every heartbeat. After a restart it's the lead's memory, so keep it complete. -->
 
-- 2026-10-27: owner: A3 best of 9pfh but all feel cheap (overrule #4, R-11). Started 3e5b reference board ($25). Next: owner picks style numbers, then designer draws polished directions in that style. a7nb MERGED by owner 2026-10-27; 66eq, xhen, a7nb closed, a46b cancelled, M1 audit started (bg).
+- 2026-10-27: owner: A3 best of 9pfh but all feel cheap (overrule #4, R-11). Started 3e5b reference board ($25). Next: owner picks style numbers, then designer draws polished directions in that style. a7nb MERGED by owner 2026-10-27; 66eq, xhen, a7nb closed, a46b cancelled, M1 audit started (bg). 9pfh closed (carried into 3e5b). 3e5b runner died once, resumed. Owner accepted AC-7.
 
 ## Slice 3 done 2026-10-27 ~04:30
 - 9pfh (Office characters) APPROVED, waits for the owner's pick: A1, A2, A3 (designer's top pick), or "bolder". Lead told the owner honestly the stills look close to each other and still minimal, and offered a bolder round 2. Page: worktrees/9pfh/atelier/design/office-chars/index.html. Review follow-ups: frame budget at the edge on phone; webms add 23 MB (keep them out of the merge); pick-page nav order.
