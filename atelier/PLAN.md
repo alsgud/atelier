@@ -40,7 +40,7 @@ Rough split (to be re-priced from real costs after the design task):
 | a46b | frontend | Integration: merge latest main (owner's audio proof, conflict in app.js), small slice 3 follow-ups (6 it, $30), base atelier/xhen | slice 3 | cancelled (unsafe revert); replaced by a7nb, merged 2026-10-27 |
 | 9pfh | designer | Office characters: references from games, three directions A1-A3 to pick, base atelier/66eq (10 it, $40). Owner request 2026-10-27; next milestone M2 (build of the picked direction as its own frontend slice after slice 3) | owner request | running |
 | 3e5b | designer | Office characters reference board: 10-14 numbered style families with real refs, owner picks a type (R-11). Base atelier/9pfh (6 it, $25) | owner: A3 best but all feel cheap | running |
-| xhxv | frontend | Fix audit findings F-5..F-13 (8 it, $40), base main | audit | queued; owner merges, lead marks fixed |
+| uey2 | frontend | Fix audit findings F-2..F-13 (10 it, $55), base main, brief briefs/audit-fixes-m1.md | audit + owner confirmed F-2..F-4 | queued; owner merges, lead marks fixed |
 | — | auditor | End-of-milestone audit | slice 3 | running 2026-10-27 |
 
 ## Ready-to-send briefs
