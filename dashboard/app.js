@@ -36,7 +36,8 @@ const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000)
 const money = n => { const c = Math.round((Number(n) || 0) * 100); return `$${c % 100 ? (c / 100).toFixed(2) : c / 100}`; };
 const HHMM = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit' }); // one formatter: building one per call is slow on a phone
 const hhmm = t => HHMM.format(new Date(t));
-const DMY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+const DMY_ = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+const DMY = { format: d => DMY_.format(d).replace(/ /g, ' ') }; // "Tue 3 Nov" never breaks across lines
 // A reset time (epoch seconds) that can't be misread (F-13): "today 14:00", "tomorrow 02:00", or "Tue 3 Nov, 02:00".
 const resetAt = sec => {
   const t = sec * 1000, d = new Date(t), now = new Date();
@@ -164,7 +165,7 @@ function reasonWords(t) {
   if (/^ready on (local )?branch/i.test(r)) return 'Ready on its branch for you to merge';
   if (/^(waiting on request|request:)/i.test(r)) return 'Waiting on another teammate';
   if (/in review/i.test(r)) return 'In review';
-  if (/owner/i.test(r) && /stop|pause/i.test(r)) return 'You stopped it';
+  if (t.status === 'paused' && /owner/i.test(r)) return 'You stopped it';
   // Anything else: keep it only if it already reads as a short plain sentence.
   const s = r.replace(/^[a-z-]+:\s*/i, '').replace(/\s*\([0-9a-f]{7,40}\)/g, '').trim();
   return s.length <= 70 && !/[`/\\#{}<>=]|\b[0-9a-f]{7,40}\b|\b[a-z]+\/[a-z0-9-]+\b|\.(md|mjs|js|json)\b/i.test(s) ? cap1(s) : '';
@@ -1974,12 +1975,6 @@ const Project = (() => {
   // A task held for the plan window has its own group (the summary counts it as paced), so Working counts only work.
   const groupOf = (p, t) => p.team.agents.some(x => x.id === t.id && x.state === 'paced') ? 'paced' : taskStatus(t);
   const GROUP = [['needs-you', 'Needs you', 'needs'], ['running', 'Working', 'active'], ['paced', 'Waiting for your plan window', ''], ['review', 'In review', 'active'], ['queued', 'Queued', ''], ['planned', 'Waiting for your OK', ''], ['requested', 'Requests', ''], ['stalled', 'Stalled', ''], ['paused', 'Paused', ''], ['done', 'Done', 'done'], ['failed', 'Failed', ''], ['cancelled', 'Cancelled', '']];
-  const TRY = { f: 'failed the check', p: 'passed', n: 'now', '': 'no check' };
-  const tries = t => {
-    const list = (t.live?.history || []).map(h => h.check === 'pass' ? 'p' : h.check === 'fail' ? 'f' : '');
-    if (t.live?.current) list.push('n');
-    return list.length ? `<ol class="t-tries" aria-label="${list.length} ${list.length === 1 ? 'try' : 'tries'} so far">${list.map((x, i) => `<li data-t="${x}" title="Try ${i + 1}: ${TRY[x]}"></li>`).join('')}</ol>` : '';
-  };
   function tasksTab(p, S) {
     if (!p.tasks.length) return empty('Tasks', 'No tasks yet', 'The lead plans tasks after you approve the spec. They appear here, grouped by status.');
     const by = S.tasks || {};
@@ -1989,7 +1984,7 @@ const Project = (() => {
         // A paced task stays in its status group (the summary counts it there) but reads as waiting: no ETA, not lit.
         const sub = v.paced ? `${v.who} · ${v.step}${v.prog ? ` · ${v.prog}` : ''}` : s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${reasonWords(t) ? ` · ${reasonWords(t)}` : ''}`;
         const eta = s === 'running' && t.eta && !v.paced ? `about ${t.eta.low}–${t.eta.high} min left` : '';
-        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${v.paced ? v.word : label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(v.paced ? '' : k, v.paced ? v.word : label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${tries(t)}<span class="p-id">${esc(t.id)}</span>${esc(when(v.at))}</span></a>`;
+        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${v.paced ? v.word : label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(v.paced ? '' : k, v.paced ? v.word : label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${esc(when(v.at))}</span></a>`;
       }).join('');
       return `<section class="p-sec"><h3 class="p-h3">${label} <span class="n">${by[s]}</span></h3><div class="p-rows">${rows}</div></section>`;
     }).join('');
