@@ -202,8 +202,8 @@
 .p-trow .t-tries { gap: var(--space-1); }
 .p-trow .t-tries li { width: 8px; height: 8px; }
 .p-eta { color: var(--text); }
-/* dashboard: a task's reason can be a paragraph the lead wrote; the row shows two lines, the task page the rest */
-.p-trow .s { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+/* dashboard: a task's reason, or a title the lead wrote as a whole brief, can be a paragraph; the row shows two lines, the task page the rest */
+.p-trow .t b, .p-trow .s { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .p-id { color: var(--text-3); font-family: var(--font-mono); font-size: var(--text-xs); }
 .p-doc .details-body { display: grid; gap: var(--space-4); }
 .p-doc summary .n { margin-left: var(--space-1); color: var(--text-3); font-weight: var(--weight-medium); }

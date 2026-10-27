@@ -30,6 +30,9 @@ a.act-row:hover { background: var(--surface-hover); }
 .act-row[data-k="needs"] .act-l b { color: var(--needs); }
 .act-row[data-k="done"] .act-l b { color: var(--done); }
 .act-s { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); overflow-wrap: anywhere; }
+/* dashboard: an event or a task title can be a whole paragraph; the row shows a few lines, the task page the rest */
+.act-l { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.act-s { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .act-none { display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-6) 0; }
 .act-none p { margin: 0; color: var(--text-2); font-size: var(--text-md); line-height: var(--leading-md); }
 .act-more { justify-self: start; }
