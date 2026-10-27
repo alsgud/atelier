@@ -18,7 +18,7 @@ A redesign of the Atelier dashboard: the one place where I, a solo developer run
 - Colour means something: lilac is active, red is "needs you" or "wrong", green is done. Nothing else shouts.
 - Familiar patterns: an inbox, a bell, plain dropdowns.
 - Never: walls of text, a sea of pills, boxes and badges, or technical detail up front.
-- The Office stays playful; it just becomes clearer.
+- The Office is the charming heart of the dashboard: characters that feel alive, polished and smooth, never cheap, in our calm aesthetic (games are fair inspiration, never copied).
 
 ## Out of bounds
 - No change to how Atelier itself works (scheduling, runners, budgets, the auditor). The dashboard's own server may only change to serve the screens.
