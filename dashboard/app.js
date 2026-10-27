@@ -332,6 +332,7 @@ const loadError = what => `<div class="hf-notice" role="alert">${I('refresh')}<s
 const TAB_ORDER = ['inbox', 'office', 'projects', 'activity', 'settings'];
 const tabOf = c => (TAB_ORDER.includes(c) ? c : c === 'new' || c === 't' || (state?.projects || []).some(p => p.alias === c) ? 'projects' : 'inbox');
 let shownTab = null;
+let vtSeq = 0; // the newest view transition owns ROOT's data-vt/data-dir
 async function route({ refreshing = false, wait = false } = {}) {
   if (!state && !failedAt) return renderLoading();
   renderChrome();
@@ -367,7 +368,9 @@ async function route({ refreshing = false, wait = false } = {}) {
     const view = $('view'); if (view && !RM) view.style.viewTransitionName = 'page';
     // The slide waits for what draws at once (cached data or a skeleton), never for a read: the new view stays live.
     const t = document.startViewTransition(async () => { await Promise.race([draw(), new Promise(r => setTimeout(r, 50))]); const v = $('view'); if (v && !RM) v.style.viewTransitionName = 'page'; });
-    t.finished.catch(() => {}).finally(() => { delete ROOT.dataset.vt; delete ROOT.dataset.dir; const v = $('view'); if (v) v.style.removeProperty('view-transition-name'); });
+    // Only clear our own marks: a later transition (the Inbox's own, or the next switch) may have set its own.
+    const mine = ++vtSeq;
+    t.finished.catch(() => {}).finally(() => { if (vtSeq !== mine) return; delete ROOT.dataset.vt; delete ROOT.dataset.dir; $('view')?.style.removeProperty('view-transition-name'); });
     return t.updateCallbackDone.catch(() => {});
   }
   return draw();
@@ -628,7 +631,7 @@ const Inbox = (() => {
     if (!x || x.q.kind !== 'criteria') return;
     S.each.add(x.project);
     const first = `criterion:${x.project}:${String(x.q.id).split(',')[0]}`;
-    transition('open', () => { S.open = first; sync(); S.dock = 'ready'; S.note = ''; S.choice = ''; setHash(first); scrollTo({ top: 0 }); }, 1, () => [first]).then(focusTitle);
+    transition('open', () => { S.open = first; sync(); S.dock = 'ready'; S.note = ''; S.choice = ''; setHash(first); toTop(); }, 1, () => [first]).then(focusTitle);
   }
   function sync() {
     const q = expand(state?.queue || []);
@@ -750,22 +753,28 @@ const Inbox = (() => {
   }
   function transition(kind, update, dir = 0, fly = () => []) {
     const run = () => {
+      // Left the Inbox while this waited (the hold after deciding, or a queued move): keep the state change,
+      // never draw the Inbox over the screen the owner went to.
+      if (!S.active) { update(); return Promise.resolve(); }
       if (!document.startViewTransition || document.hidden) { update(); render(); return Promise.resolve(); }
+      const mine = ++vtSeq;
       ROOT.dataset.vt = kind; ROOT.dataset.dir = dir > 0 ? 'fwd' : dir < 0 ? 'back' : '';
+      $('view').style.removeProperty('view-transition-name'); // a screen switch still finishing must not wrap the item
       FLY.clear(); fly().forEach(id => id && FLY.add(id)); nameFlying();
-      const t = document.startViewTransition(() => { update(); render(); });
+      const t = document.startViewTransition(() => { update(); if (S.active) render(); });
       return t.finished.catch(() => {}).finally(() => {
-        delete ROOT.dataset.vt; delete ROOT.dataset.dir;
+        if (vtSeq === mine) { delete ROOT.dataset.vt; delete ROOT.dataset.dir; }
         FLY.clear(); document.querySelectorAll('#ttl, .qitem-title, .ledger-row .what').forEach(e => { e.style.removeProperty('view-transition-name'); e.style.removeProperty('view-transition-class'); });
       });
     };
     chain = chain.then(run);
     return chain;
   }
-  const focusTitle = () => $('ttl')?.focus({ preventScroll: true });
+  const focusTitle = () => { if (S.active) $('ttl')?.focus({ preventScroll: true }); };
+  const toTop = () => { if (S.active) scrollTo({ top: 0 }); };
   function setHash(id) {
     const h = id ? `#/inbox/${encodeURIComponent(id)}` : '#/inbox';
-    if (location.hash !== h) { ownHash = true; history.replaceState(null, '', h); ownHash = false; }
+    if (S.active && location.hash !== h) { ownHash = true; history.replaceState(null, '', h); ownHash = false; }
   }
   function go(d) {
     const L = list(); if (L.length < 2) return;
@@ -777,7 +786,7 @@ const Inbox = (() => {
     if (id === S.open) return;
     const L = list();
     const i = L.findIndex(x => x.id === S.open), j = L.findIndex(x => x.id === id);
-    transition('open', () => { dropGhost(id); S.open = id; S.dock = 'ready'; S.note = ''; S.choice = ''; setHash(id); scrollTo({ top: 0 }); }, j - i, () => [id]).then(focusTitle);
+    transition('open', () => { dropGhost(id); S.open = id; S.dock = 'ready'; S.note = ''; S.choice = ''; setHash(id); toTop(); }, j - i, () => [id]).then(focusTitle);
   }
   function dropGhost(next) { if (S.ghost && S.ghost.id !== next) S.ghost = null; }
 
@@ -859,9 +868,11 @@ const Inbox = (() => {
       next = L2.find(y => y.id === S.open);
       setHash(S.open);
       renderChrome();
-      scrollTo({ top: 0 });
+      toTop();
     }, 1, () => [x.id]);
     deciding = false;
+    // Left the Inbox during the hold: no Undo toast on another screen; the decision goes now, as leaving sends it.
+    if (!S.active) { commit(); return; }
     last = x.id;
     showToast(next ? `${r.toast} Next: ${next.title}` : `${r.toast} That was the last one.`, { undo: true });
     focusTitle();
@@ -875,7 +886,7 @@ const Inbox = (() => {
       S.items.splice(Math.min(h.i, S.items.length), 0, h.x);
       S.open = h.x.id; S.decided = S.decided.filter(dd => dd.id !== h.x.id); S.dock = 'ready';
       setHash(h.x.id); renderChrome();
-      scrollTo({ top: 0 });
+      toTop();
     }, -1, () => [h.x.id]).then(focusTitle);
   }
   // Send every decision whose Undo window has closed. A failure brings the item back with Try again.

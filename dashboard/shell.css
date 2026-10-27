@@ -227,6 +227,11 @@ html:has(.p-tabs) { scroll-padding-top: calc(var(--size-topbar) + 44px + var(--s
 ::view-transition-old(*.title) { animation: flow-out var(--dur-fast) var(--ease-exit) both; }
 ::view-transition-new(*.title) { animation: flow-fade var(--dur-slow) var(--ease-enter) 160ms both; }
 
+/* Switching screens: the whole screen is one picture ('page') that slides. The Inbox names its head, item, dock and
+   rows for its own motion; left named here they animated on their own (the head blinked out, the dock and rows
+   stayed put and arrived before the page). */
+html[data-vt="tab"] #view * { view-transition-name: none !important; }
+
 /* The rest of the item: out the way it's going, in from where it comes. */
 ::view-transition-group(ih), ::view-transition-group(ib), ::view-transition-group(page), ::view-transition-group(empty), ::view-transition-group(zero-work) { animation: none; }
 /* Never a double exposure: the old content is gone (--dur-fast) before the new is more than faint (Inbox zero too, when a tab leaves it). */
