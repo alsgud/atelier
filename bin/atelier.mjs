@@ -19,6 +19,7 @@ import * as decisions from '../lib/decisions.mjs';
 import * as owner from '../lib/owner.mjs';
 import * as auditor from '../lib/auditor.mjs';
 import * as messages from '../lib/messages.mjs';
+import * as asks from '../lib/asks.mjs';
 import * as metrics from '../lib/metrics.mjs';
 
 const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for Claude Code
@@ -46,6 +47,8 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier overrule <alias> "<proposal → what the owner wanted>"
   atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
   atelier watch <alias>             stream owner decisions and task changes (the lead runs this under Monitor)
+  atelier ask <alias> approval|question|feedback|update "<title>" [--body ..] [--attach f,..] [--task id]   the lead writes to the owner's Inbox
+  atelier asks <alias> [--all]         the lead's threads with the owner and their answers
   atelier lead <alias>                 start the project's lead session with Remote Control
   atelier guard                        (PreToolUse hook: enforces role ownership and frozen docs)
 
@@ -94,6 +97,8 @@ async function main() {
     case 'watch': return watchCmd();
     case 'msg': return msgCmd();
     case 'messages': return messagesCmd();
+    case 'ask': return askCmd();
+    case 'asks': return asksCmd();
     case 'audit': return auditCmd();
     case 'sync': return syncCmd();
     case 'tools': return console.log(toolkit.describe());
@@ -740,6 +745,32 @@ function messagesCmd() {
   for (const m of list) console.log(`${m.id} ${m.at.slice(5, 16).replace('T', ' ')} [${m.type}] ${m.fromRole || m.from} → ${m.to}: ${m.text}`);
 }
 
+// The lead's line to the owner: it lands in the dashboard's Inbox, and the owner's answer comes back on the watch.
+function askCmd() {
+  const [alias, kind, ...words] = args;
+  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] [--options "A | B"] [--recommend "A"] [--attach f1,f2] [--task <id>] [--link url]\n       atelier ask <alias> reply <A-n> "<text>" [--reopen] | withdraw <A-n>');
+  project.load(alias);
+  if (kind === 'reply') { const a = asks.reply(alias, need(2, 'A-n'), args.slice(3).join(' ') || flags.text, { reopen: !!flags.reopen }); return console.log(`replied on ${a.id}${a.status === 'open' ? ' and reopened it for the owner' : ''}`); }
+  if (kind === 'withdraw') return console.log(`withdrew ${asks.withdraw(alias, need(2, 'A-n')).id}`);
+  const str = k => typeof flags[k] === 'string' ? flags[k] : '';
+  const body = str('body-file') ? fs.readFileSync(str('body-file'), 'utf8') : str('body');
+  const a = asks.ask(alias, { kind, title: words.join(' ') || str('title'), body, options: str('options').split(/\s*\|\s*/), recommend: str('recommend'),
+    attach: str('attach').split(',').map(s => s.trim()).filter(Boolean), task: str('task'), links: str('link').split(',').map(s => s.trim()) });
+  console.log(`sent ${a.id} to the owner's Inbox${a.files.length ? ` with ${a.files.length} attachment(s)` : ''}. ${kind === 'update' ? 'Nothing waits on it.' : 'Their answer arrives on your watch as ask-answered; keep working on what doesn\'t depend on it.'}`);
+}
+
+function asksCmd() {
+  const [alias] = args;
+  project.load(alias);
+  const list = asks.all(alias).filter(a => flags.all || ['open', 'unread', 'for-lead'].includes(a.status) || Date.now() - Date.parse(a.answer?.at || a.at) < 3 * 24 * 3600_000);
+  if (!list.length) return console.log('nothing between you and the owner in the last 3 days');
+  for (const a of list.slice(-30)) {
+    console.log(`${a.id} ${a.at.slice(5, 16).replace('T', ' ')} [${a.kind}] ${a.status.toUpperCase()} · ${a.title}`);
+    if (a.from === 'owner' && a.body !== a.title) console.log(`   owner: ${a.body}`);
+    for (const t of a.thread) console.log(`   ${t.from}${t.verdict && t.verdict !== 'answer' ? ` (${t.verdict})` : ''}: ${t.text || '—'}`);
+  }
+}
+
 async function dashboardCmd() {
   const { serve } = await import('../lib/dashboard.mjs');
   serve({ port: Number(flags.port) || 4747, lan: !!flags.lan, tailscale: !flags['no-tailscale'] });
@@ -768,7 +799,7 @@ async function openCmd() {
 async function watchCmd() {
   const [alias] = args;
   project.load(alias);
-  const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted']);
+  const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted', 'ask-answered', 'owner-note']);
   const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed', 'needs-lead', 'budget-day', 'budget-warn', 'paced']);
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
@@ -1013,6 +1044,8 @@ function leadContext(alias) {
     decisions.charterTampered(alias, repo) ? 'WARNING: atelier/CHARTER.md changed since the owner approved it. Tell the owner immediately.' : '',
     p.charter ? 'The charter is approved: atelier/CHARTER.md.' : 'The charter is not approved yet: drafting it with the owner comes first.',
     (n => n ? `The auditor has ${n} item(s) for you to fix: \`atelier audit ${alias} findings --lead\`. Fix or delegate them, then \`atelier audit ${alias} fixed F-n --note "what changed"\`.` : '')(auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status)).length),
+    (o => o.length ? `In the owner's Inbox from you, unanswered: ${o.map(x => `${x.id} ${x.title}`).join('; ')}. Their answers arrive on your watch as ask-answered.` : '')(asks.forOwner(alias).filter(x => x.status === 'open')),
+    (n => n.length ? `The owner wrote to you and is waiting for a reply: ${n.map(x => `${x.id} "${x.body.slice(0, 200)}"`).join('; ')}. Reply with atelier ask ${alias} reply <A-n> "...".` : '')(asks.forLead(alias)),
     `Criteria: ${crit.length ? crit.map(c => `${c.id} ${c.status}`).join(', ') : 'none yet'} (atelier criteria ${alias} list)`,
     'Read now: atelier/CHARTER.md, atelier/RULINGS.md, atelier/PLAN.md, atelier/LEDGER.md. Then run `atelier digest` and `atelier board ' + alias + '`.',
   ].filter(Boolean);
@@ -1041,6 +1074,7 @@ async function leadStopHook(alias) {
   const fixes = auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status)).length;
   if (fixes) items.push(`${fixes} auditor item(s) to fix or delegate (atelier audit ${alias} findings --lead)`);
   if (p.github?.problem) items.push(`work isn't reaching GitHub: ${p.github.problem}`);
+  for (const n of asks.forLead(alias)) items.push(`the owner wrote to you (${n.id}): "${n.body.slice(0, 160)}". Act on it, then answer with atelier ask ${alias} reply ${n.id} "..."`);
   if (!items.length) return;
   const stateFile = path.join(project.dir(alias), 'lead-continue.json');
   let st = {}; try { st = JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch { /* first time */ }

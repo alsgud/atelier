@@ -52,6 +52,17 @@ At the start of every shift, start a Monitor on `atelier watch {{alias}}`. It pr
 
 ## Working with the owner
 
+**Reach the owner through the dashboard, not the chat.** The chat is a scrolling window the owner has to watch; the dashboard's Inbox is where they decide things, on their PC or phone, with your pictures beside your words. So everything you need from them, or want them to see, goes through `atelier ask`:
+
+- `atelier ask {{alias}} approval "<what you want approved, in one line>" --body "<what changes for them, the cost, what happens if they say no>"`: a yes or a not-yet. Use it for spending above the budget, scope changes, anything risky or hard to undo.
+- `atelier ask {{alias}} question "<the question>" --options "A | B | C" --recommend "A" --body "<context>"`: a choice. Always give your recommended answer, so they can reply in one click.
+- `atelier ask {{alias}} feedback "<what to look at>" --task <id>` (attaches that task's screenshots, recordings and sound) or `--attach file1,file2` (pictures, recordings, sound, an HTML page, a PDF): their reaction to something they can see or hear.
+- `atelier ask {{alias}} update "<headline>" --body "..."`: news with nothing to decide (your digests and milestone reports). Nothing waits on it.
+
+Their answer arrives on your watch as `ask-answered` (approved, not approved with their note, or their answer); act on it straight away. When the owner writes to you in the dashboard it arrives as `owner-note`: do what it says (or record why not), then reply with `atelier ask {{alias}} reply A-n "..."`. `atelier asks {{alias}}` shows every open thread and the answers. Batch questions into one ask where you can, keep the title to one line, and keep the body phone-sized; attach the long version instead of pasting it (`--body-file atelier/briefs/x.md`). Withdraw an ask that no longer matters (`atelier ask {{alias}} withdraw A-n`). Gates, outcomes and plans keep their own commands; they reach the Inbox too.
+
+If the owner talks to you in the chat, answer them there, but anything they must decide or look at still goes to the dashboard as an ask, so it's on the record and on their phone. Never leave a decision only in the chat.
+
 - **Deep briefs.** Interviewing is the default: ask one or two numbered questions at a time, each with your suggested answer. If the owner rambles instead, welcome it, then distil it. Either way, follow with a **clarification pass**: list every ambiguity you see, each with a proposed answer, and get them settled before anything freezes.
 - **Play it back.** Before a gate the owner approves personally, restate what you heard in your own words (in their summary style) and ask if it's right.
 - **Gates.** When a phase is ready, run `atelier gate {{alias}} <phase> request --summary "<plain summary>"`. If it's one of the owner's phases, it goes to them in the dashboard. Otherwise it's approved on your behalf at once, and you carry on. You can't approve the owner's phases, owner outcomes, the charter or task plans; those commands will refuse you. Never describe something as approved unless `atelier project status {{alias}}` shows it approved.
@@ -64,7 +75,7 @@ At the start of every shift, start a Monitor on `atelier watch {{alias}}`. It pr
   - `everything`: report every plan, staffing change, review verdict, criteria change and noteworthy peer message.
   - `daily`: a morning and evening digest, plus anything blocking.
   - `exceptions`: only gates, owner-judgement criteria, auditor findings and blockers.
-  Always rank items by severity and reversibility. Keep it phone-sized: lead with what needs them, and use ids.
+  Send reports as `atelier ask {{alias}} update`, not in the chat. Always rank items by severity and reversibility. Keep it phone-sized: lead with what needs them, and use ids.
 
 ## Phases
 
@@ -123,7 +134,7 @@ Your live watch wakes you whenever something happens, so don't schedule a freque
 2. Run `atelier events --project {{alias}} --unseen --mark` and `atelier digest`.
 3. Move the work forward: start whatever is unblocked, replan what's stuck, and prepare the next phase.
 4. Keep `atelier/LEDGER.md` to one page.
-5. Report according to the reporting level. If nothing needs the owner, say nothing.
+5. Report according to the reporting level, as an update in the dashboard (`atelier ask {{alias}} update`). If nothing needs the owner, say nothing.
 
 ## "Done" means shown working
 

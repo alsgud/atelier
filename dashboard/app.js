@@ -101,6 +101,21 @@ const icon = (name, cls = '') => `<svg class="${cls}" aria-hidden="true" focusab
 // Audio proof (voice projects): a player in a proof frame's box, its file name as the caption. src is a view-port URL.
 const sounds = (list, src) => list.length ? `<div class="sounds">${list.map(f => `<figure class="sound"><span class="sound-box"><audio src="${esc(src(f))}" controls preload="none" aria-label="${esc(f.name)}"></audio></span>
     <figcaption class="frame-cap"><b>${esc(f.name)}</b><span>Sound</span></figcaption></figure>`).join('')}</div>` : '';
+// What the lead attached to a message (lib/asks.mjs): pictures and recordings as frames, sound as players, pages,
+// PDFs and links as links. Everything opens on the view port, never the dashboard's own origin.
+function askMedia(a, { hero = true } = {}) {
+  const url = f => a.viewPort && f.url ? `${location.protocol}//${location.hostname}:${a.viewPort}${f.url}` : '';
+  const files = (a.files || []).filter(f => url(f));
+  const cap = f => f.name.replace(/\.\w+$/, '').replace(/^[a-z0-9]{4}-/, '').replace(/[-_]+/g, ' ');
+  const pics = files.filter(f => f.image || f.video), heard = files.filter(f => f.audio), other = files.filter(f => !f.image && !f.video && !f.audio);
+  const frame = f => `<a href="${esc(url(f))}" target="_blank" rel="noopener" class="frame${/(390|360|phone)/i.test(f.name) ? ' is-phone' : ''}" aria-label="${esc(cap(f))}, opens full size in a new tab">
+      <span class="frame-img">${f.video ? `<video src="${esc(url(f))}" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video><span class="play">${I('play')}Recording</span>` : `<img src="${esc(url(f))}" alt="" decoding="async" loading="lazy">`}</span>
+      <span class="frame-cap"><b>${esc(cap(f))}</b><span>Open ${I('external')}</span></span></a>`;
+  const links = [...other.map(f => `<a href="${esc(url(f))}" target="_blank" rel="noopener">${I(f.page ? 'external' : 'log')}${f.page ? 'Open the page' : 'Open'}: ${esc(cap(f))}</a>`),
+    ...(a.links || []).filter(l => /^https?:\/\//.test(l)).map(l => `<a href="${esc(l)}" target="_blank" rel="noopener">${I('external')}${esc(l.replace(/^https?:\/\//, ''))}</a>`)];
+  return `${pics.length ? `<div class="frames${hero ? ' is-hero' : ''}">${pics.map(frame).join('')}</div>` : ''}${sounds(heard, url)}${links.length ? `<div class="links">${links.join('')}</div>` : ''}`;
+}
+const ASK_KIND = { approval: 'Approval', question: 'Question', feedback: 'Feedback wanted', update: 'Update', note: 'You wrote' };
 
 // The N1 mark (design/brand/r2/marks.js): the arched window and the patch of light it throws. Its small cut is used at 20 px and under.
 const markN1 = (size = 20) => {
@@ -639,6 +654,35 @@ const Inbox = (() => {
           dock: { primary: `Loosen to ${q.to}`, ghost: 'Project settings', ghostHref: `${P}/settings`,
             send: () => ({ action: 'dial', project: a, dial: q.dial, value: q.to }),
             done: 'Loosened.', toast: `${a} is on ${q.to} ${q.dial} now.`, log: `Loosened ${a} to ${q.to} ${q.dial}` } };
+      case 'ask': {
+        // The lead writing to the owner (atelier ask): its words, what it attached, and one dock per kind.
+        const k = q.ask || {}, M = `${P}/messages`;
+        const opts = k.options || [];
+        const send = (verdict, text) => ({ action: 'ask-answer', project: a, id: k.id, verdict, text });
+        const words = `${k.body ? `<div class="doc">${md(k.body)}</div>` : ''}${askMedia(k)}`;
+        const thread = (k.thread || []).length ? `<p class="faint" style="margin:0;font-size:var(--text-sm)"><a class="link" href="${M}">${k.thread.length} earlier ${k.thread.length === 1 ? 'reply' : 'replies'} in this thread</a></p>` : '';
+        const common = { ...base, glyph: { approval: 'outcome', question: 'question', feedback: 'design', update: 'log' }[k.kind] || 'log', kind: `${ASK_KIND[k.kind] || 'Message'} from the lead`, short: k.kind === 'update' ? 'update' : `lead ${k.kind}` };
+        if (k.kind === 'approval') return { ...common, body: () => words + thread,
+          dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, required: 'Say what to change, so the lead can rework it.', primary: 'Approve', secondary: 'Not yet', ghost: 'All messages', ghostHref: M,
+            send: (w, note) => send(w === 'secondary' ? 'decline' : 'approve', note),
+            done: 'Approved. The lead carries on.', toast: `Approved: ${q.title}`, log: `Approved: ${q.title}`,
+            alt: { done: 'Sent back with your note.', toast: 'Sent it back to the lead.', log: `Not yet: ${q.title}` } } };
+        if (k.kind === 'question') return { ...common, body: () => `${words}
+            ${opts.length ? `<fieldset class="choices" style="max-width:var(--measure)"><legend class="section-label" style="margin-bottom:var(--space-2)">Choose one</legend>${opts.map((o, i) => `<label class="choice"><input type="radio" name="ans" value="${i}"${S.choice === String(i) ? ' checked' : ''}> ${esc(o)}${k.recommend && o.toLowerCase() === k.recommend.toLowerCase() ? ' <span class="faint">(the lead’s pick)</span>' : ''}</label>`).join('')}</fieldset>` : ''}
+            ${k.recommend && !opts.some(o => o.toLowerCase() === k.recommend.toLowerCase()) ? `<p class="faint" style="margin:0;font-size:var(--text-sm)">The lead suggests: ${esc(k.recommend)}</p>` : ''}${thread}`,
+          dock: { note: opts.length ? 'Add to it, or write your own answer' : 'Your answer', required: 'Pick an answer or write your own. It goes to the lead.', needsAnswer: true, primary: 'Send answer', ghost: 'All messages', ghostHref: M,
+            send: (w, note, choice) => send('answer', [opts[Number(choice)], note].filter(Boolean).join(': ') || k.recommend || ''),
+            done: 'Answered. The lead carries on.', toast: 'Answered the lead.', log: `Answered: ${q.title}` } };
+        if (k.kind === 'feedback') return { ...common, body: () => words + thread,
+          dock: { note: 'What works, what doesn’t', required: 'Say what you think, even in a few words. It goes to the lead.', primary: 'Send feedback', secondary: 'Looks good', ghost: 'All messages', ghostHref: M,
+            send: (w, note) => send('answer', w === 'secondary' ? (note ? `Looks good. ${note}` : 'Looks good') : note),
+            done: 'Sent to the lead.', toast: 'Sent your feedback.', log: `Feedback: ${q.title}`,
+            alt: { done: 'Told the lead it looks good.', toast: 'Said it looks good.', log: `Looks good: ${q.title}` } } };
+        return { ...common, body: () => words + thread,
+          dock: { note: 'Reply to the lead (optional)', primary: 'Got it', ghost: 'All messages', ghostHref: M,
+            send: (w, note) => send(note ? 'answer' : 'seen', note),
+            done: 'Noted.', toast: 'Noted.', log: `Read: ${q.title}` } };
+      }
       default:
         return { ...base, glyph: 'log', kind: cap1(q.kind), short: q.kind, body: () => md(q.detail || ''), dock: { hint: 'Open the project to act on this.' } };
     }
@@ -1892,7 +1936,7 @@ function patchRegions(root, regions, parts, fill) {
 const Project = (() => {
   const seen = new Map(); // alias → the last read, so switching to the page paints at once
   let parts = new Map(), pageKey = '';
-  const TABS = ['overview', 'tasks', 'outcomes', 'audits', 'docs', 'activity', 'settings'];
+  const TABS = ['overview', 'messages', 'tasks', 'outcomes', 'audits', 'docs', 'activity', 'settings'];
   const href = (a, tab = 'overview', sub) => `#/p/${encodeURIComponent(a)}/${tab}${sub ? `/${sub}` : ''}`;
   const dot = (k, word) => Office.dotOf(k, word);
   // The status glyph is the Office's window at text size: lit while working, a tick when done (the words carry it).
@@ -2077,6 +2121,31 @@ const Project = (() => {
   }
 
   // ── Audits: the running audit, when the next one starts, the findings by who has them, past audits ──
+  // ── Messages: everything between the owner and the lead (lib/asks.mjs), newest first, with a box to write to it ──
+  const ASK_STATE = { open: 'Waiting for you', unread: 'New', answered: 'Answered', seen: 'Read', withdrawn: 'Withdrawn by the lead', 'for-lead': 'Waiting for the lead', replied: 'The lead replied' };
+  function messagesTab(p) {
+    const a = esc(p.alias), list = p.asks || [];
+    const verdictWord = { approve: 'Approved', decline: 'Not yet', seen: 'Read' };
+    const line = t => `<div class="m-line is-${t.from === 'owner' ? 'you' : 'lead'}"><span class="p-lbl">${t.from === 'owner' ? 'You' : 'The lead'}${t.verdict && verdictWord[t.verdict] ? ` · ${verdictWord[t.verdict]}` : ''} · ${esc(when(t.at))}</span>${t.text ? md(t.text) : ''}</div>`;
+    const fold = m => {
+      const waiting = m.status === 'open' || m.status === 'unread';
+      return `<details class="details p-doc m-thread" data-key="m-${esc(m.id)}"${waiting || m.status === 'for-lead' ? ' open' : ''}><summary><span class="t"><b>${esc(m.title)}</b><span class="s${waiting ? ' is-needs' : ''}">${esc([m.from === 'owner' ? 'You wrote' : ASK_KIND[m.kind] || 'Message', ASK_STATE[m.status] || m.status, when(m.at)].join(' · '))}</span></span>${I('chevron-down')}</summary>
+      <div class="details-body">
+        ${m.from === 'owner' ? line({ from: 'owner', at: m.at, text: m.body }) : `${m.body ? md(m.body) : ''}${askMedia(m, { hero: false })}${m.options?.length ? `<p class="p-quiet">Options: ${m.options.map(esc).join(' · ')}${m.recommend ? ` (the lead suggested ${esc(m.recommend)})` : ''}</p>` : ''}`}
+        ${(m.thread || []).map(line).join('')}
+        ${waiting ? `<p class="p-quiet"><a class="link" href="#/inbox/${encodeURIComponent(`ask:${p.alias}:${m.id}`)}">Answer it in the Inbox</a></p>` : m.status === 'withdrawn' ? '' : `<form class="m-reply" data-pa-form="lead-note" data-re="${esc(m.id)}"><div class="field"><label class="sr-only" for="mr-${esc(m.id)}">Reply to the lead</label><textarea class="input" id="mr-${esc(m.id)}" rows="1" placeholder="Reply to the lead"></textarea></div><button class="btn btn-secondary" type="submit">Reply</button></form>`}
+      </div></details>`;
+    };
+    const compose = `<section class="p-sec"><h2 class="p-h">Messages</h2>
+      <p class="p-quiet">The lead brings you approvals, questions, requests for feedback and updates here, with pictures attached, instead of in the chat. Anything waiting for you is also in your Inbox. Write to the lead here; it’s woken straight away.</p>
+      <form class="m-new" data-pa-form="lead-note"><div class="field"><label class="field-label" for="m-new">Write to the ${a} lead</label><textarea class="input" id="m-new" rows="3" placeholder="An instruction, a correction, or a question"></textarea></div>
+        <div class="p-act"><button class="btn btn-primary" type="submit">Send to the lead</button>${p.lead?.running ? '' : '<span class="p-quiet">The lead is off; it reads this when it starts.</span>'}</div></form></section>`;
+    if (!list.length) return compose + '<p class="p-empty"><b>Nothing yet</b><span>When the lead needs you, or has something to show you, it appears here and in your Inbox.</span></p>';
+    const waiting = list.filter(m => ['open', 'unread', 'for-lead'].includes(m.status)), rest = list.filter(m => !waiting.includes(m));
+    return compose + (waiting.length ? `<section class="p-sec"><h3 class="p-h3">Open <span class="n">${waiting.length}</span></h3><div class="p-docs">${waiting.map(fold).join('')}</div></section>` : '')
+      + (rest.length ? `<section class="p-sec"><h3 class="p-h3">Earlier</h3><div class="p-docs">${rest.map(fold).join('')}</div></section>` : '');
+  }
+
   function auditsTab(p, S) {
     const a = esc(p.alias);
     const run = p.team.agents.find(x => x.kind === 'auditor')?.audit;
@@ -2172,7 +2241,7 @@ const Project = (() => {
     return `<header class="hf-head" data-r="head"><a class="back" href="#/projects">${I('chevron-left')}<span>Projects</span></a><h1>${a}</h1>${gh}${lead}<span class="end">${liveLine()}</span></header>`;
   };
   const tabs = (a, tab, S) => `<nav class="tabs p-tabs" aria-label="${esc(a)}" data-r="tabs">${[
-    ['overview', 'Overview'], ['tasks', 'Tasks', S?.tasksOpen || ''], ['outcomes', 'Outcomes', S?.outcomes?.of ? `${S.outcomes.met}/${S.outcomes.of}` : ''], ['audits', 'Audits', S?.findingsOpen || ''], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings'],
+    ['overview', 'Overview'], ['messages', 'Messages', S?.asksOpen || ''], ['tasks', 'Tasks', S?.tasksOpen || ''], ['outcomes', 'Outcomes', S?.outcomes?.of ? `${S.outcomes.met}/${S.outcomes.of}` : ''], ['audits', 'Audits', S?.findingsOpen || ''], ['docs', 'Docs'], ['activity', 'Activity'], ['settings', 'Settings'],
   ].map(([k, t, c]) => `<a class="tab" href="${k === 'activity' || k === 'settings' ? `#/${k}?p=${encodeURIComponent(a)}` : href(a, k)}"${tab === k ? ' aria-current="page"' : ''}>${t}${c ? `<span class="count">${c}</span>` : ''}</a>`).join('')}</nav>`;
 
   // ── Mounting and patching ──
@@ -2197,7 +2266,7 @@ const Project = (() => {
       regions.push(...r);
       body = `<div class="p-grid${failedAt ? ' is-stale' : ''}">${r[0][1]}${r[1][1]}<div class="p-col">${r[2][1]}${r[3][1]}${r[4][1]}</div></div>`;
     } else {
-      const html = tab === 'tasks' ? tasksTab(p, S) : tab === 'outcomes' ? outcomesTab(p, S) : tab === 'audits' ? auditsTab(p, S) : docsTab(p, sub);
+      const html = tab === 'messages' ? messagesTab(p) : tab === 'tasks' ? tasksTab(p, S) : tab === 'outcomes' ? outcomesTab(p, S) : tab === 'audits' ? auditsTab(p, S) : docsTab(p, sub);
       const one = `<div class="p-col p-list" data-r="list">${html}</div>`;
       regions.push(['list', one]);
       body = one;
@@ -2308,8 +2377,9 @@ const Project = (() => {
     if (f.dataset.paForm === 'charter-approve' && !v) { $('ch-qe').hidden = false; ta.setAttribute('aria-invalid', 'true'); return ta.focus(); }
     if (!v) return;
     const body = f.dataset.paForm === 'charter-save' ? { action: 'charter-save', project: a, text: ta.value }
-      : f.dataset.paForm === 'charter-approve' ? { action: 'charter-approve', project: a, quote: v } : { action: 'ruling', project: a, text: v };
-    const done = { 'charter-save': 'Saved the charter', 'charter-approve': `Approved the charter for ${a}`, ruling: `Added the ruling for ${a}` }[f.dataset.paForm];
+      : f.dataset.paForm === 'charter-approve' ? { action: 'charter-approve', project: a, quote: v }
+      : f.dataset.paForm === 'lead-note' ? { action: 'lead-note', project: a, text: v, re: f.dataset.re || '' } : { action: 'ruling', project: a, text: v };
+    const done = { 'charter-save': 'Saved the charter', 'charter-approve': `Approved the charter for ${a}`, ruling: `Added the ruling for ${a}`, 'lead-note': `Sent to the ${a} lead` }[f.dataset.paForm];
     ta.blur();
     // Approving with unsaved charter text (the lead's draft, or the owner's edits) saves it first, then approves: the
     // same two actions, in order (F-2).
@@ -2892,7 +2962,7 @@ const New = (() => {
 // with the lead menu's 44 px rows (nearest pattern, R-1; DECISIONS).
 const Keys = (() => {
   const PLACES = [['inbox', 'Inbox', 'inbox', 'I'], ['office', 'Office', 'office', 'O'], ['projects', 'Projects', 'projects', 'P'], ['activity', 'Activity', 'activity', 'A'], ['new', 'New project', 'plus', ''], ['settings', 'Settings', 'settings', '']];
-  const TABS = [['overview', 'Overview'], ['tasks', 'Tasks'], ['outcomes', 'Outcomes', 'criteria'], ['audits', 'Audits', 'findings'], ['docs', 'Docs', 'documents']];
+  const TABS = [['overview', 'Overview'], ['messages', 'Messages', 'lead inbox ask'], ['tasks', 'Tasks'], ['outcomes', 'Outcomes', 'criteria'], ['audits', 'Audits', 'findings'], ['docs', 'Docs', 'documents']];
   const DOCS = [['charter', 'Charter'], ['rulings', 'Rulings'], ['brief', 'Brief'], ['spec', 'Spec'], ['design', 'Design'], ['contracts', 'Contracts'], ['plan', 'Lead’s plan'], ['ledger', 'Lead’s ledger'], ['messages', 'Team messages']];
   // Settings sections, as Settings draws them (keys are its #ss-<key> ids); the third word is what people may type instead.
   const SETS_ALL = [['plan', 'Claude plan', 'limits pace spread window'], ['look', 'Appearance', 'theme dark light'], ['device', 'This device', 'phone token home screen'], ['projects', 'Each project', ''], ['about', 'About', 'version']];

@@ -305,3 +305,14 @@
 
 /* dashboard: reduced motion: a task row neither lifts nor presses */
 [data-motion="reduce"] .p-task { transform: none !important; }
+
+/* Messages: the owner and the lead, one thread per fold (lib/asks.mjs). The owner's lines sit on a faint tint. */
+.m-line { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-left: 2px solid var(--border); }
+.m-line.is-you { border-left-color: var(--border-strong); background: var(--surface-sunken); border-radius: 0 var(--radius-sm, 4px) var(--radius-sm, 4px) 0; }
+.m-line p { margin: 0; }
+.m-reply { display: flex; gap: var(--space-2); align-items: flex-start; }
+.m-reply .field { flex: 1; min-width: 0; }
+.m-new textarea { width: 100%; }
+.m-thread .frames { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.m-thread .frame-img { max-height: 200px; overflow: hidden; }
+.m-thread .frame-img img { object-fit: cover; object-position: top; }
