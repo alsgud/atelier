@@ -1,0 +1,105 @@
+/* D-B · Lit shrines. A gallery: each floor is one dark wall with its windows standing side by side, the words under
+   each window. No figures; the glass is the state and the gauge. Fixed night palette (both themes): wall
+   #0a0d12 → #121821, frame #222a33, lead lines #0a0d12, lit glass #8f73f0 → #d6c9ff (K1 --active family). */
+/* The wall always spans the floor: as many equal bays as desks (up to 5 a row), never empty bays at the end */
+[data-dir="D-B"] .desks { grid-template-columns: repeat(min(var(--n), 5), minmax(0, 1fr)); gap: 0; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+[data-dir="D-B"] .desk { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+[data-dir="D-B"] .desk + .desk { box-shadow: inset 1px 0 0 var(--border); }
+[data-dir="D-B"] .desk:hover { transform: none; box-shadow: none; background: var(--surface-hover); }
+[data-dir="D-B"] .desk + .desk:hover { box-shadow: inset 1px 0 0 var(--border); }
+[data-dir="D-B"] .desk-scene { height: 212px; background: linear-gradient(#0a0d12, #121821); border-bottom: 0; padding-top: 12px; }
+[data-dir="D-B"] .desk-scene svg { overflow: visible; }
+
+.b-frame { fill: #151b23; stroke: #313b46; stroke-width: 1.5; }
+.b-glass { fill: #171e27; }
+.b-glass-edge { fill: none; stroke: #2a323c; stroke-width: 1; }
+.b-band { fill: url(#b-lit); opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter), fill var(--dur-slow); }
+.b-lead { fill: none; stroke: #0a0d12; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.b-lead .b-bars { stroke-width: 1.4; }
+.b-lead .em { stroke: #3b4552; transition: stroke var(--dur-slow); }
+.b-sill { stroke: #313b46; stroke-width: 2; stroke-linecap: round; }
+.b-key { fill: #151b23; stroke: #313b46; stroke-width: 1.2; transition: fill var(--dur-base); }
+.b-halo, .b-patch, .b-flood, .b-sheen, .b-key-glow, .b-shut { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.b-halo { fill: url(#b-halo); }
+.b-halo-done { fill: url(#b-halo-done); }
+.b-patch { fill: #b39cff; }
+.b-patch-done { fill: #5fd198; }
+.b-flood { fill: url(#b-flood); }
+.b-sheen { fill: url(#b-sheen); }
+.b-key-glow { fill: url(#b-key); }
+.b-shut path:first-child { fill: #1b2129; }
+.b-shut .b-seam { fill: none; stroke: #0a0d12; stroke-width: 1.5; }
+
+/* Working: the bands light from the sill to its stage; the emblem shows through in light lines */
+.desk[data-k="active"] .b-halo:not(.b-halo-done) { opacity: 1; }
+.desk[data-k="active"] .b-patch:not(.b-patch-done) { opacity: 0.22; }
+.desk[data-k="active"] .b-lead .em { stroke: #0a0d12; }
+.desk[data-k="active"][data-lit="1"] .b-band:is([data-i="1"]),
+.desk[data-k="active"][data-lit="2"] .b-band:is([data-i="1"], [data-i="2"]),
+.desk[data-k="active"][data-lit="3"] .b-band:is([data-i="1"], [data-i="2"], [data-i="3"]),
+.desk[data-k="active"][data-lit="4"] .b-band:not([data-i="5"]),
+.desk[data-k="active"][data-lit="5"] .b-band { opacity: 1; }
+/* the bands above the stage glow faintly, so the gauge reads as "this far of five" */
+.desk[data-k="active"] .b-band { opacity: 0.16; }
+.desk[data-k="active"]:not([data-quiet]) .b-sheen { opacity: 1; animation: b-sheen 5.5s var(--ease-move) infinite; }
+.b-sheen { transform-box: view-box; }
+/* Quiet for longer than usual: the glass dims; nothing moves */
+.desk[data-k="active"][data-quiet] .b-band { filter: none; }
+.desk[data-k="active"][data-quiet] .b-glass ~ .b-band { fill: #6c5aa8; }
+.desk[data-k="active"][data-quiet] .b-halo { opacity: 0.35 !important; }
+/* Needs you: the keystone burns red, the glass unlit */
+.desk[data-k="needs"] .b-key { fill: #ff8578; stroke: #ff8578; }
+.desk[data-k="needs"] .b-key-glow { opacity: 1; animation: b-glow 2.4s var(--ease-move) infinite alternate; }
+/* Paused: the bands hold where they stopped, grey */
+.desk[data-held="paused"] .b-band { fill: #4a5460; }
+.desk[data-held="paused"][data-lit="1"] .b-band[data-i="1"] { opacity: 1; }
+.desk[data-held="paused"][data-lit="2"] .b-band:is([data-i="1"], [data-i="2"]) { opacity: 1; }
+.desk[data-held="paused"][data-lit="3"] .b-band:is([data-i="1"], [data-i="2"], [data-i="3"]) { opacity: 1; }
+/* Finished: green floods up from the sill, held for the live app's 2.4 s, then the light goes */
+.desk[data-k="done"] .b-flood { opacity: 1; animation: b-flood var(--dur-calm) var(--ease-enter); }
+.b-flood { transform-box: fill-box; transform-origin: 50% 100%; }
+.desk[data-k="done"] .b-halo-done { opacity: 1; }
+.desk[data-k="done"] .b-patch-done { opacity: 0.22; }
+.desk[data-k="done"] .b-lead .em { stroke: #0a0d12; }
+/* Off: shutters closed */
+.desk[data-k="off"] .b-shut { opacity: 1; }
+.desk[data-k="off"] .b-lead .em { opacity: 0; }
+/* Stale: we don't know the windows are still lit */
+.is-stale .desk[data-k="active"] .b-band { opacity: 0.3 !important; }
+.is-stale .b-halo { opacity: 0.2 !important; }
+
+/* The emblem's one habit while lit */
+.em-hab { transform-box: fill-box; transform-origin: center; }
+.desk[data-k="active"]:not([data-quiet])[data-role="designer"] .em-hab { stroke-dasharray: 54; animation: b-draw 4s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet])[data-role="builder"] .em-hab { animation: b-settle 3.6s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet])[data-role="reviewer"] .em-hab { transform-origin: 0 50%; animation: b-page 4.2s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet])[data-role="auditor"] .em-hab { stroke-dasharray: 30; animation: b-draw 3.2s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet])[data-role="lead"] .em-hab { animation: b-turn 14s linear infinite; }
+
+@keyframes b-sheen { from { transform: translateY(130px); } to { transform: translateY(-20px); } }
+@keyframes b-glow { from { opacity: 0.55; } to { opacity: 1; } }
+@keyframes b-flood { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes b-draw { from { stroke-dashoffset: 54; } to { stroke-dashoffset: 0; } }
+@keyframes b-settle { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
+@keyframes b-page { 0%, 55%, 100% { transform: scaleX(1); } 75% { transform: scaleX(-1); } }
+@keyframes b-turn { to { transform: rotate(360deg); } }
+
+/* Words sit centred under their window, like a label under a picture */
+[data-dir="D-B"] .desk-body { text-align: center; justify-items: center; padding: var(--space-3) var(--space-4) var(--space-5); }
+[data-dir="D-B"] .desk-who { justify-content: center; flex-wrap: wrap; column-gap: var(--space-2); }
+[data-dir="D-B"] .desk-st { margin-left: 0; }
+[data-dir="D-B"] .desk-what { text-wrap: balance; }
+[data-dir="D-B"] .desk-prog { width: 100%; }
+[data-dir="D-B"] .desk-track { display: none !important; } /* the window is the bar */
+
+/* Phone: the floor is a list; a slim window on the left of each row */
+@media (max-width: 767px) {
+  [data-dir="D-B"] .desks { grid-template-columns: minmax(0, 1fr); }
+  [data-dir="D-B"] .desk + .desk { box-shadow: inset 0 1px 0 var(--border); }
+  [data-dir="D-B"] .desk + .desk:hover { box-shadow: inset 0 1px 0 var(--border); }
+  [data-dir="D-B"] .desk { grid-template-columns: 76px minmax(0, 1fr); }
+  [data-dir="D-B"] .desk-scene { height: auto; min-height: 112px; padding: 8px 0 0; border-right: 0; }
+  [data-dir="D-B"] .desk-body { text-align: left; justify-items: stretch; padding: var(--space-3) var(--space-4) var(--space-3) var(--space-2); }
+  [data-dir="D-B"] .desk-who { justify-content: flex-start; flex-wrap: nowrap; }
+  [data-dir="D-B"] .desk-st { margin-left: auto; }
+}

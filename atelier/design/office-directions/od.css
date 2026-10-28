@@ -1,0 +1,29 @@
+/* Office directions: what all three share, on top of screens2/office.css (floors, desk words, legend, quiet floor,
+   skeleton, empty). Each direction's own file draws only the scene. The scenes are night pictures in both themes:
+   the light is the information, and a lit room reads only against the dark (light mode frames it like a photo). */
+.od-board { max-width: 1200px; }
+.desk-scene { place-items: initial; display: block; background: #0a0d12; }
+.desk-scene::after { display: none; }
+.desk-scene svg { display: block; width: 100%; height: 100%; overflow: hidden; }
+[data-theme="light"] .desk-scene { border-bottom-color: transparent; }
+
+/* The words under a working desk catch a little of its light (the scene's colour, 6 %), so a lit desk reads as
+   one object from scene to step line. Needs you stays a red dot and word only: red is never a wash. */
+.desk .desk-body { transition: background-color var(--dur-slow) var(--ease-enter); }
+.desk[data-k="active"]:not([data-quiet]) .desk-body { background: linear-gradient(to bottom, color-mix(in srgb, var(--active) 7%, transparent), transparent 70%); }
+.desk[data-k="done"] .desk-body { background: linear-gradient(to bottom, color-mix(in srgb, var(--done) 7%, transparent), transparent 70%); }
+.desk[data-held="paused"] .desk-st { color: var(--text-2); }
+
+/* Paused is its own word, with the paused glyph in place of the hollow waiting ring */
+.desk[data-held="paused"] .desk-st .dot { border-radius: 1px; width: 8px; height: 8px; background: linear-gradient(to right, currentColor 0 3px, transparent 3px 5px, currentColor 5px); border: 0; }
+
+/* Habits and idle loops (dust in the lamp light, steam, a lantern's sway, smoke): only while the page is live and
+   motion is allowed. Stale freezes them: we don't know the lights are still on. */
+.is-stale .desk-scene *, [data-motion="reduce"] .desk-scene * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .desk-scene * { animation: none !important; } }
+
+/* The first-run picture */
+.od-empty-art { display: block; color: var(--border-strong); margin-bottom: var(--space-2); }
+.od-empty-art svg { display: block; overflow: visible; }
+.fq-art { display: inline-flex; }
+.fq-art svg { display: block; }

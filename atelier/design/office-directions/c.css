@@ -1,0 +1,87 @@
+/* D-C · Night street. A floor is one street under one sky: the houses stand side by side on a shared ground line
+   and the words sit under each house. Fixed night palette (both themes): sky #0b1220 → #16233a, walls #2c3848 →
+   #202a37, roofs #18202b, lit windows #cdbfff (K1 --active family), lantern --needs #ff8578, finished --done #5fd198. */
+/* The street always spans the floor: as many equal plots as houses (up to 5 a row), never an empty stretch */
+[data-dir="D-C"] .desks { grid-template-columns: repeat(min(var(--n), 5), minmax(0, 1fr)); gap: 0; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); position: relative; }
+[data-dir="D-C"] .desk { border: 0; border-radius: 0; background: transparent; }
+[data-dir="D-C"] .desk:hover { transform: none; box-shadow: none; background: var(--surface-hover); }
+[data-dir="D-C"] .desk:hover .desk-scene { background: linear-gradient(#0d1526, #1a2942); }
+[data-dir="D-C"] .desk-scene { height: 176px; background: radial-gradient(1px 1px at 18% 22%, #a7b0bb 50%, transparent), radial-gradient(1px 1px at 71% 14%, #a7b0bb 50%, transparent), radial-gradient(1px 1px at 88% 38%, #6b7684 50%, transparent), radial-gradient(1px 1px at 42% 9%, #6b7684 50%, transparent), linear-gradient(#0b1220, #16233a); border-bottom: 0; transition: background-color var(--dur-fast); }
+/* the ground runs under every house as one street */
+[data-dir="D-C"] .desk-scene::after { display: block; content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 9px; background: #0c121b; border: 0; }
+[data-dir="D-C"] .desk-scene svg { position: relative; z-index: 1; }
+[data-dir="D-C"] .desk + .desk .desk-body { box-shadow: inset 1px 0 0 var(--border); }
+
+.c-wall { fill: url(#c-wall); transition: opacity var(--dur-slow); }
+.c-roof { fill: #18202b; }
+.c-pole { stroke: #3b4552; stroke-width: 1.2; }
+.c-flag { fill: #3b4552; transform-box: fill-box; transform-origin: 0 50%; }
+.c-win { fill: #141b26; transition: fill var(--dur-slow) var(--ease-enter); }
+.c-door { fill: #141b26; }
+.c-ground { stroke: #2a3442; stroke-width: 1; }
+.c-who { fill: #3a2f66; opacity: 0; transition: opacity var(--dur-slow); }
+.c-who-in { transform-box: view-box; }
+.c-curtains { fill: none; stroke: #2a323c; stroke-width: 1.4; opacity: 0; }
+.c-smoke circle { fill: #a7b0bb; }
+.c-smoke, .c-beam, .c-porch, .c-porch-glow, .c-lantern { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.c-beam { fill: url(#c-beam); transform-box: view-box; transform-origin: 80px 42px; }
+.c-porch { fill: #e9edf1; }
+.c-porch-glow { fill: url(#c-porch); }
+.c-bracket { fill: none; stroke: #3b4552; stroke-width: 1.2; }
+.c-lan { fill: #ff8578; }
+.c-lan-glow { fill: url(#c-lan); }
+
+/* Working: windows light one by one up to its stage; the others stay dark glass */
+.desk[data-k="active"][data-lit="1"] .c-win:is([data-i="1"]),
+.desk[data-k="active"][data-lit="2"] .c-win:is([data-i="1"], [data-i="2"]),
+.desk[data-k="active"][data-lit="3"] .c-win:is([data-i="1"], [data-i="2"], [data-i="3"]),
+.desk[data-k="active"][data-lit="4"] .c-win:not([data-i="5"]),
+.desk[data-k="active"][data-lit="5"] .c-win { fill: #cdbfff; }
+.desk[data-k="active"] .c-who { opacity: 1; }
+.desk[data-k="active"]:not([data-quiet]) .c-who-in { animation: c-pace 6s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .c-smoke { opacity: 0.5; }
+.desk[data-k="active"]:not([data-quiet]) .c-smoke circle { transform-box: fill-box; animation: c-smoke 4.5s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .c-smoke circle:nth-child(2) { animation-delay: -1.5s; }
+.desk[data-k="active"]:not([data-quiet]) .c-smoke circle:nth-child(3) { animation-delay: -3s; }
+.desk[data-k="active"]:not([data-quiet]) .c-beam { opacity: 1; animation: c-sweep 7s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .c-flag { animation: c-wave 2.6s var(--ease-move) infinite alternate; }
+.desk[data-k="active"][data-role="auditor"] .c-who { opacity: 0; }
+/* Quiet for longer than usual: the lights burn low; no smoke, no one moving */
+.desk[data-k="active"][data-quiet] .c-win[data-i] { fill-opacity: 1; }
+.desk[data-k="active"][data-quiet] .c-wins { opacity: 0.55; }
+/* Needs you: a red lantern by the door, the only red on the street */
+.desk[data-k="needs"] .c-lantern { opacity: 1; }
+.desk[data-k="needs"] .c-lan-glow { animation: c-glow 2.4s var(--ease-move) infinite alternate; }
+/* Waiting: a small porch light */
+.desk[data-k=""]:not([data-held]) .c-porch { opacity: 0.85; }
+.desk[data-k=""]:not([data-held]) .c-porch-glow { opacity: 1; }
+/* Paused: curtains drawn over the windows it had lit, grey */
+.desk[data-held="paused"] .c-curtains { opacity: 1; }
+.desk[data-held="paused"][data-lit="1"] .c-win[data-i="1"],
+.desk[data-held="paused"][data-lit="2"] .c-win:is([data-i="1"], [data-i="2"]),
+.desk[data-held="paused"][data-lit="3"] .c-win:is([data-i="1"], [data-i="2"], [data-i="3"]) { fill: #5b6573; }
+/* Finished: every window green for the live app's 2.4 s hold */
+.desk[data-k="done"] .c-win { fill: #8fe3b8; }
+/* Off: dark house */
+.desk[data-k="off"] .c-wall { opacity: 0.6; }
+.desk[data-k="off"] .c-win { fill: #0f141c; }
+/* Stale: we don't know the lights are still on */
+.is-stale .desk[data-k="active"] .c-wins { opacity: 0.35; }
+
+@keyframes c-pace { from { transform: translateX(-2.5px); } to { transform: translateX(2.5px); } }
+@keyframes c-smoke { 0% { transform: translateY(4px) scale(0.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-8px) scale(1.2); opacity: 0; } }
+@keyframes c-sweep { from { transform: rotate(-10deg); } to { transform: rotate(14deg); } }
+@keyframes c-wave { from { transform: skewY(-6deg); } to { transform: skewY(6deg); } }
+@keyframes c-glow { from { opacity: 0.6; } to { opacity: 1; } }
+
+[data-dir="D-C"] .desk-body { padding: var(--space-3) var(--space-4) var(--space-4); }
+
+/* Phone: the street becomes a list; each row keeps its house on a strip of night sky */
+@media (max-width: 767px) {
+  [data-dir="D-C"] .desks { grid-template-columns: minmax(0, 1fr); }
+  [data-dir="D-C"] .desk { grid-template-columns: 96px minmax(0, 1fr); }
+  [data-dir="D-C"] .desk + .desk { box-shadow: inset 0 1px 0 var(--border); }
+  [data-dir="D-C"] .desk + .desk .desk-body { box-shadow: none; }
+  [data-dir="D-C"] .desk-scene { height: auto; min-height: 104px; border-right: 0; }
+  [data-dir="D-C"] .desk-scene svg { position: absolute; left: -12px; bottom: 0; width: 120px; height: 98px; }
+}

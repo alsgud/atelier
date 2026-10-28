@@ -1,0 +1,88 @@
+/* D-A · Lamplight. One hanging lamp per desk carries the state; a faceless figure's posture carries the character.
+   Scene palette is fixed night (both themes): wall #0a0d12 → #131922, furniture #222a33, the lit colours are K1 dark's
+   --active #b39cff, --done #5fd198, --needs #ff8578. Only opacity and transform change. */
+[data-dir="D-A"] .desk-scene { height: 152px; }
+.a-wall { fill: url(#a-wall); }
+.a-floor { fill: #0e1218; }
+.a-prop { fill: none; stroke: #e9edf1; stroke-opacity: 0.13; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; transition: stroke-opacity var(--dur-slow); }
+.a-cord { stroke: #222a33; stroke-width: 1.2; }
+.a-shade { fill: #222a33; }
+.a-bulb { fill: #313b46; transition: fill var(--dur-slow) var(--ease-enter); }
+.a-cone, .a-pool, .a-spill, .a-motes, .a-mug .a-steam { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.a-cone { fill: url(#a-cone); transform-box: view-box; transform-origin: 118px 31px; transform: scaleY(0.6); transition: opacity var(--dur-slow) var(--ease-enter), transform var(--spring-soft-dur) var(--spring-soft); }
+.a-cone-done { fill: url(#a-cone-done); }
+.a-pool { fill: url(#a-pool); }
+.a-pool-done { fill: url(#a-pool-done); }
+.a-spill { fill: url(#a-spill); }
+.a-motes circle { fill: #efe9ff; }
+.a-chair, .a-desk { fill: none; stroke: #222a33; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.a-desk .a-top { stroke-width: 3.5; transition: stroke var(--dur-slow); }
+.a-laptop, .a-lid-shut { fill: none; stroke: #313b46; stroke-width: 2.2; stroke-linecap: round; }
+.a-lid-shut, .a-coat { opacity: 0; }
+.a-coat { fill: #1b2129; }
+.a-mug path:first-child { fill: #313b46; }
+.a-steam { fill: none; stroke: #a7b0bb; stroke-width: 0.9; stroke-linecap: round; }
+
+/* The figure: ambient grey when the lamp is off, a true silhouette against the light when it is on */
+.fig { fill: #2a323c; stroke: #2a323c; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity var(--dur-base) var(--ease-enter); }
+.fig circle { stroke: none; }
+.fig .lan { fill: #ff8578; stroke: none; }
+.fig .lan-hook { fill: none; stroke: #ff8578; stroke-width: 1.2; }
+.fig .lan-glow { fill: url(#a-lan); stroke: none; }
+.lantern { transform-box: view-box; transform-origin: 89px 28px; animation: a-sway 2.8s var(--ease-move) infinite alternate; }
+
+/* State → pose and light */
+.desk[data-k="active"] .p-work, .desk[data-k="active"][data-quiet] .p-chin,
+.desk[data-k="needs"] .p-raise, .desk[data-k=""]:not([data-held]) .p-lean, .desk[data-held="paused"] .p-fold,
+.desk[data-k="done"] .p-stretch { opacity: 1; }
+.desk[data-k="active"][data-quiet] .p-work { opacity: 0; }
+.desk[data-k="active"] .fig, .desk[data-k="done"] .fig { fill: #05070a; stroke: #05070a; }
+
+.desk[data-k="active"] .a-cone:not(.a-cone-done) { opacity: 1; transform: none; }
+.desk[data-k="active"] .a-pool:not(.a-pool-done) { opacity: 1; }
+.desk[data-k="active"] .a-spill { opacity: 1; }
+.desk[data-k="active"] .a-bulb { fill: #f3efff; }
+.desk[data-k="active"] .a-top { stroke: #4a4366; }
+.desk[data-k="active"] .a-prop { stroke-opacity: 0.22; }
+.desk[data-k="active"]:not([data-quiet]) .a-motes { opacity: 0.8; }
+.desk[data-k="active"]:not([data-quiet]) .a-motes circle { animation: a-mote 7s linear infinite; }
+.desk[data-k="active"]:not([data-quiet]) .a-motes circle:nth-child(2) { animation-duration: 9s; animation-delay: -3s; }
+.desk[data-k="active"]:not([data-quiet]) .a-motes circle:nth-child(3) { animation-duration: 8s; animation-delay: -5s; }
+.desk[data-k="active"]:not([data-quiet]) .p-work .hd { animation: a-type 1.4s var(--ease-move) infinite alternate; }
+/* Quiet for longer than usual: the lamp stays on but low; nothing moves */
+.desk[data-k="active"][data-quiet] .a-cone:not(.a-cone-done) { opacity: 0.38; }
+.desk[data-k="active"][data-quiet] .a-pool:not(.a-pool-done), .desk[data-k="active"][data-quiet] .a-spill { opacity: 0.35; }
+.desk[data-k="active"][data-quiet] .a-bulb { fill: #a99bd9; }
+/* Finished: the lamp turns green for the live app's 2.4 s hold, the figure stretches */
+.desk[data-k="done"] .a-cone-done { opacity: 1; transform: none; }
+.desk[data-k="done"] .a-pool-done { opacity: 1; }
+.desk[data-k="done"] .a-bulb { fill: #e3fbef; }
+/* Paused: an ember in the bulb, no light; the work is kept where it stopped */
+.desk[data-held="paused"] .a-bulb { fill: #6b5f8f; }
+/* Waiting: a mug of something warm */
+.desk[data-k=""]:not([data-held]) .a-steam { opacity: 0.5; }
+.desk[data-k=""]:not([data-held]) .a-steam { animation: a-steam 3.2s var(--ease-move) infinite; }
+.desk:not([data-k=""]) .a-mug, .desk[data-held] .a-mug { opacity: 0; }
+/* Needs you: lamp off, the figure stands and holds up a small red lantern: the only red in the room */
+.desk[data-k="needs"] .a-chair { transform: translateX(-10px); }
+.a-chair { transition: transform var(--spring-soft-dur) var(--spring-soft); }
+/* Off: empty chair, coat over its back, laptop shut */
+.desk[data-k="off"] .a-coat, .desk[data-k="off"] .a-lid-shut { opacity: 1; }
+.desk[data-k="off"] .a-laptop { opacity: 0; }
+.desk[data-k="off"] .a-wall { opacity: 0.7; }
+/* Stale: we don't know the lamps are still on */
+.is-stale .desk[data-k="active"] .a-cone:not(.a-cone-done) { opacity: 0.25; }
+.is-stale .desk[data-k="active"] .a-pool, .is-stale .desk[data-k="active"] .a-spill, .is-stale .a-motes { opacity: 0.2; }
+
+@keyframes a-mote { from { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } to { transform: translateY(-26px); opacity: 0; } }
+@keyframes a-type { from { transform: translateY(0); } to { transform: translateY(1px); } }
+@keyframes a-sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+@keyframes a-steam { 0% { transform: translateY(2px); opacity: 0; } 40% { opacity: 0.55; } 100% { transform: translateY(-4px); opacity: 0; } }
+.a-motes circle, .p-work .hd, .a-steam { transform-box: fill-box; }
+
+/* Phone: the desk is a row; the tile shows lamp, figure and desk (x 52–174 of the grid); the wall prop is cropped */
+@media (max-width: 767px) {
+  [data-dir="D-A"] .desk { grid-template-columns: 112px minmax(0, 1fr); }
+  [data-dir="D-A"] .desk-scene { height: auto; min-height: 112px; position: relative; overflow: hidden; }
+  [data-dir="D-A"] .desk-scene svg { position: absolute; bottom: 0; left: -48px; width: 220px; height: 110px; }
+}
