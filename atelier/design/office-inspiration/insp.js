@@ -60,7 +60,7 @@ window.INSP = [
   },
   {
     n: 7, slug: 'one-light-per-desk', name: 'One light per desk', cast: 'Silhouettes',
-    img: '07-control', alt: 'Control: a vast dark concrete hall with a single figure in a pool of cold light',
+    img: '07-control', alt: 'Control: a lone silhouette backlit by one floodlight among dark concrete blocks and rubble under a starry sky',
     idea: 'A dark architectural space. Each agent is a desk under one hard pool of light, its figure only a silhouette; when it works, its light is on.',
     take: 'Cinematic light and generous empty space: serious and premium, and the same idea as our window-and-light mark.',
     watch: 'Moody can turn cold; states must still read at desk-card size and in light mode.',
@@ -73,7 +73,7 @@ window.INSP = [
     idea: 'Each agent is an arched window, our mark at room scale, with its role drawn inside like a stained-glass emblem. It glows while the agent works.',
     take: 'Smooth gradients and precise geometry on dark: objects that carry personality without faces.',
     watch: 'Abstract: roles must be learnable from emblem plus label, and the emblems need a real illustrator.',
-    effort: 1,
+    effort: 2,
     src: ['Monument Valley 3', 'ustwo games', steam(3132930)],
   },
   {
@@ -146,7 +146,7 @@ window.INSP = [
     take: 'Industrial-design restraint, a tactile render, and small playful screen graphics.',
     watch: 'A rendered object has to stay crisp at small sizes and in light mode.',
     effort: 2,
-    src: ['OP–1 field page (product imagery)', 'teenage engineering', 'https://teenage.engineering/products/op-1'],
+    src: ['OP–XY, shown on the OP–1 field page', 'teenage engineering', 'https://teenage.engineering/products/op-1'],
   },
 ];
 window.INSP_EFFORT = ['', 'Light', 'Medium', 'Heavy', 'Very heavy'];

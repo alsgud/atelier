@@ -42,8 +42,8 @@ if (one) {
   </article>`;
 } else if (q.has('sheet')) {
   app.innerHTML = `<section class="sheet">
-    <div class="top"><h1>Office inspiration · ${INSP.length} options</h1><p class="eyebrow">Reply with the numbers you like</p></div>
-    <ol class="grid" id="options">${INSP.map(o => `<li class="opt">${frame(o)}<div class="title"><h2>${esc(o.name)}</h2><span class="chip" data-cast="${esc(o.cast)}">${esc(o.cast)}</span></div></li>`).join('')}</ol>
+    <div class="top"><h1>Office inspiration · ${INSP.length} options</h1><p class="eyebrow">Right of each name: effort to build · Reply with the numbers you like</p></div>
+    <ol class="grid" id="options">${INSP.map(o => `<li class="opt">${frame(o)}<div class="title"><h2>${esc(o.name)}</h2><span class="chip" data-cast="${esc(o.cast)}">${esc(o.cast)}</span><span class="eff">${INSP_EFFORT[o.effort]}</span></div></li>`).join('')}</ol>
   </section>`;
 } else {
   const counts = ['Characters', 'Tiny figures', 'Silhouettes', 'No characters'].map(c => [c, INSP.filter(o => o.cast === c).length]).filter(([, n]) => n);
@@ -52,7 +52,7 @@ if (one) {
       <p class="eyebrow">Atelier · Office · inspiration board</p>
       <h1>${INSP.length} ways the Office could look</h1>
       <p class="lede">None of the character directions so far was right, so this board goes wider: real, polished work from games, products and industrial design, including ${INSP.filter(o => o.cast === 'No characters').length} ways to show the team with no characters at all. Each option says what our Office would be in that style, why the source looks polished, what to watch, and how much it costs to build.</p>
-      <p class="ask">Reply with the <b>numbers</b> you like, as many as you want, e.g. <b>“7, 8, 11”</b>. A word on what you like about each helps. We then draw two or three original directions from your picks.<br><span style="color:var(--text-2)">My own top three: <b>8</b> (our window mark at room scale, light to build), <b>7</b> (one light per desk, calm and premium) and <b>4</b> (if you want characters: line and flat colour).</span></p>
+      <p class="ask">Reply with the <b>numbers</b> you like, as many as you want, e.g. <b>“7, 8, 11”</b>. A word on what you like about each helps. We then draw two or three original directions from your picks.<br><span style="color:var(--text-2)">My own top three: <b>8</b> (our window mark at room scale, no characters; medium to build, as the emblems need an illustrator), <b>7</b> (one light per desk, calm and premium) and <b>4</b> (if you want characters: line and flat colour).</span></p>
       <div class="legend" aria-label="Options by cast">${counts.map(([c, n]) => `<span class="chip" data-cast="${esc(c)}">${esc(c)}: ${n}</span>`).join('')}</div>
     </header>
     <ol class="grid" id="options" aria-label="Options">${INSP.map(o => `<li class="opt" id="o${o.n}">

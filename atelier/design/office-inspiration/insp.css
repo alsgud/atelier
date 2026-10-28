@@ -66,6 +66,7 @@ dl.notes div:first-child dd { color: var(--text); font-size: var(--text-base); l
 .sheet h1 { font-size: var(--text-xl); line-height: var(--leading-xl); }
 .sheet .grid { grid-template-columns: repeat(4, 1fr); gap: var(--space-5) var(--space-4); }
 .sheet .opt { gap: var(--space-2); }
+.sheet .eff { margin-left: auto; font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-2); }
 .sheet .title h2 { font-size: var(--text-md); line-height: var(--leading-md); }
 
 @media (max-width: 640px) {
