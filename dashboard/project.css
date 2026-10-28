@@ -310,6 +310,9 @@
 .m-line { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-left: 2px solid var(--border); }
 .m-line.is-you { border-left-color: var(--border-strong); background: var(--surface-sunken); border-radius: 0 var(--radius-sm, 4px) var(--radius-sm, 4px) 0; }
 .m-line p { margin: 0; }
+/* A command the lead wants run on the owner's PC: word for word, before and after it runs. */
+.m-run { display: grid; gap: var(--space-2); max-width: var(--measure); }
+.m-cmd { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface-sunken); font: var(--text-xs)/var(--leading-sm) var(--font-mono); color: var(--text-1, inherit); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }
 .m-reply { display: flex; gap: var(--space-2); align-items: flex-start; }
 .m-reply .field { flex: 1; min-width: 0; }
 .m-new textarea { width: 100%; }

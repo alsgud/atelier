@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import crypto from 'node:crypto';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { HOME, PKG, paths, ensureHome, config, readJson, writeJson, resolveRepo, repoAlias, runDir } from '../lib/home.mjs';
@@ -748,15 +747,16 @@ function messagesCmd() {
 // The lead's line to the owner: it lands in the dashboard's Inbox, and the owner's answer comes back on the watch.
 function askCmd() {
   const [alias, kind, ...words] = args;
-  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] [--options "A | B"] [--recommend "A"] [--attach f1,f2] [--task <id>] [--link url]\n       atelier ask <alias> reply <A-n> "<text>" [--reopen] | withdraw <A-n>');
+  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] [--options "A | B"] [--recommend "A"] [--attach f1,f2] [--task <id>] [--link url]\n       atelier ask <alias> approval "<title>" --run "<command>" [--cwd dir] [--shell powershell|cmd|bash]   (runs on the owner\'s PC when they approve)\n       atelier ask <alias> reply <A-n> "<text>" [--reopen] | withdraw <A-n>');
   project.load(alias);
   if (kind === 'reply') { const a = asks.reply(alias, need(2, 'A-n'), args.slice(3).join(' ') || flags.text, { reopen: !!flags.reopen }); return console.log(`replied on ${a.id}${a.status === 'open' ? ' and reopened it for the owner' : ''}`); }
   if (kind === 'withdraw') return console.log(`withdrew ${asks.withdraw(alias, need(2, 'A-n')).id}`);
   const str = k => typeof flags[k] === 'string' ? flags[k] : '';
   const body = str('body-file') ? fs.readFileSync(str('body-file'), 'utf8') : str('body');
   const a = asks.ask(alias, { kind, title: words.join(' ') || str('title'), body, options: str('options').split(/\s*\|\s*/), recommend: str('recommend'),
-    attach: str('attach').split(',').map(s => s.trim()).filter(Boolean), task: str('task'), links: str('link').split(',').map(s => s.trim()) });
-  console.log(`sent ${a.id} to the owner's Inbox${a.files.length ? ` with ${a.files.length} attachment(s)` : ''}. ${kind === 'update' ? 'Nothing waits on it.' : 'Their answer arrives on your watch as ask-answered; keep working on what doesn\'t depend on it.'}`);
+    attach: str('attach').split(',').map(s => s.trim()).filter(Boolean), task: str('task'), links: str('link').split(',').map(s => s.trim()),
+    run: str('run') ? { command: str('run'), cwd: str('cwd'), shell: str('shell') } : null });
+  console.log(`sent ${a.id} to the owner's Inbox${a.files.length ? ` with ${a.files.length} attachment(s)` : ''}. ${a.run ? `When they approve, the dashboard runs it on their PC (${a.run.shell}, in ${a.run.cwd || 'their home folder'}) and the result arrives on your watch as ask-answered.` : kind === 'update' ? 'Nothing waits on it.' : 'Their answer arrives on your watch as ask-answered; keep working on what doesn\'t depend on it.'}`);
 }
 
 function asksCmd() {
@@ -767,7 +767,9 @@ function asksCmd() {
   for (const a of list.slice(-30)) {
     console.log(`${a.id} ${a.at.slice(5, 16).replace('T', ' ')} [${a.kind}] ${a.status.toUpperCase()} · ${a.title}`);
     if (a.from === 'owner' && a.body !== a.title) console.log(`   owner: ${a.body}`);
+    if (a.run) console.log(`   command (${a.run.shell}, ${a.run.state}): ${a.run.command}`);
     for (const t of a.thread) console.log(`   ${t.from}${t.verdict && t.verdict !== 'answer' ? ` (${t.verdict})` : ''}: ${t.text || '—'}`);
+    if (a.run?.output || a.run?.error) console.log(`   output:\n${[a.run.error, ...(a.run.output || '').trim().split('\n').slice(-40)].filter(Boolean).map(l => `     ${l}`).join('\n')}`);
   }
 }
 
@@ -1064,29 +1066,31 @@ async function leadStopHook(alias) {
   const day = budget.today(alias);
   if (day.over || limits.waitUntil()) return;
   const asked = !input.stop_hook_active && chatAsk(alias, input);
-  if (asked) return console.log(JSON.stringify({ decision: 'block', reason: `You asked the owner something in the chat ("${asked}"). The owner decides in the dashboard, not the chat: send it with atelier ask ${alias} approval|question|feedback "<title>" --body "..." (attach screenshots or recordings with --attach or --task), then say in one line that it's in their Inbox. If it was only a rhetorical line and nothing waits on the owner, just stop.` }));
+  if (asked) return console.log(JSON.stringify({ decision: 'block', reason: `You asked the owner something in the chat ("${asked}"). The owner decides in the dashboard, not the chat: send it with atelier ask ${alias} approval|question|feedback "<title>" --body "..." (attach screenshots or recordings with --attach or --task), then say in one line that it's in their Inbox. If the owner has to run something on their PC (copy files, write a ticket, start a paid run), don't ask them to paste it: add --run "<command>" to the approval and the dashboard runs it when they approve, with the result coming back to you. If it was only a rhetorical line and nothing waits on the owner, just stop.` }));
   const p = project.load(alias);
   const mine = cards.all().map(c => c.meta).filter(m => m.project === alias);
+  // [key, line]: each waiting item is raised once, and again only if it still waits 12 hours later, so the lead
+  // isn't made to re-explain the same items (and spend on it) every time it goes idle.
   const items = [
-    ...mine.filter(m => m.status === 'requested').map(m => `request ${m.id} (${m.title}) is waiting for your ruling`),
-    ...mine.filter(m => m.status === 'paused' && /^for the lead:/.test(m.reason || '')).map(m => `task ${m.id} ${m.reason.replace(/^for the lead: /, '').split(';')[0]}: extend, land or cancel it`),
-    ...mine.filter(m => m.status === 'stalled').map(m => `task ${m.id} stalled: resume or replan it`),
-    ...mine.filter(m => m.status === 'review').map(m => `task ${m.id} is ready for review: ${(m.reason || '').slice(0, 80)}`),
+    ...mine.filter(m => m.status === 'requested').map(m => [`req:${m.id}`, `request ${m.id} (${m.title}) is waiting for your ruling`]),
+    ...mine.filter(m => m.status === 'paused' && /^for the lead:/.test(m.reason || '')).map(m => [`paused:${m.id}`, `task ${m.id} ${m.reason.replace(/^for the lead: /, '').split(';')[0]}: extend, land or cancel it`]),
+    ...mine.filter(m => m.status === 'stalled').map(m => [`stalled:${m.id}`, `task ${m.id} stalled: resume or replan it`]),
+    ...mine.filter(m => m.status === 'review').map(m => [`review:${m.id}`, `task ${m.id} is ready for review: ${(m.reason || '').slice(0, 80)}`]),
   ];
-  const fixes = auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status)).length;
-  if (fixes) items.push(`${fixes} auditor item(s) to fix or delegate (atelier audit ${alias} findings --lead)`);
-  if (p.github?.problem) items.push(`work isn't reaching GitHub: ${p.github.problem}`);
-  for (const n of asks.forLead(alias)) items.push(`the owner wrote to you (${n.id}): "${n.body.slice(0, 160)}". Act on it, then answer with atelier ask ${alias} reply ${n.id} "..."`);
+  const fixes = auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status));
+  if (fixes.length) items.push([`fix:${fixes.map(f => f.id).join(',')}`, `${fixes.length} auditor item(s) to fix or delegate (atelier audit ${alias} findings --lead)`]);
+  if (p.github?.problem) items.push([`gh:${p.github.problem}`, `work isn't reaching GitHub: ${p.github.problem}`]);
+  for (const n of asks.forLead(alias)) items.push([`note:${n.id}:${n.thread.length}`, `the owner wrote to you (${n.id}): "${n.body.slice(0, 160)}". Act on it, then answer with atelier ask ${alias} reply ${n.id} "..."`]);
   if (!items.length) return;
   const stateFile = path.join(project.dir(alias), 'lead-continue.json');
   let st = {}; try { st = JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch { /* first time */ }
-  const hash = crypto.createHash('sha1').update(items.join('|')).digest('hex').slice(0, 12);
-  const hour = new Date().toISOString().slice(0, 13);
-  const same = st.hash === hash ? (st.same || 0) + 1 : 1;
-  const inHour = st.hour === hour ? (st.inHour || 0) + 1 : 1;
-  fs.writeFileSync(stateFile, JSON.stringify({ hash, same, hour, inHour }));
-  if (same > 2 || inHour > 6) return;
-  console.log(JSON.stringify({ decision: 'block', reason: `Before going idle, these are waiting on you (today's spend $${day.spent} of $${day.limit}):\n- ${items.join('\n- ')}\nHandle each, or note in LEDGER.md why it waits, then stop. Your watch wakes you for anything new.` }));
+  const told = st.told || {}, now = Date.now();
+  const fresh = items.filter(([k]) => !(now - (told[k] || 0) < 12 * 3600_000));
+  if (!fresh.length) return;
+  for (const [k] of fresh) told[k] = now;
+  for (const k of Object.keys(told)) if (now - told[k] > 24 * 3600_000) delete told[k];
+  fs.writeFileSync(stateFile, JSON.stringify({ told }));
+  console.log(JSON.stringify({ decision: 'block', reason: `Before going idle, these are waiting on you (today's spend $${day.spent} of $${day.limit}):\n- ${fresh.map(([, t]) => t).join('\n- ')}\nHandle each, or note in LEDGER.md why it waits, then stop. You won't be asked about these again for 12 hours; your watch wakes you for anything new.` }));
 }
 
 // The lead's last chat message, when it asks the owner to approve or choose something and no Inbox message
@@ -1101,7 +1105,9 @@ function chatAsk(alias, input) {
   while (start > 0 && !isPrompt(lines[start])) start--;
   const turn = lines.slice(start);
   const said = input.last_assistant_message || [...turn].reverse().find(e => e.type === 'assistant' && e.message?.content?.some?.(c => c.type === 'text'))?.message.content.filter(c => c.type === 'text').map(c => c.text).join('\n') || '';
-  const sentence = said.split(/(?<=[.?!])\s+|\n+/).map(s => s.trim()).find(s => s.endsWith('?') && ASKING.test(s));
+  const parts = said.split(/(?<=[.?!:])\s+|\n+/).map(s => s.trim());
+  // A question to the owner, or a request to run something by hand ("paste this in a terminal").
+  const sentence = parts.find(s => s.endsWith('?') && ASKING.test(s)) || parts.find(s => /\b(paste|in (your|a) terminal|run (this|it|that|one) (line|command))\b/i.test(s));
   if (!sentence) return '';
   const sent = turn.some(e => e.type === 'assistant' && e.message?.content?.some?.(c => c.type === 'tool_use' && /\batelier\s+(ask\s|(gate|criteria)\s.*?\brequest\b)/.test(JSON.stringify(c.input || {}))));
   return sent ? '' : sentence.slice(0, 160);

@@ -116,6 +116,15 @@ function askMedia(a, { hero = true } = {}) {
   return `${pics.length ? `<div class="frames${hero ? ' is-hero' : ''}">${pics.map(frame).join('')}</div>` : ''}${sounds(heard, url)}${links.length ? `<div class="links">${links.join('')}</div>` : ''}`;
 }
 const ASK_KIND = { approval: 'Approval', question: 'Question', feedback: 'Feedback wanted', update: 'Update', note: 'You wrote' };
+// A command the lead wants run on this PC (atelier ask … --run): shown word for word before approving, its output after.
+const RUN_STATE = { waiting: 'Runs when you approve', running: 'Running now', done: 'Ran fine', failed: 'Ran, and it failed', 'not-run': 'Not run' };
+function askRun(a) {
+  const r = a.run;
+  if (!r) return '';
+  const out = [r.error, (r.output || '').trim().split('\n').slice(-12).join('\n')].filter(Boolean).join('\n');
+  return `<div class="m-run"><p class="section-label" style="margin:0">${esc(RUN_STATE[r.state] || r.state)} · on this PC${r.cwd ? ` in ${esc(r.cwd)}` : ''} · ${esc(r.shell)}</p>
+    <pre class="m-cmd"><code>${esc(r.command)}</code></pre>${out ? `<details class="details"><summary>What it printed</summary><pre class="m-cmd"><code>${esc(out)}</code></pre></details>` : ''}</div>`;
+}
 
 // The N1 mark (design/brand/r2/marks.js): the arched window and the patch of light it throws. Its small cut is used at 20 px and under.
 const markN1 = (size = 20) => {
@@ -563,7 +572,7 @@ const Inbox = (() => {
             ${pics.length ? `<div class="frames is-hero">${pics.slice(0, 3).map((f, i) => f.video ? `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="frame" aria-label="Recording ${esc(f.name)}, opens in a new tab"><span class="frame-img"><video src="${esc(f.url)}" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video><span class="play">${I('play')}Recording</span></span><span class="frame-cap"><b>Recording</b><span>Open ${I('external')}</span></span></a>` : frame(f.url, f.name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '), /(390|360|phone)/i.test(f.name) && i ? 'is-phone' : '')).join('')}</div>` : ''}
             ${sounds(heard, f => f.url)}
             ${pr ? `<div class="links"><a href="#/t/${encodeURIComponent(pr.task)}">${I('log')}Open the task</a></div>` : ''}`,
-          dock: { note: 'If you reject it, say what’s wrong', rejectNeedsNote: true, required: 'Say what’s wrong so the team can fix it.', primary: 'Accept', secondary: 'Reject',
+          dock: { note: 'If you reject it, say what’s wrong', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what’s wrong so the team can fix it.', primary: 'Accept', secondary: 'Reject',
             send: (w, note) => ({ action: 'criterion', project: a, id: q.id, verb: w === 'secondary' ? 'reject' : 'accept', note }),
             done: 'Accepted. Marked as met.', toast: 'Accepted the outcome.', log: `Accepted: ${q.title}`,
             alt: { done: 'Rejected. The team fixes it and asks again.', toast: 'Rejected the outcome.', log: `Rejected: ${q.title}` } } };
@@ -662,10 +671,10 @@ const Inbox = (() => {
         const words = `${k.body ? `<div class="doc">${md(k.body)}</div>` : ''}${askMedia(k)}`;
         const thread = (k.thread || []).length ? `<p class="faint" style="margin:0;font-size:var(--text-sm)"><a class="link" href="${M}">${k.thread.length} earlier ${k.thread.length === 1 ? 'reply' : 'replies'} in this thread</a></p>` : '';
         const common = { ...base, glyph: { approval: 'outcome', question: 'question', feedback: 'design', update: 'log' }[k.kind] || 'log', kind: `${ASK_KIND[k.kind] || 'Message'} from the lead`, short: k.kind === 'update' ? 'update' : `lead ${k.kind}` };
-        if (k.kind === 'approval') return { ...common, body: () => words + thread,
-          dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, required: 'Say what to change, so the lead can rework it.', primary: 'Approve', secondary: 'Not yet', ghost: 'All messages', ghostHref: M,
+        if (k.kind === 'approval') return { ...common, body: () => words + askRun(k) + thread,
+          dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what to change, so the lead can rework it.', primary: 'Approve', secondary: 'Not yet', ghost: 'All messages', ghostHref: M,
             send: (w, note) => send(w === 'secondary' ? 'decline' : 'approve', note),
-            done: 'Approved. The lead carries on.', toast: `Approved: ${q.title}`, log: `Approved: ${q.title}`,
+            done: k.run ? 'Approved. It’s running on your PC; the lead gets the result.' : 'Approved. The lead carries on.', toast: `Approved: ${q.title}`, log: `Approved: ${q.title}`,
             alt: { done: 'Sent back with your note.', toast: 'Sent it back to the lead.', log: `Not yet: ${q.title}` } } };
         if (k.kind === 'question') return { ...common, body: () => `${words}
             ${opts.length ? `<fieldset class="choices" style="max-width:var(--measure)"><legend class="section-label" style="margin-bottom:var(--space-2)">Choose one</legend>${opts.map((o, i) => `<label class="choice"><input type="radio" name="ans" value="${i}"${S.choice === String(i) ? ' checked' : ''}> ${esc(o)}${k.recommend && o.toLowerCase() === k.recommend.toLowerCase() ? ' <span class="faint">(the lead’s pick)</span>' : ''}</label>`).join('')}</fieldset>` : ''}
@@ -930,7 +939,7 @@ const Inbox = (() => {
     S.note = note;
     closeToast(true); // the previous decision's window closes: it is sent now
     const d = x.dock;
-    if ((d.required && which === 'primary' && !note && !(d.needsAnswer && S.choice !== '')) || (d.rejectNeedsNote && which === 'secondary' && !note)) {
+    if ((d.required && which === 'primary' && !d.primaryNoNote && !note && !(d.needsAnswer && S.choice !== '')) || (d.rejectNeedsNote && which === 'secondary' && !note)) {
       S.dock = 'invalid'; render(); $('note')?.focus(); return;
     }
     deciding = true;
@@ -2126,12 +2135,12 @@ const Project = (() => {
   function messagesTab(p) {
     const a = esc(p.alias), list = p.asks || [];
     const verdictWord = { approve: 'Approved', decline: 'Not yet', seen: 'Read' };
-    const line = t => `<div class="m-line is-${t.from === 'owner' ? 'you' : 'lead'}"><span class="p-lbl">${t.from === 'owner' ? 'You' : 'The lead'}${t.verdict && verdictWord[t.verdict] ? ` · ${verdictWord[t.verdict]}` : ''} · ${esc(when(t.at))}</span>${t.text ? md(t.text) : ''}</div>`;
+    const line = t => `<div class="m-line is-${t.from === 'owner' ? 'you' : 'lead'}"><span class="p-lbl">${t.from === 'owner' ? 'You' : t.from === 'atelier' ? 'Atelier' : 'The lead'}${t.verdict && verdictWord[t.verdict] ? ` · ${verdictWord[t.verdict]}` : ''} · ${esc(when(t.at))}</span>${t.text ? md(t.text) : ''}</div>`;
     const fold = m => {
       const waiting = m.status === 'open' || m.status === 'unread';
       return `<details class="details p-doc m-thread" data-key="m-${esc(m.id)}"${waiting || m.status === 'for-lead' ? ' open' : ''}><summary><span class="t"><b>${esc(m.title)}</b><span class="s${waiting ? ' is-needs' : ''}">${esc([m.from === 'owner' ? 'You wrote' : ASK_KIND[m.kind] || 'Message', ASK_STATE[m.status] || m.status, when(m.at)].join(' · '))}</span></span>${I('chevron-down')}</summary>
       <div class="details-body">
-        ${m.from === 'owner' ? line({ from: 'owner', at: m.at, text: m.body }) : `${m.body ? md(m.body) : ''}${askMedia(m, { hero: false })}${m.options?.length ? `<p class="p-quiet">Options: ${m.options.map(esc).join(' · ')}${m.recommend ? ` (the lead suggested ${esc(m.recommend)})` : ''}</p>` : ''}`}
+        ${m.from === 'owner' ? line({ from: 'owner', at: m.at, text: m.body }) : `${m.body ? md(m.body) : ''}${askMedia(m, { hero: false })}${m.options?.length ? `<p class="p-quiet">Options: ${m.options.map(esc).join(' · ')}${m.recommend ? ` (the lead suggested ${esc(m.recommend)})` : ''}</p>` : ''}${askRun(m)}`}
         ${(m.thread || []).map(line).join('')}
         ${waiting ? `<p class="p-quiet"><a class="link" href="#/inbox/${encodeURIComponent(`ask:${p.alias}:${m.id}`)}">Answer it in the Inbox</a></p>` : m.status === 'withdrawn' ? '' : `<form class="m-reply" data-pa-form="lead-note" data-re="${esc(m.id)}"><div class="field"><label class="sr-only" for="mr-${esc(m.id)}">Reply to the lead</label><textarea class="input" id="mr-${esc(m.id)}" rows="1" placeholder="Reply to the lead"></textarea></div><button class="btn btn-secondary" type="submit">Reply</button></form>`}
       </div></details>`;
