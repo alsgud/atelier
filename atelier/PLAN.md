@@ -42,7 +42,7 @@ Rough split (to be re-priced from real costs after the design task):
 | 3e5b | designer | Office characters reference board: 10-14 numbered style families with real refs, owner picks a type (R-11). Base atelier/9pfh (6 it, $25) | owner: A3 best but all feel cheap | running |
 | m87r | designer | Office inspiration board I1-I16 ($25, 6 it) | R-12 | merged 2026-10-28; owner liked 7, 8, 12 (R-15, R-16) |
 | vbnh | designer | Office directions: 2-3 original designs from 7, 8, 12, anonymous but personable (8 it, $30), brief briefs/office-directions.md | R-15, R-16 | done; owner: windows yes, lamp no, needs personality (R-17) |
-| kydj | designer | Office windows: P1-P3 ways to personalise the glowing N1 windows (6 it, $25), base atelier/vbnh, brief briefs/office-windows.md | R-17 | queued |
+| 37h3 | designer | Office windows: P1-P3 ways to give the glowing N1 windows real character (6 it, $25), base atelier/vbnh, brief inline (copy in briefs/office-windows.md); replaced kydj | R-17, A-6 | queued |
 | — | frontend | M2 build: the picked Office direction | owner picks from vbnh | not started |
 | uey2 | frontend | Fix audit findings F-2..F-13 (10 it, $55), base main, brief briefs/audit-fixes-m1.md | audit + owner confirmed F-2..F-4 | queued; owner merges, lead marks fixed |
 | — | auditor | End-of-milestone audit | slice 3 | running 2026-10-27 |

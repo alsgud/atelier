@@ -3,6 +3,8 @@
 ## Objective
 The owner reviewed vbnh's three directions (atelier/vbnh: D-A Lamplight, D-B Lit shrines, D-C Night street) and set the direction (ruling R-17, overrule #8), in their words: "i like the idea of the windows as our icon being included with the glow to indicate working. the lamp and silhouettes make them look lifeless and sad drowning in work. and window icons are okay but no personalisation. just objects."
 
+On A-6 they added: "again, silhouettes with lamp too lifeless, windows looking not character enough, same with buildings." So D-C's houses are out too, and subtle touches won't do: each window must have real, obvious character at a glance.
+
 So: every agent is a window in the shape of our N1 mark, glowing to show it is working (keep D-B's glow, which fills with the task's stage). Your job is to give those windows personality, so each one feels alive and enjoyable, while staying anonymous (R-15: no names, faces or fixed identities to get attached to).
 
 ## What to make
