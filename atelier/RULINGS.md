@@ -55,3 +55,6 @@ _2026-10-28 · owner, AC-7 on vbnh, 2026-10-28: i like the idea of the windows a
 
 ## R-18: Office windows follow P1 Lived-in from 37h3: each agent is a glowing N1 window whose role is told by the things in and on it (designer sketches, easel, plant; builder boxes, tools; reviewer books, mug; auditor clock, checklist, telescope; lead bunting, globe), with no figure or face. States as in DESIGN.md Office windows P1: lit to stage while working, cat asleep when quiet, red flag when it needs you, back-soon card when paused, curtains when off, green flood and flower when finished. P3 is the fallback if P1 fails at phone size.
 _2026-10-28 · A-7, owner 2026-10-29: i like p1, i dont mind p3, its not bad_
+
+## R-19: The Office stays as it is on main (pre-wad8); R-18 P1 windows are dropped. Upgrade the existing Office in place: more space efficient (more desks visible per screen, less empty wall) and more animated with life (things visibly moving while agents work), keeping its current look and character. Supersedes R-18.
+_2026-10-28 · A-8, owner 2026-10-29: I still prefer what we have now. i think we ditch your proposed design and upgrade this existing setup. maybe more space efficient would be good and more animated with life_
