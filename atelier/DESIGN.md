@@ -1278,7 +1278,7 @@ Nothing new from the server: the desk model in `dashboard/app.js` (`deskOf`: k, 
 ### Motion (Office windows)
 - **Demo** (`?demo`, `?demo=loop`; 16 s, loop restarts after 1.5 s): 1.2 s the replay reviewer starts · 3.6 s the atelier-ui designer moves on a stage (the light rises on `--spring-soft`) · 6.0 s the auditor needs you · 8.4 s the replay builder finishes (green flood, held 2.4 s like the live app) · 10.8 s back to waiting · 12.4 s atelier-ui's lead goes off duty.
 - **Recordings** (`office-windows/media/`, headless): `p1.webm`, `p2.webm`, `p3.webm` at 1440 and `p1-phone.webm` … at 390 (the phone scrolls to each window as it changes), plus `contact-p1.png` … frame-by-frame sheets of the seven moments. Made with `runs/37h3/tools/rec.mjs` + `sheet.mjs`.
-- **Reduced motion**: `prefers-reduced-motion` or `?motion=reduce` stops every loop and moment; states change by fades of opacity, fill and stroke on `--dur-fast`. Checked by `rec.mjs`: no transform or position animation runs on any of the three during the demo.
+- **Reduced motion**: `prefers-reduced-motion` or `?motion=reduce` stops every loop and moment; states change by fades of opacity, fill and stroke on `--dur-fast`. Checked by `rec.mjs`: no transform or position animation runs on any of the three during the demo. (Its re-run after round 2 listed `hf-tick` on P2's changing card words: under reduce `--shift-sm` is 0 px, so that is a 120 ms fade with `translateY(0)`, not movement.)
 
 ### Critique log (Office windows)
 - **Round 1: `design:design-critique` skill** on fresh 390 and 1440 shots of P1–P3 (Office and `?states`).
@@ -1287,6 +1287,19 @@ Nothing new from the server: the desk model in `dashboard/app.js` (`deskOf`: k, 
   - 🟡 *Windows sit small in wide 1440 bays* (lots of plain wall). P2 now uses the wall; P1/P3 keep it as calm night wall. **Fixed after the round**: the scene grows from 236 to 288 px at ≥768, so every window is about 22 % larger and its life reads from across the floor; the phone tile is unchanged.
   - 🟡 *P3 designer's brush reads as a stick*, and P3's ink body is dark against the dimmer half of the glass. **Fixed after the round**: a short, chunky brush with a ferrule and a light-loaded tip, a thicker stroke that ends at the tip with a dab of paint; a thin rim of light (`.gb`, lilac working, green finished) keeps the helper's outline on the dim glass above the stage line. Before `review/office-windows/r1-followup-before-p3-1440.png` → after `r1-followup-after-p3-1440.png`.
   - ✅ Works: P1's things read at the 116 px phone tile; P3's postures (busy, thinking, holding a card, mug, hammock) say the state without the word; the head counts and F-3 cards match across all three.
+- **Round 2: `design:design-critique` skill** on `img/*-390.png`, `*-1440.png`, `*-states.png` after the round-1 fixes.
+  - 🟡 *P3 needs you: the red card straddled the mullion*, so in a still it read as two red panes rather than one card held up. **Fixed** (`p3.js`): the helper stands in the left pane with a narrower card (26 units) that sits wholly in one pane; the red glow follows it. Before `review/office-windows/r2-before-p3-states.png` → after `r2-after-p3-states.png`.
+  - 🟡 *P3 waiting: the helper on the inner sill was cut by the left jamb* (half its body hidden on the phone). **Fixed**: shelf and helper moved 10 units in, so it sits whole, mug in hand.
+  - 🟡 *P2 waiting: the night-light was a 3-unit dot behind the right jamb*, so the reviewer's waiting window looked empty, not resting. **Fixed** (`p2.js`): a small dome night-light on the inner sill, its warm pool 30 units across. Before `r2-before-p2-states.png` → after `r2-after-p2-states.png`.
+  - 🟢 *P3's state legend wraps to two lines at 1440* where P1/P2 fit one; left as is (it wraps cleanly, the words are worth it).
+  - ✅ Works: hierarchy is right in all three: the lit windows draw the eye first, then the red, then the card words; nothing gloomy (no slumped posture, no figure under a lamp); quiet a long while reads as thinking/resting, never stuck.
+- **Accessibility: `design:accessibility-review` skill**, measured by my own headless checks (`runs/37h3/tools/a11y-ow.mjs`, `keys.mjs`):
+  - *1.4.3 text contrast*: every visible text node on P1–P3 `?states` (70 each), dark and light: 0 failures. Lowest dark 6.26:1 (meta lines, `--text-3` on the card), lowest light 4.86:1 (the head's "3 working", `--accent-text`).
+  - *1.4.11 / 1.4.1*: state never rests on colour or glow alone: every card names its state in words beside the dot (Working, Needs you, Waiting, Paused, Off, Done), and the windows add a shape cue (flag, red lamp, card; blinds; curtains; hammock).
+  - *2.1.1 / 2.4.3 / 2.4.7*: Tab order on the Office is skip link → sidebar → per floor: project link, then each desk in reading order, then the quiet-floor row. Every desk shows a 2 px `--focus-ring` inset ring (drawn on `.desk::after`; the probe's computed-outline check reports the first desk as "no ring", a false negative, confirmed in `review/office-windows/a11y-focus-p3.png`). The pick page tabs skip link → P1–P3 → pick → each variant's links, all ≥ 44 px tall.
+  - *2.3.3 / reduced motion*: during the demo, 17–28 animations run in the desk scenes normally; with `prefers-reduced-motion: reduce`, 0 run in P1, P2 and P3; states change by fades only.
+  - *1.1.1 / 4.1.2*: each desk is one link named "Role, state. Task. Latest step"; the scene SVGs are hidden from assistive tech (0 exposed), so a screen reader hears the words, not the drawing. Pick page images carry alt text describing each state.
+  - Nothing left to fix.
 
 ## Open questions
 

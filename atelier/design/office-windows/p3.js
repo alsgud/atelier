@@ -31,15 +31,15 @@
   const QUIET = `<path class="ink-l" d="M60 164v-14M76 164v-14M57 150h22" stroke-width="2.6"/>
     ${glim(68, 150, 1.3, { legs: SIT, cls: 'p3-quiet', extra: `${arm('M-10-14l5 6M10-14l-5 6')}` })}
     <g class="p3-think"><circle cx="90" cy="104" r="2.2"/><circle cx="96" cy="96" r="3"/><path class="p3-cloud" d="M96 72c0-6 6-9 11-7 2-5 10-5 12 0 5-1 9 4 6 8 3 4-1 9-6 8-2 4-10 4-12 0-5 2-11-2-11-9z"/><circle class="pv" cx="104" cy="74" r="1.8"/><circle class="pv" cx="111" cy="74" r="1.8"/><circle class="pv" cx="118" cy="74" r="1.8"/></g>`;
-  const NEEDS = glim(80, 164, 1.45, { cls: 'p3-needs hab-hop', extra: `${arm('M-10-20l-6-15M10-20l6-15')}<rect class="p3-card" x="-17" y="-52" width="34" height="18" rx="2.5"/>` });
-  const WAIT = `<path class="ink-l" d="M38 140h20" stroke-width="2.4"/>${glim(50, 140, 1.25, { legs: SIT, cls: 'p3-wait', extra: `${arm('M10-15l6 2')}<path class="ink" d="M15-17h6v6a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/>${arm('M-10-14l-4 6')}` })}`;
+  const NEEDS = glim(59, 164, 1.45, { cls: 'p3-needs hab-hop', extra: `${arm('M-10-20l-3-15M10-20l3-15')}<rect class="p3-card" x="-13" y="-52" width="26" height="18" rx="2.5"/>` });
+  const WAIT = `<path class="ink-l" d="M44 140h34" stroke-width="2.4"/>${glim(60, 140, 1.25, { legs: SIT, cls: 'p3-wait', extra: `${arm('M10-15l6 2')}<path class="ink" d="M15-17h6v6a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/>${arm('M-10-14l-4 6')}` })}`;
   const PAUSED = `<g class="p3-paused"><path class="ink-l" d="M100 164v-30" stroke-width="2"/><rect x="88" y="116" width="24" height="18" rx="2" fill="#c9d0da"/><rect x="96" y="120" width="3" height="10" rx="1" fill="#3c4553"/><rect x="101" y="120" width="3" height="10" rx="1" fill="#3c4553"/></g>
     ${glim(66, 164, 1.3, { cls: 'p3-pause', extra: `${arm('M-10-14l-3 9M10-14l3 9')}` })}`;
   const OFF = `<g class="p3-off"><path class="ink-l" d="M40 108l14 26q26 14 52 0l14-26" stroke-width="1.6"/><path class="ink" d="M54 134q26 14 52 0l-2 4q-24 14-48 0z"/><path class="ink hab-breathe" d="M66 136c0-8 6-13 14-13s14 5 14 13q-14 6-28 0z"/><path class="gs" d="M80 123c-1-4-4-6-8-6 1 4 4 6 8 6z"/>
     <path class="p3-z" d="M96 112h5l-5 5h5M104 102h4l-4 4h4" fill="none" stroke="#8a94a6" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></g>`;
   const DONE = glim(80, 164, 1.45, { cls: 'p3-done', extra: `${arm('M-10-20l-9-14M10-20l9-14')}` });
   const SPARKS = `<g class="p3-sparks">${[[50, 30, 1], [112, 26, 1.3], [134, 56, .9]].map(([x, y, s]) => `<path class="pv" d="M${x} ${y - 6 * s}q${s} ${5 * s} ${6 * s} ${6 * s}q${-5 * s} ${s} ${-6 * s} ${6 * s}q${-s} ${-5 * s} ${-6 * s} ${-6 * s}q${5 * s} ${-s} ${6 * s} ${-6 * s}z" fill="#b8f0d3"/>`).join('')}</g>`;
-  const RED = `<g class="p3-red"><circle cx="80" cy="118" r="30" fill="url(#ow-red)"/></g>`;
+  const RED = `<g class="p3-red"><circle cx="62" cy="118" r="30" fill="url(#ow-red)"/></g>`;
 
   const layers = role => ({
     room: `${RED}<g class="pose pose-work">${WORK[role]}</g><g class="pose pose-quiet">${QUIET}</g><g class="pose pose-needs">${NEEDS}</g><g class="pose pose-wait">${WAIT}</g><g class="pose pose-paused">${PAUSED}</g><g class="pose pose-off">${OFF}</g><g class="pose pose-done">${DONE}</g>`,

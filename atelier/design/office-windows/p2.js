@@ -46,7 +46,7 @@
     builder: `<g class="p2-out p2-sparks">${star(26, 44, 1.6)}${star(136, 38, 1.9)}${star(44, 16, 1.2)}${star(118, 14, 1.5)}${star(4, 80, 1.1)}${star(158, 74, 1.3)}${star(-8, 30, 0.9)}${star(170, 24, 1)}</g>`,
     lead: `<g class="p2-out p2-lights">${bulbs}</g>`,
   };
-  const PILOT = `<g class="p2-pilot"><circle cx="112" cy="156" r="16" fill="url(#p2-pilot)"/><circle cx="112" cy="157" r="3" fill="#e8dcc8"/></g>`;
+  const PILOT = `<g class="p2-pilot"><circle cx="100" cy="152" r="30" fill="url(#p2-pilot)"/><path d="M95 166v-3h10v3z" fill="#3c4553"/><path d="M93 163c0-7 3-11 7-11s7 4 7 11z" fill="#e8dcc8"/></g>`;
   const RED = `<g class="p2-red"><circle cx="130" cy="150" r="22" fill="url(#ow-red)"/><path d="M123 165l2-9h10l2 9z" fill="#3a4554"/><circle class="pv p2-red-bulb" cx="130" cy="150" r="6" fill="#ff8578"/></g>`;
   const TWITCH = `<g class="p2-twitch">${[[46, 24], [114, 22]].map(([x, y]) => `<path class="pv" d="M${x} ${y}l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#b8f0d3"/>`).join('')}</g>`;
 
@@ -54,7 +54,7 @@
   const defs = `<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
     <radialGradient id="p2-lamp"><stop offset="0" stop-color="#fbeeff" stop-opacity=".95"/><stop offset=".45" stop-color="#e2c4ff" stop-opacity=".5"/><stop offset="1" stop-color="#e2c4ff" stop-opacity="0"/></radialGradient>
     <radialGradient id="p2-orb"><stop offset="0" stop-color="#f6f2ff" stop-opacity=".95"/><stop offset=".35" stop-color="#d9ceff" stop-opacity=".6"/><stop offset="1" stop-color="#b39cff" stop-opacity="0"/></radialGradient>
-    <radialGradient id="p2-pilot"><stop offset="0" stop-color="#e8dcc8" stop-opacity=".35"/><stop offset="1" stop-color="#e8dcc8" stop-opacity="0"/></radialGradient>
+    <radialGradient id="p2-pilot"><stop offset="0" stop-color="#e8dcc8" stop-opacity=".45"/><stop offset="1" stop-color="#e8dcc8" stop-opacity="0"/></radialGradient>
     <radialGradient id="p2-beam" gradientUnits="userSpaceOnUse" cx="80" cy="96" r="150"><stop offset=".25" stop-color="#d9ceff" stop-opacity=".4"/><stop offset="1" stop-color="#b39cff" stop-opacity="0"/></radialGradient>
     <linearGradient id="p2-spill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2c4ff" stop-opacity=".42"/><stop offset="1" stop-color="#e2c4ff" stop-opacity="0"/></linearGradient>
     <linearGradient id="p2-cool" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7d7cf4"/><stop offset=".86" stop-color="#d4d6ff"/><stop offset="1" stop-color="#d4d6ff" stop-opacity="0"/></linearGradient>
