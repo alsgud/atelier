@@ -1063,6 +1063,8 @@ async function leadStopHook(alias) {
   if (input.session_id) budget.recordLead(alias, input.session_id, input.transcript_path);
   const day = budget.today(alias);
   if (day.over || limits.waitUntil()) return;
+  const asked = !input.stop_hook_active && chatAsk(alias, input);
+  if (asked) return console.log(JSON.stringify({ decision: 'block', reason: `You asked the owner something in the chat ("${asked}"). The owner decides in the dashboard, not the chat: send it with atelier ask ${alias} approval|question|feedback "<title>" --body "..." (attach screenshots or recordings with --attach or --task), then say in one line that it's in their Inbox. If it was only a rhetorical line and nothing waits on the owner, just stop.` }));
   const p = project.load(alias);
   const mine = cards.all().map(c => c.meta).filter(m => m.project === alias);
   const items = [
@@ -1085,6 +1087,24 @@ async function leadStopHook(alias) {
   fs.writeFileSync(stateFile, JSON.stringify({ hash, same, hour, inHour }));
   if (same > 2 || inHour > 6) return;
   console.log(JSON.stringify({ decision: 'block', reason: `Before going idle, these are waiting on you (today's spend $${day.spent} of $${day.limit}):\n- ${items.join('\n- ')}\nHandle each, or note in LEDGER.md why it waits, then stop. Your watch wakes you for anything new.` }));
+}
+
+// The lead's last chat message, when it asks the owner to approve or choose something and no Inbox message
+// (atelier ask, gate or criteria request) went out this turn. Returns the asking sentence, or ''.
+function chatAsk(alias, input) {
+  const ASKING = /\b(approve|approval|sign[- ]?off|go[- ]ahead|should I|shall I|want me to|do you want|would you like|which (one|option|do you|would you)|your call|ok to|okay to|let me know|prefer)\b/i;
+  let lines = [];
+  try { lines = fs.readFileSync(input.transcript_path, 'utf8').trim().split('\n').slice(-400).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { /* no transcript */ }
+  // This turn starts at the owner's (or a hook's) last real message, not at a tool result.
+  const isPrompt = e => e.type === 'user' && (typeof e.message?.content === 'string' || e.message?.content?.some?.(c => c.type === 'text'));
+  let start = lines.length - 1;
+  while (start > 0 && !isPrompt(lines[start])) start--;
+  const turn = lines.slice(start);
+  const said = input.last_assistant_message || [...turn].reverse().find(e => e.type === 'assistant' && e.message?.content?.some?.(c => c.type === 'text'))?.message.content.filter(c => c.type === 'text').map(c => c.text).join('\n') || '';
+  const sentence = said.split(/(?<=[.?!])\s+|\n+/).map(s => s.trim()).find(s => s.endsWith('?') && ASKING.test(s));
+  if (!sentence) return '';
+  const sent = turn.some(e => e.type === 'assistant' && e.message?.content?.some?.(c => c.type === 'tool_use' && /\batelier\s+(ask\s|(gate|criteria)\s.*?\brequest\b)/.test(JSON.stringify(c.input || {}))));
+  return sent ? '' : sentence.slice(0, 160);
 }
 
 async function guardHook() {
