@@ -1294,7 +1294,7 @@ const Office = (() => {
     } else {
       const f = x.finished;
       if (f && !firstSeen.has(f.id)) firstSeen.set(f.id, Date.now());
-      if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: f.title, step: 'Finished just now', stage: 4, ago: '' });
+      if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: f.title, step: 'Finished just now', ago: '' });
       else d.step = f ? `Finished “${f.title}”` : 'Starts when the lead hands it a task';
     }
     d.word = d.held || WORD[d.k];
