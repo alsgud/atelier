@@ -1,6 +1,6 @@
 # Dashboard API shapes (atelier-ui): draft for atelier/contracts/dashboard-api.md
 
-Waiting for the owner's OK to reopen the contracts gate (frozen) so this can move into `atelier/contracts/dashboard-api.md`. Lead-approved in substance, 2026-10-26, from branch atelier/5u8q (request mesj): read-only, no action changes, within contracts rules 2 to 4.
+Waiting for the owner's OK to reopen the contracts gate (frozen) so this can move into `atelier/contracts/dashboard-api.md`. Lead-approved in substance, 2026-10-26, from branch atelier/5u8q (request mesj): read-only, no action changes, within contracts rules 2 to 4. Owner said yes to reopening, 2026-10-27; waiting on the gate reopen command.
 
 Read-only shapes the redesigned screens rely on. Actions (`POST /api/action`) are unchanged. Source of truth: `lib/dashboard.mjs` `overview()`, `summarize()`, `queueFor()` and `reviewFor()`.
 

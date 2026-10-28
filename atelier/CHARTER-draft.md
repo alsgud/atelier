@@ -34,4 +34,3 @@ A redesign of the Atelier dashboard: the one place where I, a solo developer run
 - I can't tell whether an agent is working or stuck.
 - A function the old dashboard had is missing.
 - The live dashboard I'm using breaks while this is being built.
-- It goes over about $120.

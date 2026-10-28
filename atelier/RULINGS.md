@@ -34,3 +34,9 @@ _2026-10-26 · owner chat 2026-10-26: dont worry about limits or budgets. go ful
 
 ## R-11: Office characters must look polished, not cheap. Before any more directions, the owner picks a character style type from a broad board of real references (games and similar). A3 is the closest so far.
 _2026-10-27 · owner, 2026-10-27, on 9pfh_
+
+## R-12: The Office character directions so far (A1-A3 and the style board S1-S14) are rejected as a direction. No more character design work until the owner sets a new direction.
+_2026-10-28 · owner chat 2026-10-28: i didnt like the direction of the office char designs_
+
+## R-13: When the lead needs the owner's input, it goes in the dashboard Inbox (gate or criteria requests, with the thing to decide shown there), not only in chat. Chat may point to it.
+_2026-10-28 · owner chat 2026-10-28: when u need my inputs shouldnt u put that in my inbox?_
