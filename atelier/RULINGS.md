@@ -46,3 +46,6 @@ _2026-10-28 · owner, Inbox A-2, 2026-10-28_
 
 ## R-15: Replaces R-14. The Office grows from inspirations 7 One light per desk and 8 Lit shrines (board m87r; 4 dropped). Characters stay anonymous: no named or specific individuals to get attached to, yet personable and characterful enough to enjoy (posture, small habits, their desk and light). Designers draw 2-3 original directions in this spirit for the owner to pick one.
 _2026-10-28 · owner, Inbox A-4, 2026-10-28: 7 and 8 are cool. something with anonymity... but also personable and characterisable enough to appreciate_
+
+## R-16: Adds to R-15. Inspiration 12 Town at night is also liked. From 16 Instrument panel, keep the idea (state readable at a glance, like gauges) but not its look.
+_2026-10-28 · owner, Inbox A-5, 2026-10-28: 12 is nice, 16 the idea is okay but not that look_
