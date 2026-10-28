@@ -1,0 +1,113 @@
+/* Office windows: what P1–P3 share, on top of screens2/office.css. The floor is D-B's gallery wall (one frame, a bay
+   per agent, balanced rows); the window (win.js) and its light are the same in all three. A variant's CSS only says
+   how its own layers live in each state.
+   Fixed night palette (both themes): wall #0d1118 → #151b26 · frame #1a212b / #3a4554 · glass #10151d ·
+   lit #8f73f0 → #cbbcff (K1 --active family) · ink (silhouettes against the light) #1c1630 · things in the dark #2b3443 ·
+   sill objects #222a36 / #3a4554, their lit edge #9d8be0 · needs #ff8578 · done #5fd198 · a neutral card #c9d0da. */
+.ow-board { max-width: 1200px; }
+.desk-scene { place-items: initial; display: block; background: #0a0d12; }
+.desk-scene::after { display: none; }
+.desk-scene svg { display: block; width: 100%; height: 100%; overflow: visible; }
+[data-theme="light"] .desk-scene { border-bottom-color: transparent; }
+
+/* The wall always spans the floor: as many equal bays as desks (up to 4 a row, balanced), never empty bays */
+[data-dir="OW"] .desks { grid-template-columns: repeat(var(--cols, min(var(--n), 4)), minmax(0, 1fr)); gap: 0; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+[data-dir="OW"] .desk { position: relative; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+[data-dir="OW"] .desk + .desk { box-shadow: inset 1px 0 0 var(--border); }
+[data-dir="OW"] .desk:hover { transform: none; box-shadow: none; background: var(--surface-hover); }
+[data-dir="OW"] .desk + .desk:hover { box-shadow: inset 1px 0 0 var(--border); }
+/* the frame clips its bays and the scene paints over an inset outline, so the ring is drawn on top, inside the bay */
+[data-dir="OW"] .desk:focus-visible { outline: none; }
+[data-dir="OW"] .desk:focus-visible::after { content: ""; position: absolute; inset: 1px; z-index: 3; border: var(--focus-width) solid var(--focus-ring); pointer-events: none; }
+[data-dir="OW"] .desk-scene { height: 236px; padding-top: 10px; background: linear-gradient(#0d1118, #151b26); border-bottom: 0; }
+
+/* Words: centred under the window like a label under a picture; F-3 meta line (stage · when) */
+[data-dir="OW"] .desk-body { text-align: center; justify-items: center; padding: var(--space-3) var(--space-4) var(--space-5); transition: background-color var(--dur-slow) var(--ease-enter); }
+[data-dir="OW"] .desk-who { justify-content: center; flex-wrap: wrap; column-gap: var(--space-2); }
+[data-dir="OW"] .desk-st { margin-left: 0; }
+[data-dir="OW"] .desk-what { text-wrap: balance; }
+.desk-meta { margin-top: var(--space-1); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+.desk-meta:empty { display: none; }
+.desk[data-k="active"]:not([data-quiet]) .desk-body { background: linear-gradient(to bottom, color-mix(in srgb, var(--active) 7%, transparent), transparent 70%); }
+.desk[data-k="done"] .desk-body { background: linear-gradient(to bottom, color-mix(in srgb, var(--done) 7%, transparent), transparent 70%); }
+.desk[data-held="paused"] .desk-st { color: var(--text-2); }
+.desk[data-held="paused"] .desk-st .dot { border-radius: 1px; width: 8px; height: 8px; background: linear-gradient(to right, currentColor 0 3px, transparent 3px 5px, currentColor 5px); border: 0; }
+
+/* ── The window ── */
+.w-frame { fill: #1a212b; stroke: #3a4554; stroke-width: 1.5; }
+.w-glass { fill: #10151d; }
+.w-edge { fill: none; stroke: #2c3542; stroke-width: 1; }
+.w-bars { fill: none; stroke: #1a212b; stroke-width: 3.2; stroke-linecap: square; }
+.w-sill { fill: #222a36; stroke: #3a4554; stroke-width: 1.2; }
+.w-room, .w-fill, .w-halo, .w-patch, .w-sheen { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.w-halo { fill: url(#ow-halo); }
+.w-halo-done { fill: url(#ow-halo-done); }
+.w-patch { fill: #b39cff; }
+.w-patch-done { fill: #5fd198; }
+.w-room { fill: #8f73f0; }
+.w-fill { fill: url(#ow-fill); transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); transition: opacity var(--dur-slow) var(--ease-enter), transform var(--spring-soft-dur) var(--spring-soft); }
+.w-fill-done { fill: url(#ow-fill-done); }
+.w-sheen { fill: url(#ow-sheen); transform-box: view-box; }
+
+/* Things in the room and on the sill. In the dark they are shapes you can still make out; against the light, ink. */
+.ink { fill: #2b3443; transition: fill var(--dur-slow) var(--ease-enter); }
+.ink-l { fill: none; stroke: #2b3443; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--dur-slow) var(--ease-enter); }
+.obj { fill: #222a36; stroke: #3a4554; stroke-width: 1.2; stroke-linejoin: round; transition: stroke var(--dur-slow) var(--ease-enter); }
+.obj-l { fill: none; stroke: #3a4554; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--dur-slow) var(--ease-enter); }
+.desk:is([data-k="active"], [data-k="done"]) .ink { fill: #1c1630; }
+.desk:is([data-k="active"], [data-k="done"]) .ink-l { stroke: #1c1630; }
+.desk[data-k="active"]:not([data-quiet]) :is(.obj, .obj-l) { stroke: #9d8be0; }
+.desk[data-k="done"] :is(.obj, .obj-l) { stroke: #7fd6aa; }
+
+/* Working: the room fills to its stage, the halo and the patch of light come on */
+.desk[data-k="active"] .w-room { opacity: 0.16; }
+.desk[data-k="active"] .w-fill:not(.w-fill-done) { opacity: 1; }
+.desk[data-k="active"] .w-halo:not(.w-halo-done) { opacity: 1; }
+.desk[data-k="active"] .w-patch:not(.w-patch-done) { opacity: 0.2; }
+.desk[data-k="active"]:not([data-quiet]) .w-sheen { opacity: 1; animation: w-sheen 6s var(--ease-move) infinite; }
+.desk[data-lit="1"] .w-fill { transform: scaleY(0.2); }
+.desk[data-lit="2"] .w-fill { transform: scaleY(0.4); }
+.desk[data-lit="3"] .w-fill { transform: scaleY(0.6); }
+.desk[data-lit="4"] .w-fill { transform: scaleY(0.8); }
+.desk[data-lit="5"] .w-fill { transform: scaleY(1); }
+/* Quiet for longer than usual: the light burns low and steady (never red: it is a question, not an alarm) */
+.desk[data-k="active"][data-quiet] .w-fill:not(.w-fill-done) { opacity: 0.38; }
+.desk[data-k="active"][data-quiet] .w-halo:not(.w-halo-done) { opacity: 0.3; }
+.desk[data-k="active"][data-quiet] .w-patch:not(.w-patch-done) { opacity: 0.08; }
+/* Paused: the light holds where it stopped, grey */
+.desk[data-held="paused"] .w-fill:not(.w-fill-done) { opacity: 1; fill: #3c4553; }
+/* Finished: green floods up from the sill (held for the live app's 2.4 s) */
+.desk[data-k="done"] .w-fill-done { opacity: 1; transform: scaleY(1); }
+.desk[data-k="done"] .w-fill:not(.w-fill-done) { opacity: 0; }
+.desk[data-k="done"] :is(.w-halo-done) { opacity: 1; }
+.desk[data-k="done"] .w-patch-done { opacity: 0.22; }
+/* Stale: we don't know the lights are still on */
+.is-stale .desk[data-k="active"] .w-fill { opacity: 0.3 !important; }
+.is-stale .w-halo { opacity: 0.15 !important; }
+
+/* Every loop and moment lives only while the page is live and motion is allowed. Stale freezes them. */
+.is-stale .desk-scene *, [data-motion="reduce"] .desk-scene * { animation: none !important; }
+[data-motion="reduce"] .desk-scene * { transition-property: opacity, fill, stroke !important; transition-duration: var(--dur-fast) !important; }
+@media (prefers-reduced-motion: reduce) {
+  .desk-scene * { animation: none !important; transition-property: opacity, fill, stroke !important; transition-duration: var(--dur-fast) !important; }
+}
+.desk-scene [class*="hab"], .desk-scene .pv { transform-box: fill-box; transform-origin: center; }
+@keyframes w-sheen { from { transform: translateY(140px); } to { transform: translateY(-30px); } }
+
+/* The first-run picture and the quiet floor */
+.ow-empty-art { display: block; color: var(--border-strong); margin-bottom: var(--space-2); }
+.ow-empty-art svg { display: block; overflow: visible; }
+.fq-art { display: inline-flex; }
+.fq-art svg { display: block; }
+.legend .strip i[data-k="quiet"] { background: var(--active); opacity: 0.4; }
+
+/* Phone: the floor is a list; the window stands on the left of each row, big enough to read its life */
+@media (max-width: 767px) {
+  [data-dir="OW"] .desks { grid-template-columns: minmax(0, 1fr); }
+  [data-dir="OW"] .desk + .desk, [data-dir="OW"] .desk + .desk:hover { box-shadow: inset 0 1px 0 var(--border); }
+  [data-dir="OW"] .desk { grid-template-columns: 116px minmax(0, 1fr); grid-template-rows: auto; }
+  [data-dir="OW"] .desk-scene { height: auto; min-height: 148px; padding: 6px 0 0; }
+  [data-dir="OW"] .desk-body { text-align: left; justify-items: stretch; align-content: center; padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3); }
+  [data-dir="OW"] .desk-who { justify-content: flex-start; flex-wrap: nowrap; }
+  [data-dir="OW"] .desk-st { margin-left: auto; }
+}
