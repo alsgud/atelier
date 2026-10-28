@@ -81,6 +81,10 @@
 .desk[data-k="done"] .w-fill:not(.w-fill-done) { opacity: 0; }
 .desk[data-k="done"] :is(.w-halo-done) { opacity: 1; }
 .desk[data-k="done"] .w-patch-done { opacity: 0.22; }
+/* Needs you: a soft red glow pools along the sill, the same in every variant, so the one state that wants you reads
+   from across the floor (each variant adds its own way of asking on top) */
+.w-needs { fill: url(#ow-red); opacity: 0; transition: opacity var(--dur-base) var(--ease-enter); }
+.desk[data-k="needs"] .w-needs { opacity: 0.75; }
 /* Stale: we don't know the lights are still on */
 .is-stale .desk[data-k="active"] .w-fill { opacity: 0.3 !important; }
 .is-stale .w-halo { opacity: 0.15 !important; }

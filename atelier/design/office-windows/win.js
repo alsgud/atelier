@@ -1,7 +1,8 @@
 /* The shared window: our N1 mark at room scale (arched glass, one mullion, the transom at the springline, the patch of
    light it throws below). Drawn on a 160 × 200 grid; the glass runs x 38–122, y 32 (crown) – 74 (springline) – 166 (sill).
    Its light is the gauge (D-B, R-17): the room fills from the sill up to the task's stage (data-lit 0–5, one fifth each)
-   and the rest of the room glows faintly. A variant passes four layers, back to front:
+   and the rest of the room glows faintly. A variant passes up to five layers, back to front:
+     back   light the window throws on the wall around it (behind the frame, unclipped)
      room   what is inside, behind the glass (clipped to it): silhouettes against the light
      dress  curtains, blinds, signs: inside the glass, in front of the room, behind the glazing bars
      sill   what stands on the sill, outside, lit from the window
@@ -11,8 +12,10 @@
   const ARCH = 'M30 170V74a50 50 0 0 1 100 0v96z';
   const GLASS = 'M38 166V74a42 42 0 0 1 84 0v92z';
   window.OW_GLASS = GLASS;
-  window.OW_WIN = ({ room = '', dress = '', sill = '', front = '' }) => `<svg viewBox="8 8 144 192" preserveAspectRatio="xMidYMax meet" focusable="false">
+  window.OW_WIN = ({ back = '', room = '', dress = '', sill = '', front = '' }) => `<svg viewBox="8 8 144 192" preserveAspectRatio="xMidYMax meet" focusable="false">
     <ellipse class="w-halo" cx="80" cy="104" rx="76" ry="88"/><ellipse class="w-halo w-halo-done" cx="80" cy="104" rx="76" ry="88"/>
+    <g class="w-back">${back}</g>
+    <ellipse class="w-needs" cx="80" cy="170" rx="74" ry="22"/>
     <polygon class="w-patch" points="38,180 122,180 140,198 56,198"/><polygon class="w-patch w-patch-done" points="38,180 122,180 140,198 56,198"/>
     <path class="w-frame" d="${ARCH}"/>
     <g clip-path="url(#ow-clip)">
