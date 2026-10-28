@@ -1151,25 +1151,34 @@ function renderLogin() {
 // re-renders, scroll and focus stay.
 const Office = (() => {
   const arch = 'M14 64V30a16 16 0 0 1 32 0V64z';
+  // Each prop is its still part and the parts that move while the agent works (the moving parts sit still otherwise).
   const PROPS = {
-    designer: '<rect x="130" y="16" width="24" height="26" rx="1.5"/><path d="M136 37v-9a6 6 0 0 1 12 0v9z"/>',
-    auditor: '<rect x="132" y="14" width="20" height="28" rx="1.5"/><path d="M138 14v-2h8v2M136 22l2 2 3-3M143 23h5M136 30l2 2 3-3M143 31h5M136 37h12"/>',
-    builder: '<path d="M126 42h30"/><rect x="128" y="30" width="10" height="12" rx="1"/><rect x="140" y="34" width="8" height="8" rx="1"/><rect x="130" y="22" width="7" height="8" rx="1"/>',
-    reviewer: '<path d="M126 42h30"/><rect x="129" y="26" width="4" height="16" rx=".8"/><rect x="134" y="22" width="4" height="20" rx=".8"/><rect x="139" y="28" width="4" height="14" rx=".8"/><path d="m145 42 5-17 3.6 1-5 17"/>',
-    lead: '<rect x="128" y="16" width="28" height="24" rx="1.5"/><path d="M133 23h12M133 28h18M133 33h9"/><circle cx="142" cy="16" r="1.6"/>',
+    designer: ['<rect x="130" y="16" width="24" height="26" rx="1.5"/><path d="M136 37v-9a6 6 0 0 1 12 0v9z"/>', [['pm-draw', '<path d="M134 21h9"/>']]],
+    auditor: ['<rect x="132" y="14" width="20" height="28" rx="1.5"/><path d="M138 14v-2h8v2M136 22l2 2 3-3M143 23h5M136 30l2 2 3-3M143 31h5M143 38h5"/>', [['pm-tick', '<path d="M136 37.5l2 2 3-3"/>']]],
+    builder: ['<path d="M126 42h30"/><rect x="128" y="30" width="10" height="12" rx="1"/><rect x="140" y="34" width="8" height="8" rx="1"/>', [['pm-stack', '<rect x="130" y="22" width="7" height="8" rx="1"/>']]],
+    reviewer: ['<path d="M126 42h30"/><rect x="129" y="26" width="4" height="16" rx=".8"/><path d="m145 42 5-17 3.6 1-5 17"/>', [['pm-rise', '<rect x="134" y="22" width="4" height="20" rx=".8"/>'], ['pm-rise pm-2', '<rect x="139" y="28" width="4" height="14" rx=".8"/>']]],
+    lead: ['<rect x="128" y="16" width="28" height="24" rx="1.5"/><circle cx="142" cy="16" r="1.6"/><path d="M133 23h12M133 33h9"/>', [['pm-note', '<path d="M133 28h18"/>']]],
   };
   // Five wall props for any roster: every role that makes things gets the builder's boxes.
   const propOf = r => /lead/.test(r) ? 'lead' : /design/.test(r) ? 'designer' : /audit/.test(r) ? 'auditor' : /review/.test(r) ? 'reviewer' : 'builder';
-  const scene = prop => `<svg viewBox="0 0 160 88" aria-hidden="true" focusable="false">
-    <g class="sc-prop">${PROPS[prop]}</g><circle class="sc-glow" cx="30" cy="42" r="40"/>
-    <path class="sc-wallwin" d="${arch}"/><path class="sc-pane" d="${arch}"/><path class="sc-done" d="${arch}"/>
-    <path class="sc-bars" d="M30 14V64M14 40H46"/><path class="sc-tick" d="M22.5 40.5l5 5 10-11"/>
-    <polygon class="sc-patch" points="14,72 46,72 66,88 34,88"/>
-    <g class="sc-who"><circle cx="95" cy="36" r="7"/><path d="M80 58c0-10 6.5-14 15-14s15 4 15 14z"/></g>
-    <g class="sc-hand"><path d="M106 49 113 31"/><circle cx="113.5" cy="28.5" r="3"/></g><circle class="sc-flag" cx="121" cy="20" r="3.5"/>
-    <ellipse class="sc-screen" cx="95" cy="41" rx="12" ry="7"/><path class="sc-lid" d="M85 47h20l-1.5 11h-17z"/><rect class="sc-lid-shut" x="85" y="56" width="20" height="2" rx="1"/>
-    <rect class="sc-desk" x="70" y="58" width="50" height="3" rx="1.5"/><rect class="sc-desk" x="73" y="61" width="2.5" height="11"/><rect class="sc-desk" x="114.5" y="61" width="2.5" height="11"/></svg>`;
-  const defs = '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><radialGradient id="hf-glow"><stop offset="0" style="stop-color:var(--active);stop-opacity:.42"/><stop offset="1" style="stop-color:var(--active);stop-opacity:0"/></radialGradient></defs></svg>';
+  // The scene is a stack of same-size layers on one 160 × 88 grid. Every part that moves is its own HTML layer, so a
+  // loop is a composited transform or opacity and never repaints the drawing (an animation inside an inline SVG
+  // re-lays out and repaints that SVG every frame).
+  const svg = (inner, cls = 'sl') => `<svg class="${cls}" viewBox="0 0 160 88" aria-hidden="true" focusable="false">${inner}</svg>`;
+  const ly = (cls, inner) => `<span class="ly ${cls}">${svg(inner, '')}</span>`;
+  const scene = prop => `<span class="sc">${svg(`<g class="sc-prop">${PROPS[prop][0]}</g><path class="sc-wallwin" d="${arch}"/>`)}
+    ${PROPS[prop][1].map(([c, d]) => ly(`pm ${c}`, `<g class="sc-prop">${d}</g>`)).join('')}
+    ${ly('ly-light', `<circle class="sc-glow" cx="30" cy="42" r="40"/><path class="sc-pane" d="${arch}"/><polygon class="sc-patch" points="14,72 46,72 66,88 34,88"/>`)}
+    ${svg(`<path class="sc-done" d="${arch}"/><path class="sc-bars" d="M30 14V64M14 40H46"/><path class="sc-tick" d="M22.5 40.5l5 5 10-11"/>`)}
+    ${ly('ly-spark', '<circle class="sc-flash" cx="30" cy="42" r="40"/><path class="sc-star" d="M8 20l1.2 3.3 3.3 1.2-3.3 1.2L8 29l-1.2-3.3-3.3-1.2 3.3-1.2zM54 12l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1zM55 46l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>')}
+    <span class="ly ly-who">${ly('ly-body', '<g class="sc-who"><circle cx="95" cy="36" r="7"/><path d="M80 58c0-10 6.5-14 15-14s15 4 15 14z"/></g>')}</span>
+    ${ly('ly-hand', '<g class="sc-hand"><path d="M106 49 113 31"/><circle cx="113.5" cy="28.5" r="3"/></g>')}
+    ${svg('<ellipse class="sc-screen" cx="95" cy="41" rx="12" ry="7"/><circle class="sc-flag" cx="121" cy="20" r="3.5"/><path class="sc-lid" d="M85 47h20l-1.5 11h-17z"/><rect class="sc-lid-shut" x="85" y="56" width="20" height="2" rx="1"/>')}
+    ${ly('ly-key', '<circle class="sc-key" cx="84" cy="56.6" r="1.9"/><circle class="sc-key sc-key-r" cx="106" cy="56.6" r="1.9"/>')}
+    ${svg('<rect class="sc-desk" x="70" y="58" width="50" height="3" rx="1.5"/><rect class="sc-desk" x="73" y="61" width="2.5" height="11"/><rect class="sc-desk" x="114.5" y="61" width="2.5" height="11"/>')}</span>`;
+  const defs = '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><radialGradient id="hf-glow"><stop offset="0" style="stop-color:var(--active);stop-opacity:.42"/><stop offset="1" style="stop-color:var(--active);stop-opacity:0"/></radialGradient><radialGradient id="hf-glow-done"><stop offset="0" style="stop-color:var(--done);stop-opacity:.5"/><stop offset="1" style="stop-color:var(--done);stop-opacity:0"/></radialGradient></defs></svg>';
+  // Each desk keeps its own phase, so a floor never moves in step (from its key, so a redraw keeps it).
+  const phase = id => -([...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 5000);
 
   // Only the design's words on a desk: Working, Needs you, Waiting, Off, and Done for a moment (S1 copy).
   const WORD = { active: 'Working', needs: 'Needs you', '': 'Waiting', off: 'Off', done: 'Done' };
@@ -1221,6 +1230,9 @@ const Office = (() => {
       else d.step = f ? `Finished “${f.title}”` : 'Starts when the lead hands it a task';
     }
     d.word = d.held || WORD[d.k];
+    // A desk with no task in hand (waiting, between audits, a lead on duty or off) is a small tile; a desk with work,
+    // a question for you or a paused task keeps the full card.
+    d.tile = (d.k === '' || d.k === 'off') && !x.id && !d.held;
     return d;
   }
 
@@ -1228,7 +1240,15 @@ const Office = (() => {
   const deskBody = d => `<span class="desk-who"><b>${esc(d.role)}</b><span class="desk-st">${dotOf(d.k, d.word)}<span class="w">${esc(d.word)}</span></span></span>
     <span class="desk-what">${esc(d.what)}</span>${d.step ? `<span class="desk-step">${esc(d.step)}</span>` : ''}
     <span class="desk-prog"><span class="desk-track"><i style="--p:${fillOf(d).toFixed(3)}"></i></span><span class="desk-meta num">${esc(meta(d))}</span></span>`;
-  const desk = d => `<a class="desk" href="${esc(d.href)}" data-key="${esc(d.key)}" data-k="${d.k}"${d.quiet ? ' data-quiet' : ''} aria-label="${esc(label(d))}"><span class="desk-scene">${scene(d.prop)}</span><span class="desk-body">${deskBody(d)}</span></a>`;
+  // A tile says the same in one line: role and status, then what it is doing and its step.
+  const tileBody = d => `<span class="desk-who"><b>${esc(d.role)}</b><span class="desk-st">${dotOf(d.k, d.word)}<span class="w">${esc(d.word)}</span></span></span>
+    <span class="desk-line">${esc(d.what)}${d.step ? ` · ${esc(d.step)}` : ''}</span>`;
+  const bodyOf = d => d.tile ? tileBody(d) : deskBody(d);
+  const desk = (a, d) => `<a class="desk${d.tile ? ' is-tile' : ''}" href="${esc(d.href)}" data-key="${esc(d.key)}" data-k="${d.k}"${d.quiet ? ' data-quiet' : ''} style="--dl:${phase(`${a}/${d.key}`)}ms" aria-label="${esc(label(d))}"><span class="desk-scene">${scene(d.prop)}</span><span class="desk-body">${bodyOf(d)}</span></a>`;
+  const deskGrids = f => {
+    const full = f.desks.filter(d => !d.tile), tiles = f.desks.filter(d => d.tile);
+    return `${full.length ? `<div class="desks">${full.map(d => desk(f.a, d)).join('')}</div>` : ''}${tiles.length ? `<div class="desks desks-idle">${tiles.map(d => desk(f.a, d)).join('')}</div>` : ''}`;
+  };
   const strip = f => `<span class="strip" aria-hidden="true">${f.desks.map(d => `<i data-k="${d.k}"></i>`).join('')}</span>`;
   // Money in words (UX-11 C): the limit in red, "most of it used" from 80 %.
   const moneyLine = s => `${money(s.spentToday)} today${s.atLimit ? ', <span class="is-needs">at its limit</span>' : s.dayLimit && s.spentToday >= 0.8 * s.dayLimit ? ', most of it used' : ''}`;
@@ -1252,7 +1272,7 @@ const Office = (() => {
   const board = floors => `<div class="board${failedAt ? ' is-stale' : ''}">
     ${floors.filter(f => !f.quiet).map(f => `<section class="floor" aria-labelledby="fl-${esc(f.a)}" data-floor="${esc(f.a)}">
       <header class="floor-head"><h2 id="fl-${esc(f.a)}"><a href="#/p/${esc(f.a)}/overview">${esc(f.a)}</a></h2>${strip(f)}<span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
-      <div class="desks">${f.desks.map(desk).join('')}</div></section>`).join('')}
+      ${deskGrids(f)}</section>`).join('')}
     ${floors.filter(f => f.quiet).map(f => `<a class="floor-quiet" href="#/p/${esc(f.a)}/overview" data-floor="${esc(f.a)}" aria-label="${esc(`${f.a}, quiet.${f.s.needsNow ? ` ${f.s.needsNow} needs you now.` : ''} ${quietNote(f)}. ${money(f.s.spentToday)} today`)}">${strip(f)}<b>${esc(f.a)}</b>${f.s.needsNow ? `<span class="fq-needs">${dotOf('needs', 'Needs you now')}${f.s.needsNow} need${f.s.needsNow === 1 ? 's' : ''} you now</span>` : ''}<span>${esc(quietNote(f))}</span><span class="num">${money(f.s.spentToday)} today</span></a>`).join('')}
     <ul class="legend" aria-label="How to read a desk">
       <li><span class="strip"><i data-k="active"></i></span>Light on: working</li><li><span class="strip"><i data-k="needs"></i></span>Hand up: needs you</li>
@@ -1271,13 +1291,17 @@ const Office = (() => {
   function show() {
     const view = $('view');
     const { C, floors } = model();
-    const next = floors.map(f => `${f.a}${f.quiet ? '~' : ''}:${f.desks.map(d => d.key).join(',')}`).join('|');
+    const next = floors.map(f => `${f.a}${f.quiet ? '~' : ''}:${f.desks.map(d => `${d.key}${d.tile ? '.' : ''}`).join(',')}`).join('|');
     const body = view.querySelector(':scope > .hf-body.office');
     if (body && next === sig && floors.length) patch(view, C, floors);
     else {
       sig = next;
+      // A desk that becomes a tile (or the reverse) redraws the board: keep focus on the desk it was on.
+      const had = body && document.activeElement?.closest?.('.desk[data-key]');
+      const at = had && [had.closest('[data-floor]')?.dataset.floor, had.dataset.key];
       view.innerHTML = `<header class="hf-head" data-office-head>${head(C)}</header><div class="hf-body office">${defs}${floors.length ? board(floors) : empty()}</div>`;
       shown = new Map(floors.flatMap(f => f.desks.map(d => [`${f.a}/${d.key}`, JSON.stringify(d)])));
+      if (at) view.querySelector(`[data-floor="${CSS.escape(at[0] || '')}"] .desk[data-key="${CSS.escape(at[1])}"]`)?.focus({ preventScroll: true });
     }
     // A green window holds for a moment, then the light goes out: look again when the first one is due.
     clearTimeout(timer);
@@ -1308,7 +1332,7 @@ const Office = (() => {
         el.toggleAttribute('data-quiet', d.quiet);
         el.setAttribute('aria-label', label(d));
         el.setAttribute('href', d.href);
-        el.querySelector('.desk-body').innerHTML = deskBody(d);
+        el.querySelector('.desk-body').innerHTML = bodyOf(d);
         if (was.what !== d.what || was.step !== d.step) { el.classList.remove('is-changing'); void el.offsetWidth; el.classList.add('is-changing'); }
       }
     }
@@ -3209,7 +3233,7 @@ setInterval(() => {
   if (busy() && !/^#\/inbox|^$/.test(location.hash)) return;
   refresh().catch(() => {});
 }, 15000);
-document.addEventListener('visibilitychange', () => { refreshSoon.tries = 0; if (!document.hidden && (state || failedAt)) refresh().catch(() => {}); });
+document.addEventListener('visibilitychange', () => { ROOT.toggleAttribute('data-hidden', document.hidden); refreshSoon.tries = 0;if (!document.hidden && (state || failedAt)) refresh().catch(() => {}); });
 
 // Signed out: the server marks the page, so the sign in screen shows without a failed read in the console.
 if (document.body.hasAttribute('data-signed-out')) renderLogin();
