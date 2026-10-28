@@ -32,5 +32,6 @@
 - Never put double quotes inside `--goal` (PowerShell truncates); long briefs go in atelier/briefs/*.md.
 - Under `branch` autonomy `atelier land` refuses; the owner merges. Chained branches: close with `atelier close` after the merge.
 - R-10 (spend freely) ended at the weekly reset, Tue 2026-10-27 02:00. R-9 still holds: weekly plan is the only limit, spend with care.
+- An approved gate freezes its files: reopen it (`atelier gate ... reopen --quote "<owner's words>"`) before starting a task that writes them (vbnh was blocked once, 2026-10-28).
 - Owner asks now go through `atelier ask atelier-ui approval|question|feedback|update` (R-13).
 - Shift 2026-10-28 eve: single `git add`/`git commit`/`git status` and single `atelier ...` commands run; `git rm` and chained commands are denied. The owner runs commands with a leading `!` (plain pasted text doesn't execute). Read .git/refs to check a merge.
