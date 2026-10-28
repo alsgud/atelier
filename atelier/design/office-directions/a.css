@@ -79,6 +79,9 @@
 @keyframes a-sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
 @keyframes a-steam { 0% { transform: translateY(2px); opacity: 0; } 40% { opacity: 0.55; } 100% { transform: translateY(-4px); opacity: 0; } }
 .a-motes circle, .p-work .hd, .a-steam { transform-box: fill-box; }
+/* Reduced motion: the cone and chair take their new place at once; the light still fades */
+[data-motion="reduce"] .a-cone, [data-motion="reduce"] .a-chair { transition-property: opacity; }
+@media (prefers-reduced-motion: reduce) { .a-cone, .a-chair { transition-property: opacity; } }
 
 /* Phone: the desk is a row; the tile shows lamp, figure and desk (x 52–174 of the grid); the wall prop is cropped */
 @media (max-width: 767px) {
