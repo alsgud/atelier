@@ -43,7 +43,7 @@ Rough split (to be re-priced from real costs after the design task):
 | m87r | designer | Office inspiration board I1-I16 ($25, 6 it) | R-12 | merged 2026-10-28; owner liked 7, 8, 12 (R-15, R-16) |
 | vbnh | designer | Office directions: 2-3 original designs from 7, 8, 12, anonymous but personable (8 it, $30), brief briefs/office-directions.md | R-15, R-16 | done; owner: windows yes, lamp no, needs personality (R-17) |
 | 37h3 | designer | Office windows: P1-P3 ways to give the glowing N1 windows real character (6 it, $25), base atelier/vbnh, brief inline (copy in briefs/office-windows.md); replaced kydj | R-17, A-6 | done; owner picked P1 (R-18); design gate requested |
-| — | frontend | M2 build: Office windows P1 (~8 it, $30), brief briefs/office-p1-build.md, then audit ~$12 | design gate | not started |
+| wad8 | frontend | M2 build: Office windows P1 (8 it, $30), brief briefs/office-p1-build.md, base main (37h3 merged), then audit ~$12 | design gate (approved 2026-10-29 "Good") | started |
 | uey2 | frontend | Fix audit findings F-2..F-13 (10 it, $55), base main, brief briefs/audit-fixes-m1.md | audit + owner confirmed F-2..F-4 | queued; owner merges, lead marks fixed |
 | — | auditor | End-of-milestone audit | slice 3 | running 2026-10-27 |
 
