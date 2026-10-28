@@ -1,0 +1,84 @@
+/* P2 · Temperament. Three positions for every dressing: open (working, needs you, waiting, finished), half
+   (quiet a long while, paused) and shut (off). Dressing moves on --dur-calm with --ease-enter; finishing snaps it up on
+   --spring-snappy with a twitch. Light rhythms run only while working, and never faster than a 2.2 s cycle. */
+.w-dress > g { transform-box: view-box; transition: transform var(--dur-calm) var(--ease-enter); }
+/* designer: roller blind, hem at y 46 (open) · 112 (half) · 168 (shut) */
+.p2-blind { transform: translateY(46px); }
+.desk:is([data-quiet], [data-held]) .p2-blind { transform: translateY(112px); }
+.desk[data-k="off"] .p2-blind { transform: translateY(168px); }
+/* builder: venetian slats bunch at the head */
+.p2-slats { transform-origin: 0 32px; transform: scaleY(0.12); }
+.desk:is([data-quiet], [data-held]) .p2-slats { transform: scaleY(0.55); }
+.desk[data-k="off"] .p2-slats { transform: scaleY(1); }
+/* reviewer: café curtains part to the jambs; a top pair joins them when off */
+.p2-cafe .p2-l, .p2-cafe .p2-r, .p2-cafe .p2-folds { transform-box: view-box; transition: transform var(--dur-calm) var(--ease-enter); }
+.p2-cafe .p2-l { transform-origin: 38px 0; transform: scaleX(0.3); }
+.p2-cafe .p2-r { transform-origin: 122px 0; transform: scaleX(0.3); }
+.p2-cafe .p2-folds { opacity: 0; transition: opacity var(--dur-base); }
+.desk:is([data-quiet], [data-held], [data-k="off"]) .p2-cafe :is(.p2-l, .p2-r) { transform: none; }
+.desk:is([data-quiet], [data-held], [data-k="off"]) .p2-cafe .p2-folds { opacity: 1; }
+.p2-cafe-top { opacity: 0; transition: opacity var(--dur-calm) var(--ease-enter); }
+.desk[data-k="off"] .p2-cafe-top { opacity: 1; }
+/* auditor: roman shade folds up from the sill */
+.p2-roman { transform-origin: 0 30px; transform: scaleY(0.16); }
+.desk:is([data-quiet], [data-held]) .p2-roman { transform: scaleY(0.58); }
+.desk[data-k="off"] .p2-roman { transform: scaleY(1); }
+/* lead: drapes tied back to the jambs */
+.p2-drape-l { transform-origin: 36px 0; transform: scaleX(0.26); }
+.p2-drape-r { transform-origin: 124px 0; transform: scaleX(0.26); }
+.desk:is([data-quiet], [data-held]) :is(.p2-drape-l, .p2-drape-r) { transform: scaleX(0.6); }
+.desk[data-k="off"] :is(.p2-drape-l, .p2-drape-r) { transform: none; }
+
+/* Finishing: everything snaps open with a twitch */
+.desk[data-k="done"] .w-dress > g, .desk[data-k="done"] .w-dress .p2-cafe > * { transition: transform var(--spring-snappy-dur) var(--spring-snappy); }
+.desk[data-k="done"] .w-dress { animation: p2-twitch 0.7s var(--ease-move) 0.2s 1; transform-box: view-box; transform-origin: 80px 32px; }
+.p2-twitch { opacity: 0; transition: opacity var(--dur-base); }
+.desk[data-k="done"] .p2-twitch { opacity: 1; }
+.desk[data-k="done"] .p2-twitch .pv { animation: p2-pop 1.2s var(--spring-snappy) both; }
+.desk[data-k="done"] .p2-twitch .pv + .pv { animation-delay: 0.2s; }
+
+/* Each role's light, while it works */
+.p2-bokeh, .p2-beat, .p2-lamp, .p2-scan, .p2-breath, .p2-moon { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.p2-bokeh .pv { fill: url(#p2-bokeh); }
+.p2-beat { fill: #ece6ff; }
+.p2-lamp { fill: url(#p2-lamp); }
+.p2-scan { fill: url(#p2-scan); }
+.p2-breath { fill: #e6d6ff; }
+.desk[data-role="designer"] .w-fill:not(.w-fill-done) { fill: url(#p2-cool); }
+.desk[data-role="lead"] .w-fill:not(.w-fill-done) { fill: url(#p2-warm); }
+.desk[data-k="active"]:not([data-quiet]) .p2-bokeh { opacity: 1; }
+.desk[data-k="active"]:not([data-quiet]) .p2-bokeh .pv { animation: p2-drift 7s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .p2-bokeh .pv:nth-child(2) { animation-duration: 9s; animation-direction: alternate-reverse; }
+.desk[data-k="active"]:not([data-quiet]) .p2-bokeh .pv:nth-child(3) { animation-duration: 6s; }
+.desk[data-k="active"]:not([data-quiet]) .p2-bokeh .pv:nth-child(4) { animation-duration: 8s; animation-direction: alternate-reverse; }
+.desk[data-k="active"]:not([data-quiet]) .p2-beat { animation: p2-beat 2.2s linear infinite; }
+.desk[data-k="active"] .p2-lamp { opacity: 1; }
+.desk[data-k="active"][data-quiet] .p2-lamp { opacity: 0.35; }
+.desk[data-k="active"]:not([data-quiet]) .p2-lamp { animation: p2-lamp 5s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .p2-scan { opacity: 1; animation: p2-scan 4.4s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .p2-breath { animation: p2-breath 4.8s var(--ease-move) infinite alternate; }
+.desk[data-k="active"][data-role="lead"]:not([data-quiet]) .w-halo:not(.w-halo-done) { transform-box: fill-box; transform-origin: center; animation: p2-halo 4.8s var(--ease-move) infinite alternate; }
+/* Waiting and needs you: light off, the moon catches the glass */
+.desk:is([data-k=""], [data-k="needs"]):not([data-held]) .p2-moon { opacity: 1; }
+.p2-moon { fill: #c9d0da; fill-opacity: 0.07; }
+
+/* Needs you: a small red lamp on the sill, two blinks, then a steady glow */
+.p2-red { opacity: 0; transition: opacity var(--dur-base); }
+.desk[data-k="needs"] .p2-red { opacity: 1; }
+.desk[data-k="needs"] .p2-red-bulb { animation: p2-blink 0.9s steps(1) 2, p2-glow 2.6s var(--ease-move) 1.8s infinite alternate; }
+
+/* Going off: the light flickers out, then the dressing closes */
+.desk[data-k="off"][data-was="active"] .w-room, .desk[data-k="off"][data-was=""] .w-room { animation: p2-flicker 0.6s steps(1) 1; }
+.desk[data-k="off"] .w-dress > g { transition-delay: 0.45s; }
+
+@keyframes p2-drift { from { transform: translate(-6px, 4px); } to { transform: translate(7px, -8px); } }
+@keyframes p2-beat { 0%, 100% { opacity: 0; } 6% { opacity: 0.26; } 14% { opacity: 0.04; } 22% { opacity: 0.22; } 36% { opacity: 0; } }
+@keyframes p2-lamp { from { opacity: 0.85; } to { opacity: 1; } }
+@keyframes p2-scan { 0% { transform: translateX(0); } 70%, 100% { transform: translateX(120px); } }
+@keyframes p2-breath { from { opacity: 0; } to { opacity: 0.16; } }
+@keyframes p2-halo { from { transform: scale(0.92); } to { transform: scale(1.06); } }
+@keyframes p2-blink { 0% { opacity: 1; } 50% { opacity: 0.15; } }
+@keyframes p2-glow { from { opacity: 0.7; } to { opacity: 1; } }
+@keyframes p2-flicker { 0% { opacity: 0.4; } 25% { opacity: 0; } 45% { opacity: 0.3; } 70% { opacity: 0; } }
+@keyframes p2-twitch { 0%, 100% { transform: none; } 20% { transform: rotate(1.6deg); } 45% { transform: rotate(-1.2deg); } 70% { transform: rotate(0.6deg); } }
+@keyframes p2-pop { 0% { opacity: 0; transform: scale(0.2); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.85; transform: scale(1); } }
