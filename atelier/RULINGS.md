@@ -52,3 +52,6 @@ _2026-10-28 · owner, Inbox A-5, 2026-10-28: 12 is nice, 16 the idea is okay but
 
 ## R-17: Office direction: each agent is a window like our N1 icon, glowing to show it is working (from D-B Lit shrines). Each window also gets personality, so it feels alive and enjoyable rather than an object, while staying anonymous (R-15). No lamp-and-silhouette figures: they read as lifeless and sad, drowning in work. Nothing in the Office should look burdened or gloomy.
 _2026-10-28 · owner, AC-7 on vbnh, 2026-10-28: i like the idea of the windows as our icon being included with the glow to indicate working. the lamp and silouettes make them look lifeless and sad drowning in work. and window icons are okay but no personalisation. just opbjects_
+
+## R-18: Office windows follow P1 Lived-in from 37h3: each agent is a glowing N1 window whose role is told by the things in and on it (designer sketches, easel, plant; builder boxes, tools; reviewer books, mug; auditor clock, checklist, telescope; lead bunting, globe), with no figure or face. States as in DESIGN.md Office windows P1: lit to stage while working, cat asleep when quiet, red flag when it needs you, back-soon card when paused, curtains when off, green flood and flower when finished. P3 is the fallback if P1 fails at phone size.
+_2026-10-28 · A-7, owner 2026-10-29: i like p1, i dont mind p3, its not bad_
