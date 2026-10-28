@@ -1,8 +1,8 @@
-/* Copied from atelier/design/screens2/office.css (D6); dashboard changes are marked "dashboard:".
-   Office (UX-8 A): a floor per project, a desk per agent. The desk's little scene is the N1 idea at room scale:
-   an arched window whose light is on while the agent works, and its sharp patch of light on the floor.
-   Colour keeps its meaning: the light is lilac (working), a raised hand is the agent needing you (red dot),
-   dark is waiting, an empty chair is off. Only transform and opacity animate (Flow). */
+/* Copied from atelier/design/screens2/office.css (D6) with the Office windows P1 Lived-in on top
+   (design/office-windows/ow.css and p1.css, 37h3; R-17, R-18); dashboard changes are marked "dashboard:".
+   Office (UX-8 A): a floor per project, a window per agent. The window is the N1 mark at room scale; its light is the
+   gauge, filling to the task's stage while the agent works. Colour keeps its meaning: lilac light is working, a red
+   pool and flag is needing you, green is just finished; things in and on the window say the role, never a figure. */
 .board { display: grid; gap: var(--space-10); max-width: 1200px; width: 100%; }
 .floor { display: grid; gap: var(--space-4); }
 .floor-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
@@ -12,119 +12,213 @@
 .floor-sum .is-needs { color: var(--needs); }
 .floor-head .strip { align-self: center; }
 
+/* The wall always spans the floor: as many equal bays as desks (up to 4 a row, balanced), never empty bays */
+.desks { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+.desk { position: relative; display: grid; grid-template-rows: auto 1fr; color: var(--text); transition: background-color var(--dur-fast); }
+.desk + .desk { box-shadow: inset 1px 0 0 var(--border); }
+.desk:hover { background: var(--surface-hover); }
+/* the frame clips its bays and the scene paints over an inset outline, so the ring is drawn on top, inside the bay */
+.desk:focus-visible { outline: none; }
+.desk:focus-visible::after { content: ""; position: absolute; inset: 1px; z-index: 3; border: var(--focus-width) solid var(--focus-ring); pointer-events: none; }
 
-.desks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-3); }
-.desk { display: grid; grid-template-rows: auto 1fr; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; color: var(--text);
-  transition: border-color var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy), box-shadow var(--dur-base); }
-.desk:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-2); }
-.desk:active { transform: scale(0.985); transition-duration: var(--dur-instant); }
-.desk:focus-visible { outline-offset: 2px; border-radius: var(--radius-md); }
+/* The scene: the night wall and the window on it */
+.desk-scene { position: relative; display: block; height: 288px; padding-top: 12px; background: linear-gradient(#0d1118, #151b26); overflow: hidden; }
+.desk-scene svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
-/* The scene: a wall, a floor, a window, a desk, someone at it */
-.desk-scene { position: relative; display: grid; place-items: end center; height: 108px; background: var(--surface-sunken); border-bottom: var(--border-width) solid var(--border); overflow: hidden; }
-.desk-scene::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 18px; background: color-mix(in srgb, var(--surface-sunken) 70%, var(--bg)); border-top: var(--border-width) solid var(--border); }
-.desk-scene svg { position: relative; z-index: 1; width: 192px; height: 106px; overflow: visible; }
-.sc-prop { fill: none; stroke: var(--border-strong); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.sc-wallwin { fill: var(--surface-selected); stroke: var(--border-strong); stroke-width: 1.5; }
-.sc-bars { stroke: var(--surface-sunken); stroke-width: 2; }
-.sc-pane, .sc-done, .sc-glow, .sc-patch, .sc-screen, .sc-hand, .sc-flag, .sc-tick, .sc-lid-shut { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
-.sc-pane { fill: var(--active); }
-.sc-done { fill: var(--done); }
-.sc-glow { fill: url(#hf-glow); }
-.sc-patch { fill: var(--active); transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0.2); transition: opacity var(--dur-slow) var(--ease-enter), transform var(--spring-soft-dur) var(--spring-soft); }
-.sc-screen { fill: var(--active); }
-.sc-who { fill: var(--text-3); transition: opacity var(--dur-slow) var(--ease-enter); }
-.sc-lid { fill: var(--surface-hover); stroke: var(--border-strong); stroke-width: 1; transition: opacity var(--dur-fast); }
-.sc-lid-shut { fill: var(--border-strong); }
-.sc-desk { fill: var(--text-3); }
-.sc-hand { stroke: var(--text-3); stroke-width: 3.2; stroke-linecap: round; fill: none; transform-box: view-box; transform-origin: 106px 48px; transform: rotate(-30deg); transition: opacity var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy); }
-.sc-hand circle { fill: var(--text-3); stroke: none; }
-.sc-flag { fill: var(--needs); }
-.sc-tick { stroke: var(--surface); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; fill: none; transform-box: fill-box; transform-origin: center; transform: scale(0.4); transition: opacity var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy); }
-
-.desk[data-k="active"] .sc-pane { opacity: 1; }
-.desk[data-k="active"] .sc-glow { opacity: 0.6; }
-.desk[data-k="active"] .sc-patch { opacity: 0.34; transform: none; }
-.desk[data-k="active"] .sc-screen { opacity: 0.3; }
-/* Working, but quiet for longer than usual (the stuck signal): the light is on but low. Neutral words carry it. */
-.desk[data-k="active"][data-quiet] .sc-pane { opacity: 0.45; }
-.desk[data-k="active"][data-quiet] .sc-glow { opacity: 0.2; }
-.desk[data-k="active"][data-quiet] .sc-patch { opacity: 0.14; }
-.desk[data-k="needs"] .sc-hand { opacity: 1; transform: none; }
-.desk[data-k="needs"] .sc-flag { opacity: 1; }
-.desk[data-k="done"] .sc-done { opacity: 1; }
-.desk[data-k="done"] .sc-tick { opacity: 1; transform: none; }
-.desk[data-k="done"] .sc-patch { opacity: 0.2; transform: none; fill: var(--done); }
-.desk[data-k="off"] .sc-who, .desk[data-k="off"] .sc-lid { opacity: 0; }
-.desk[data-k="off"] .sc-lid-shut { opacity: 1; }
-.desk[data-k="off"] .desk-scene svg { opacity: 0.7; }
-/* Stale: we don't know if the lights are still on, so they dim and nothing pulses */
-.is-stale .desk[data-k="active"] .sc-pane { opacity: 0.4; }
-.is-stale .desk[data-k="active"] .sc-glow, .is-stale .desk[data-k="active"] .sc-patch { opacity: 0.12; }
-
-.desk-body { display: grid; gap: var(--space-1); align-content: start; padding: var(--space-3) var(--space-4) var(--space-4); }
-.desk-who { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+/* Words: centred under the window like a label under a picture; F-3 meta line (stage · when) */
+.desk-body { display: grid; gap: var(--space-1); align-content: start; text-align: center; justify-items: center; padding: var(--space-3) var(--space-4) var(--space-5); transition: background-color var(--dur-slow) var(--ease-enter); }
+.desk-who { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: var(--space-2); column-gap: var(--space-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
 .desk-who b { font-weight: var(--weight-semibold); }
-.desk-st { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--text-2); }
+.desk-st { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--text-2); }
 .desk[data-k="active"] .desk-st { color: var(--active); }
 .desk[data-k="needs"] .desk-st { color: var(--needs); }
 .desk[data-k="done"] .desk-st { color: var(--done); }
-.desk-what { font-size: var(--text-md); line-height: var(--leading-md); font-weight: var(--weight-medium); text-wrap: pretty; }
+.desk-what { font-size: var(--text-md); line-height: var(--leading-md); font-weight: var(--weight-medium); text-wrap: balance; }
 .desk-step { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
-.desk-prog { display: grid; gap: var(--space-1-5); margin-top: var(--space-2); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
-.desk-track { height: 3px; border-radius: var(--radius-full); background: var(--active-track); overflow: hidden; }
-.desk-track i { display: block; height: 100%; background: var(--active); border-radius: inherit; transform-origin: left; transform: scaleX(var(--p, 0)); transition: transform var(--spring-soft-dur) var(--spring-soft); }
-.desk[data-k="done"] .desk-track { background: var(--done-soft); }
-.desk[data-k="done"] .desk-track i { background: var(--done); }
-.desk:not([data-k="active"]):not([data-k="done"]) .desk-track { display: none; }
+.desk-meta { margin-top: var(--space-1); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+.desk-meta:empty { display: none; }
 .desk[data-quiet] .desk-step { color: var(--text); }
 .desk.is-changing .desk-body > :not(.desk-who) { animation: hf-tick var(--dur-slow) var(--ease-enter); }
+.desk[data-k="active"]:not([data-quiet]) .desk-body { background: linear-gradient(to bottom, color-mix(in srgb, var(--active) 7%, transparent), transparent 70%); }
+.desk[data-k="done"] .desk-body { background: linear-gradient(to bottom, color-mix(in srgb, var(--done) 7%, transparent), transparent 70%); }
+.desk[data-held="paused"] .desk-st { color: var(--text-2); }
+.desk[data-held="paused"] .desk-st .dot { border-radius: 1px; width: 8px; height: 8px; background: linear-gradient(to right, currentColor 0 3px, transparent 3px 5px, currentColor 5px); border: 0; }
 
-/* A quiet project: folded to one line, its windows all dark */
+/* ── The window (ow.css). Fixed night palette in both themes, because the light only reads against the dark:
+   wall #0d1118 → #151b26 · frame #1a212b / #3a4554 · glass #10151d · lit #8f73f0 → #cbbcff (K1 --active family) ·
+   ink (silhouettes against the light) #1c1630 · things in the dark #2b3443 · sill objects #222a36 / #3a4554, their lit
+   edge #9d8be0 · needs #ff8578 · done #5fd198 · a neutral card #c9d0da. ── */
+.w-frame { fill: #1a212b; stroke: #3a4554; stroke-width: 1.5; }
+.w-glass { fill: #10151d; }
+.w-edge { fill: none; stroke: #2c3542; stroke-width: 1; }
+.w-bars { fill: none; stroke: #1a212b; stroke-width: 3.2; stroke-linecap: square; }
+.w-sill { fill: #222a36; stroke: #3a4554; stroke-width: 1.2; }
+.w-room, .w-fill, .w-halo, .w-patch, .w-sheen { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.w-halo { fill: url(#ow-halo); }
+.w-halo-done { fill: url(#ow-halo-done); }
+.w-patch { fill: #b39cff; }
+.w-patch-done { fill: #5fd198; }
+.w-room { fill: #8f73f0; }
+.w-fill { fill: url(#ow-fill); transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); transition: opacity var(--dur-slow) var(--ease-enter), transform var(--spring-soft-dur) var(--spring-soft); }
+.w-fill-done { fill: url(#ow-fill-done); }
+.w-sheen { fill: url(#ow-sheen); transform-box: view-box; }
+
+/* Things in the room and on the sill. In the dark they are shapes you can still make out; against the light, ink. */
+.ink { fill: #2b3443; transition: fill var(--dur-slow) var(--ease-enter); }
+.ink-l { fill: none; stroke: #2b3443; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--dur-slow) var(--ease-enter); }
+.obj { fill: #222a36; stroke: #3a4554; stroke-width: 1.2; stroke-linejoin: round; transition: stroke var(--dur-slow) var(--ease-enter); }
+.obj-l { fill: none; stroke: #3a4554; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--dur-slow) var(--ease-enter); }
+.desk:is([data-k="active"], [data-k="done"]) .ink { fill: #1c1630; }
+.desk:is([data-k="active"], [data-k="done"]) .ink-l { stroke: #1c1630; }
+.desk[data-k="active"]:not([data-quiet]) :is(.obj, .obj-l) { stroke: #9d8be0; }
+.desk[data-k="done"] :is(.obj, .obj-l) { stroke: #7fd6aa; }
+
+/* Working: the room fills to its stage, the halo and the patch of light come on */
+.desk[data-k="active"] .w-room { opacity: 0.16; }
+.desk[data-k="active"] .w-fill:not(.w-fill-done) { opacity: 1; }
+.desk[data-k="active"] .w-halo:not(.w-halo-done) { opacity: 1; }
+.desk[data-k="active"] .w-patch:not(.w-patch-done) { opacity: 0.2; }
+.desk[data-k="active"]:not([data-quiet]) .w-sheen { opacity: 1; animation: w-sheen 6s var(--ease-move) infinite; }
+.desk[data-lit="1"] .w-fill { transform: scaleY(0.2); }
+.desk[data-lit="2"] .w-fill { transform: scaleY(0.4); }
+.desk[data-lit="3"] .w-fill { transform: scaleY(0.6); }
+.desk[data-lit="4"] .w-fill { transform: scaleY(0.8); }
+.desk[data-lit="5"] .w-fill { transform: scaleY(1); }
+/* Quiet for longer than usual: the light burns low and steady (never red: it is a question, not an alarm) */
+.desk[data-k="active"][data-quiet] .w-fill:not(.w-fill-done) { opacity: 0.38; }
+.desk[data-k="active"][data-quiet] .w-halo:not(.w-halo-done) { opacity: 0.3; }
+.desk[data-k="active"][data-quiet] .w-patch:not(.w-patch-done) { opacity: 0.08; }
+/* Paused: the light holds where it stopped, grey */
+.desk[data-held="paused"] .w-fill:not(.w-fill-done) { opacity: 1; fill: #3c4553; }
+/* Finished: green floods up from the sill (held for the Office's 2.4 s) */
+.desk[data-k="done"] .w-fill-done { opacity: 1; transform: scaleY(1); }
+.desk[data-k="done"] .w-fill:not(.w-fill-done) { opacity: 0; }
+.desk[data-k="done"] .w-halo-done { opacity: 1; }
+.desk[data-k="done"] .w-patch-done { opacity: 0.22; }
+/* Needs you: a soft red glow pools along the sill, so the one state that wants you reads from across the floor */
+.w-needs { fill: url(#ow-red); opacity: 0; transition: opacity var(--dur-base) var(--ease-enter); }
+.desk[data-k="needs"] .w-needs { opacity: 0.75; }
+/* Stale: we don't know the lights are still on */
+.is-stale .desk[data-k="active"] .w-fill { opacity: 0.3 !important; }
+.is-stale .w-halo { opacity: 0.15 !important; }
+
+/* ── P1 Lived-in (p1.css). Each state shows or hides one thing; the role's own things move only while its light is
+   on. Every loop is slow (2.8–9 s) and small (≤ 4 units), so a lit floor reads as calm life, not busyness. ── */
+.p1-cat, .p1-zz, .p1-flag, .p1-card, .p1-curtains, .p1-sparks, .p1-bloom, .p1-bud { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.p1-bud { fill: #3a4554; }
+
+/* Working: the room's things come alive */
+.hab-steam .st2 { animation-delay: -1.6s !important; }
+.desk[data-k="active"]:not([data-quiet]) .hab-steam path { animation: p1-steam 3.2s var(--ease-move) infinite; }
+.desk:not([data-k="active"]) .hab-steam, .desk[data-quiet] .hab-steam { opacity: 0; }
+.hab-steam { transition: opacity var(--dur-slow); }
+.desk[data-k="active"]:not([data-quiet]) .hab-swing { transform-origin: 50% 0; animation: p1-swing 4.6s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-sway { transform-origin: 50% 100%; animation: p1-sway 5.2s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-settle { animation: p1-settle 3.6s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .hab-lamp { transform-origin: 50% 0; animation: p1-swing 6s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-hand { transform-origin: 50% 100%; animation: p1-tick 8s steps(8) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .hab-pan { transform-box: view-box; transform-origin: 108px 147px; animation: p1-pan 9s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-flutter { transform-origin: 50% 0; animation: p1-flutter 2.8s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-globe { transform-origin: center; animation: p1-globe 4s linear infinite; }
+.desk[data-k="active"] .p1-bud { opacity: 1; fill: #cbbcff; }
+.desk[data-k="done"] .p1-bud { opacity: 1; fill: #b8f0d3; }
+
+/* Quiet a long while: the light is low and the house cat has come to sleep on the sill (it breathes, slowly) */
+.desk[data-k="active"][data-quiet] :is(.p1-cat, .p1-zz) { opacity: 1; }
+.desk[data-k="active"][data-quiet] .p1-cat .obj, .desk[data-k="active"][data-quiet] .p1-cat .obj-l { stroke: #6f6596; }
+.desk[data-k="active"][data-quiet] .hab-breathe { transform-origin: 50% 100%; animation: p1-breathe 3.4s var(--ease-move) infinite alternate; }
+.desk[data-k="active"][data-quiet] .p1-zz { animation: p1-zz 4.4s var(--ease-move) infinite; }
+
+/* Needs you: the flag goes up on the sill post and waves */
+.p1-flag .hab-wave { transform-origin: 0 50%; transform: scaleY(0.2) translateY(30px); transition: transform var(--spring-snappy-dur) var(--spring-snappy); }
+.desk[data-k="needs"] .p1-flag { opacity: 1; }
+.desk[data-k="needs"] .p1-flag .hab-wave { transform: none; animation: p1-wave 1.8s var(--ease-move) infinite alternate; }
+
+/* Paused: a back-soon card hangs in the glass, the light held grey where it stopped */
+.desk[data-held="paused"] .p1-card { opacity: 1; }
+.desk[data-held="paused"] .hab-card { transform-origin: 50% 0; animation: p1-swing 5s var(--ease-move) 1; }
+
+/* Off: curtains drawn (they close from the sides) */
+.p1-curtains path:nth-child(1) { transform-box: view-box; transform-origin: 36px 0; transform: scaleX(0.18); transition: transform var(--dur-calm) var(--ease-enter); }
+.p1-curtains path:nth-child(2) { transform-box: view-box; transform-origin: 124px 0; transform: scaleX(0.18); transition: transform var(--dur-calm) var(--ease-enter); }
+.desk[data-k="off"] .p1-curtains { opacity: 1; }
+.desk[data-k="off"] .p1-curtains path:nth-child(-n+2) { transform: none; }
+.desk[data-k="off"] .w-in { opacity: 0.4; }
+.w-in { transition: opacity var(--dur-slow); }
+
+/* Finished: green floods up, a flower opens on the sill, three sparks */
+.desk[data-k="done"] :is(.p1-sparks, .p1-bloom) { opacity: 1; }
+.desk[data-k="done"] .p1-sparks .pv { animation: p1-spark 1.4s var(--spring-snappy) both; }
+.desk[data-k="done"] .p1-sparks .pv:nth-child(2) { animation-delay: 0.15s; }
+.desk[data-k="done"] .p1-sparks .pv:nth-child(3) { animation-delay: 0.3s; }
+.desk[data-k="done"] .p1-bloom .pv { animation: p1-bloom var(--dur-calm) var(--spring-snappy) both; }
+
+.desk-scene [class*="hab"], .desk-scene .pv { transform-box: fill-box; transform-origin: center; }
+@keyframes w-sheen { from { transform: translateY(140px); } to { transform: translateY(-30px); } }
+@keyframes p1-steam { 0% { opacity: 0; transform: translateY(4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes p1-swing { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+@keyframes p1-sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes p1-settle { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
+@keyframes p1-tick { to { transform: rotate(360deg); } }
+@keyframes p1-pan { from { transform: rotate(-5deg); } to { transform: rotate(7deg); } }
+@keyframes p1-flutter { from { transform: skewX(-4deg) scaleY(0.96); } to { transform: skewX(4deg) scaleY(1.04); } }
+@keyframes p1-globe { 0% { transform: scaleX(1); } 50% { transform: scaleX(0.1); } 100% { transform: scaleX(1); } }
+@keyframes p1-breathe { from { transform: scaleY(1); } to { transform: scaleY(1.07); } }
+@keyframes p1-zz { 0% { opacity: 0; transform: translate(0, 4px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translate(4px, -6px); } }
+@keyframes p1-wave { from { transform: skewY(-6deg); } to { transform: skewY(4deg) scaleX(0.92); } }
+@keyframes p1-spark { 0% { opacity: 0; transform: scale(0.2) rotate(-40deg); } 50% { opacity: 1; transform: scale(1.15); } 100% { opacity: 0.9; transform: scale(1) rotate(0); } }
+@keyframes p1-bloom { from { transform: scale(0); } to { transform: scale(1); } }
+
+/* Every loop and moment lives only while the page is live and motion is allowed. Stale freezes them; reduced motion
+   changes states by fades of opacity, fill and stroke only. */
+.is-stale .desk-scene *, [data-motion="reduce"] .desk-scene * { animation: none !important; }
+[data-motion="reduce"] .desk-scene * { transition-property: opacity, fill, stroke !important; transition-duration: var(--dur-fast) !important; }
+@media (prefers-reduced-motion: reduce) {
+  .desk-scene * { animation: none !important; transition-property: opacity, fill, stroke !important; transition-duration: var(--dur-fast) !important; }
+}
+
+/* A quiet project: folded to one line, its windows curtained */
 .floor-quiet { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding: var(--space-4) 0 0; border-top: var(--border-width) solid var(--border); color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); min-height: var(--size-control-lg); }
 .floor-quiet b { color: var(--text); font-weight: var(--weight-semibold); font-size: var(--text-base); }
 /* A quiet floor still says when something there needs you now, so the head's "2 need you" adds up on the floors (S7) */
 .fq-needs { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--needs); font-weight: var(--weight-medium); }
 .floor-quiet .num { margin-left: auto; color: var(--text-3); }
 .floor-quiet:hover b { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
+.fq-art { display: inline-flex; }
+.fq-art svg { display: block; }
 
-/* How to read a desk: once, quietly, at the foot */
+/* How to read a window: once, quietly, at the foot */
 .legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); margin: 0; padding: 0; list-style: none; }
 .legend li { display: inline-flex; align-items: center; gap: var(--space-1-5); }
+.legend .strip i[data-k="quiet"] { background: var(--active); opacity: 0.4; }
 
-/* Loading: the floors' shape, no figures */
+/* Loading: the floors' shape, no windows */
 .desk.is-skeleton { pointer-events: none; }
 .desk.is-skeleton .desk-scene { background: var(--skeleton); }
-.desk.is-skeleton .desk-scene::after { display: none; }
 
 /* Empty: the building with no one in it */
-.office-empty > svg { width: 120px; height: 96px; color: var(--border-strong); margin-bottom: var(--space-2); }
+.ow-empty-art { display: block; color: var(--border-strong); margin-bottom: var(--space-2); }
+.ow-empty-art svg { display: block; overflow: visible; max-width: 100%; height: auto; }
 
 @media (max-width: 1279px) { .board { gap: var(--space-8); } }
+/* Phone: the floor is a list; the window stands on the left of each row, big enough to read its life */
 @media (max-width: 767px) {
   .board { gap: var(--space-8); }
   .floor { gap: var(--space-3); }
   .floor-head h2 { font-size: var(--text-md); line-height: var(--leading-md); }
   .floor-head h2 a { display: inline-flex; align-items: center; min-height: var(--size-control-lg); min-width: var(--size-control-lg); }
   .floor-head { align-items: center; }
-  .desks { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-  /* A desk is a row on the phone: the scene as a tile on the left, the words beside it */
-  .desk { grid-template-rows: none; grid-template-columns: 96px minmax(0, 1fr); }
-  .desk:hover { transform: none; box-shadow: none; }
-  /* The tile shows the window, the agent and a raised hand (x 4–126 of the grid); the wall prop is cropped on purpose */
-  .desk-scene { height: auto; min-height: 96px; border-bottom: 0; border-right: var(--border-width) solid var(--border); place-items: end start; }
-  .desk-scene::after { height: 12px; }
-  .desk-scene svg { width: 126px; height: 69px; margin-left: -3px; }
-  .desk-body { padding: var(--space-3); }
+  .desks { grid-template-columns: minmax(0, 1fr); }
+  .desk + .desk, .desk + .desk:hover { box-shadow: inset 0 1px 0 var(--border); }
+  .desk { grid-template-rows: auto; grid-template-columns: 116px minmax(0, 1fr); }
+  .desk-scene { height: auto; min-height: 148px; padding: 6px 0 0; }
+  .desk-body { text-align: left; justify-items: stretch; align-content: center; padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3); }
+  .desk-who { justify-content: flex-start; flex-wrap: nowrap; }
+  .desk-st { margin-left: auto; }
   .desk-what { font-size: var(--text-base); line-height: var(--leading-base); }
   .floor-quiet .num { margin-left: 0; }
 }
 
 /* dashboard: a floor off screen is not styled or laid out until it nears the view (AC-18: the first switch to the
-   Office on a phone was one long style + layout task). The clip margin keeps focus halos on edge desks whole. */
+   Office on a phone was one long style + layout task). The clip margin keeps focus rings on edge desks whole. */
 .floor { content-visibility: auto; contain-intrinsic-block-size: auto 560px; overflow-clip-margin: var(--space-3); }
-
-/* dashboard: reduced motion: a desk neither lifts nor presses, and the scene's light, hand and tick change by fading
-   only (their scale and turn jump straight to the end) */
-[data-motion="reduce"] .desk { transform: none !important; }
-[data-motion="reduce"] :is(.sc-patch, .sc-hand, .sc-tick, .desk-track i) { transition-property: opacity; }
