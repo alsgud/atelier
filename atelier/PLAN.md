@@ -41,7 +41,8 @@ Rough split (to be re-priced from real costs after the design task):
 | 9pfh | designer | Office characters: references from games, three directions A1-A3 to pick, base atelier/66eq (10 it, $40). Owner request 2026-10-27; next milestone M2 (build of the picked direction as its own frontend slice after slice 3) | owner request | running |
 | 3e5b | designer | Office characters reference board: 10-14 numbered style families with real refs, owner picks a type (R-11). Base atelier/9pfh (6 it, $25) | owner: A3 best but all feel cheap | running |
 | m87r | designer | Office inspiration board I1-I16 ($25, 6 it) | R-12 | merged 2026-10-28; owner liked 7, 8, 12 (R-15, R-16) |
-| vbnh | designer | Office directions: 2-3 original designs from 7, 8, 12, anonymous but personable (8 it, $30), brief briefs/office-directions.md | R-15, R-16 | running |
+| vbnh | designer | Office directions: 2-3 original designs from 7, 8, 12, anonymous but personable (8 it, $30), brief briefs/office-directions.md | R-15, R-16 | done; owner: windows yes, lamp no, needs personality (R-17) |
+| kydj | designer | Office windows: P1-P3 ways to personalise the glowing N1 windows (6 it, $25), base atelier/vbnh, brief briefs/office-windows.md | R-17 | queued |
 | — | frontend | M2 build: the picked Office direction | owner picks from vbnh | not started |
 | uey2 | frontend | Fix audit findings F-2..F-13 (10 it, $55), base main, brief briefs/audit-fixes-m1.md | audit + owner confirmed F-2..F-4 | queued; owner merges, lead marks fixed |
 | — | auditor | End-of-milestone audit | slice 3 | running 2026-10-27 |

@@ -6,7 +6,7 @@
 - M1 redesign is on main, plus the audit fixes (uey2) and the transition fixes (hn3n). The owner merged atelier/hn3n by fast-forward (main cbdea06, 2026-10-28). Both tasks are closed. F-2..F-13 are marked fixed; the next audit checks them.
 - Charter approved by the owner, 2026-10-28. AC-7 accepted again ("good"). Daily budget is $100, set by the owner.
 - Phase shows `design` because the design gate was reopened for the Office characters work (M2).
-- Nothing running. vbnh (Office directions) done; owner picking in A-6. vbnh waits in review on purpose: under `branch` autonomy the owner merges atelier/vbnh, and the design gate is requested only after their pick (A-6), so it records the chosen direction.
+- Owner rejected AC-7 on vbnh (2026-10-28): keep the glowing N1 windows (D-B), drop lamp/silhouettes (sad), add personality (overrule #8, R-17). **kydj** queued: designer, base atelier/vbnh, 6 it, $25, brief atelier/briefs/office-windows.md, P1-P3. vbnh stays in review as kydj's base, unmerged; the owner merges the final design branch. When kydj is done: check images, send as one feedback ask (max 8), then request the design gate with the pick.
 
 ## Open
 - F-1 fixed: the owner restarted 4747 on main cbdea06 and said "good" (2026-10-28). All M1 audit findings are now marked fixed.

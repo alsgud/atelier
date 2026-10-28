@@ -49,3 +49,6 @@ _2026-10-28 · owner, Inbox A-4, 2026-10-28: 7 and 8 are cool. something with an
 
 ## R-16: Adds to R-15. Inspiration 12 Town at night is also liked. From 16 Instrument panel, keep the idea (state readable at a glance, like gauges) but not its look.
 _2026-10-28 · owner, Inbox A-5, 2026-10-28: 12 is nice, 16 the idea is okay but not that look_
+
+## R-17: Office direction: each agent is a window like our N1 icon, glowing to show it is working (from D-B Lit shrines). Each window also gets personality, so it feels alive and enjoyable rather than an object, while staying anonymous (R-15). No lamp-and-silhouette figures: they read as lifeless and sad, drowning in work. Nothing in the Office should look burdened or gloomy.
+_2026-10-28 · owner, AC-7 on vbnh, 2026-10-28: i like the idea of the windows as our icon being included with the glow to indicate working. the lamp and silouettes make them look lifeless and sad drowning in work. and window icons are okay but no personalisation. just opbjects_
