@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office inspiration: pick by number</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="insp.css">
+</head>
+<body>
+<a class="skip" href="#options">Skip to the options</a>
+<main id="app"></main>
+<script src="insp.js"></script>
+<script>
+/* Views: default board; ?n=<1-16> one option as a 1440 × 810 poster; ?sheet all options at a glance. */
+const q = new URLSearchParams(location.search);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const pad = n => String(n).padStart(2, '0');
+const effort = e => `<span class="effort" aria-hidden="true">${[1, 2, 3, 4].map(i => `<i class="${i <= e ? 'on' : ''}"></i>`).join('')}</span>${INSP_EFFORT[e]}`;
+const frame = (o, lazy) => `<div class="frame" style="${o.bg ? `background:${o.bg}` : ''}"><img src="media/${o.img}.jpg" alt="${esc(o.alt)}" width="1440" height="810"${lazy ? ' loading="lazy"' : ''} style="${o.fit ? `object-fit:${o.fit}` : ''}"><span class="num" aria-hidden="true">${o.n}</span></div>`;
+const src = o => `Source: <a href="${esc(o.src[2])}" rel="noopener">${esc(o.src[0])}</a>, ${esc(o.src[1])}. Shown for inspiration only; anything we draw is original.`;
+const notes = o => `<dl class="notes">
+  <div><dt>Our Office as this</dt><dd>${esc(o.idea)}</dd></div>
+  <div><dt>Why it looks polished</dt><dd>${esc(o.take)}</dd></div>
+  <div><dt>Watch out</dt><dd>${esc(o.watch)}</dd></div>
+  <div><dt>Effort to build</dt><dd>${effort(o.effort)}</dd></div>
+</dl>`;
+const app = document.getElementById('app');
+const one = INSP.find(o => o.n === +q.get('n'));
+if (one) {
+  document.title = `${one.n}. ${one.name}: Office inspiration`;
+  app.innerHTML = `<article class="poster" aria-labelledby="t">
+    <div>${frame(one)}<p class="src pic-src" style="border:0;padding:0">${esc(one.src[0])} · ${esc(one.src[1])}</p></div>
+    <div class="side">
+      <p class="eyebrow" style="margin:0">Office inspiration · ${one.n} of ${INSP.length}</p>
+      <div class="big" style="margin-top:calc(-1 * var(--space-2))">${one.n}</div>
+      <h2 id="t">${esc(one.name)}</h2>
+      <div><span class="chip" data-cast="${esc(one.cast)}">${esc(one.cast)}</span></div>
+      ${notes(one)}
+      <p class="src">${src(one)}<br><span class="reply">Reply with the numbers you like, e.g. “${one.n}, ${one.n % 16 + 1}”.</span></p>
+    </div>
+  </article>`;
+} else if (q.has('sheet')) {
+  app.innerHTML = `<section class="sheet">
+    <div class="top"><h1>Office inspiration · ${INSP.length} options</h1><p class="eyebrow">Reply with the numbers you like</p></div>
+    <ol class="grid" id="options">${INSP.map(o => `<li class="opt">${frame(o)}<div class="title"><h2>${esc(o.name)}</h2><span class="chip" data-cast="${esc(o.cast)}">${esc(o.cast)}</span></div></li>`).join('')}</ol>
+  </section>`;
+} else {
+  const counts = ['Characters', 'Tiny figures', 'Silhouettes', 'No characters'].map(c => [c, INSP.filter(o => o.cast === c).length]).filter(([, n]) => n);
+  app.innerHTML = `<div class="wrap">
+    <header class="head">
+      <p class="eyebrow">Atelier · Office · inspiration board</p>
+      <h1>${INSP.length} ways the Office could look</h1>
+      <p class="lede">None of the character directions so far was right, so this board goes wider: real, polished work from games, products and industrial design, including ${INSP.filter(o => o.cast === 'No characters').length} ways to show the team with no characters at all. Each option says what our Office would be in that style, why the source looks polished, what to watch, and how much it costs to build.</p>
+      <p class="ask">Reply with the <b>numbers</b> you like, as many as you want, e.g. <b>“7, 8, 11”</b>. A word on what you like about each helps. We then draw two or three original directions from your picks.<br><span style="color:var(--text-2)">My own top three: <b>8</b> (our window mark at room scale, light to build), <b>7</b> (one light per desk, calm and premium) and <b>4</b> (if you want characters: line and flat colour).</span></p>
+      <div class="legend" aria-label="Options by cast">${counts.map(([c, n]) => `<span class="chip" data-cast="${esc(c)}">${esc(c)}: ${n}</span>`).join('')}</div>
+    </header>
+    <ol class="grid" id="options" aria-label="Options">${INSP.map(o => `<li class="opt" id="o${o.n}">
+      ${frame(o, o.n > 4)}
+      <div class="title"><h2>${o.n}. ${esc(o.name)}</h2><span class="chip" data-cast="${esc(o.cast)}">${esc(o.cast)}</span></div>
+      ${notes(o)}
+      <p class="src">${src(o)}</p>
+    </li>`).join('')}</ol>
+    <p class="foot">Images belong to their makers and are shown here only as inspiration for a private design decision; they are never shipped. The earlier character board (S1–S14, task 3e5b) is on branch atelier/3e5b. Effort is the art and build cost for about six roles in five states: Light (SVG and CSS we can draw), Medium (an illustrator plus SVG), Heavy (rendered or painted art per state), Very heavy (modelled and rendered stills and loops).</p>
+  </div>`;
+}
+</script>
+</body>
+</html>
