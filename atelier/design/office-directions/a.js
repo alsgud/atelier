@@ -9,8 +9,8 @@
   const POSES = {
     // leaning in, hands on the keys
     work: `<g class="fig p-work"><g class="hd"><circle cx="97" cy="56" r="6.5"/></g>${ink('M77 84 90 65', 11)}${ink('M90 67 100 76 113 78', 4.5)}${ink('M77 86H96L98 102H103', 7)}</g>`,
-    // chin on hand: still working, but quiet for a long while
-    chin: `<g class="fig p-chin"><circle cx="93" cy="57" r="6.5"/>${ink('M77 84 87 65', 11)}${ink('M88 67 104 78 97 63', 4.5)}${ink('M87 69 110 79', 4)}${ink('M77 86H96L98 102H103', 7)}</g>`,
+    // head down on folded arms on the desk: still at it, but quiet for a long while (a flat, low silhouette)
+    chin: `<g class="fig p-chin"><circle cx="103" cy="71" r="6.5"/>${ink('M77 84 95 72', 11)}${ink('M95 74 112 77.5 98 77.5', 4.5)}${ink('M77 86H96L98 102H103', 7)}</g>`,
     // leaning back, hands behind the head: waiting
     lean: `<g class="fig p-lean"><circle cx="69" cy="55" r="6.5"/>${ink('M77 84 71 66', 11)}${ink('M72 66 79 59 74 53', 4)}${ink('M77 86 97 89 111 101H116', 7)}</g>`,
     // upright, arms folded: paused
@@ -60,6 +60,6 @@
     <path d="M96 80h80M100 81v23M172 81v23M65 86 61 62M64 86h24M76 87v14M66 103h20M48 104h168" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
   window.OD_DIR = {
     id: 'D-A', name: 'Lamplight', scene, defs, empty,
-    legend: [['active', 'Lamp on: working'], ['needs', 'Red lantern: needs you'], ['', 'Lamp off: waiting'], ['off', 'Empty chair: off']],
+    legend: [['active', 'Lamp on: working'], ['quiet', 'Lamp low, head down: quiet a long while'], ['needs', 'Red lantern: needs you'], ['', 'Lamp off: waiting'], ['off', 'Empty chair: off']],
   };
 })();

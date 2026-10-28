@@ -47,6 +47,6 @@
   const quiet = () => `<svg viewBox="0 0 44 18" width="44" height="18" focusable="false"><path d="M3 17V9l6-5 6 5v8zM17 17V7l6-5 6 5v10zM31 17V10l5-4 5 4v7z" fill="#202a37" stroke="#313b46" stroke-width="1"/></svg>`;
   window.OD_DIR = {
     id: 'D-C', name: 'Night street', scene, defs, empty, quiet,
-    legend: [['active', 'Windows lit to its stage: working'], ['needs', 'Red lantern: needs you'], ['', 'Porch light: waiting'], ['off', 'Dark house: off']],
+    legend: [['active', 'Windows lit to its stage: working'], ['quiet', 'Lights burned low: quiet a long while'], ['needs', 'Red lantern: needs you'], ['', 'Porch light: waiting'], ['off', 'Dark house: off']],
   };
 })();

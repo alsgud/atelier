@@ -45,6 +45,6 @@
   const quiet = f => `<svg viewBox="0 0 40 16" width="40" height="16" focusable="false">${[4, 16, 28].map(x => `<path d="M${x} 15V7a4 4 0 0 1 8 0v8z" fill="#222a33" stroke="#313b46" stroke-width="1"/>`).join('')}</svg>`;
   window.OD_DIR = {
     id: 'D-B', name: 'Lit shrines', scene, defs, empty, quiet,
-    legend: [['active', 'Window lit to its stage: working'], ['needs', 'Red keystone: needs you'], ['', 'Unlit glass: waiting'], ['off', 'Shutters closed: off']],
+    legend: [['active', 'Window lit to its stage: working'], ['quiet', 'Glass gone dim: quiet a long while'], ['needs', 'Red keystone: needs you'], ['', 'Unlit glass: waiting'], ['off', 'Shutters closed: off']],
   };
 })();

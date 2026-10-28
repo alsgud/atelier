@@ -27,3 +27,5 @@
 .od-empty-art svg { display: block; overflow: visible; }
 .fq-art { display: inline-flex; }
 .fq-art svg { display: block; }
+/* Legend: quiet for longer than usual is the working colour burned low (neutral, never red) */
+.legend .strip i[data-k="quiet"] { background: var(--active); opacity: 0.4; }

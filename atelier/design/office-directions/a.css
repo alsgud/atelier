@@ -49,10 +49,14 @@
 .desk[data-k="active"]:not([data-quiet]) .a-motes circle:nth-child(2) { animation-duration: 9s; animation-delay: -3s; }
 .desk[data-k="active"]:not([data-quiet]) .a-motes circle:nth-child(3) { animation-duration: 8s; animation-delay: -5s; }
 .desk[data-k="active"]:not([data-quiet]) .p-work .hd { animation: a-type 1.4s var(--ease-move) infinite alternate; }
-/* Quiet for longer than usual: the lamp stays on but low; nothing moves */
-.desk[data-k="active"][data-quiet] .a-cone:not(.a-cone-done) { opacity: 0.38; }
-.desk[data-k="active"][data-quiet] .a-pool:not(.a-pool-done), .desk[data-k="active"][data-quiet] .a-spill { opacity: 0.35; }
-.desk[data-k="active"][data-quiet] .a-bulb { fill: #a99bd9; }
+/* Quiet for longer than usual: the lamp burns down to a glow at the shade (no cone reaching the floor), the laptop
+   is the only light on the desk, and the figure has its head down on its arms; nothing moves */
+.desk[data-k="active"][data-quiet] .a-cone:not(.a-cone-done) { opacity: 0.12; transform: scaleY(0.6); }
+.desk[data-k="active"][data-quiet] .a-pool:not(.a-pool-done) { opacity: 0; }
+.desk[data-k="active"][data-quiet] .a-spill { opacity: 0.7; }
+.desk[data-k="active"][data-quiet] .a-bulb { fill: #8a7cc0; }
+.desk[data-k="active"][data-quiet] .a-top { stroke: #2e2b40; }
+.desk[data-k="active"][data-quiet] .fig { fill: #2a323c; stroke: #2a323c; }
 /* Finished: the lamp turns green for the live app's 2.4 s hold, the figure stretches */
 .desk[data-k="done"] .a-cone-done { opacity: 1; transform: none; }
 .desk[data-k="done"] .a-pool-done { opacity: 1; }

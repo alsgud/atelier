@@ -50,9 +50,9 @@
 .desk[data-k="active"]:not([data-quiet]) .c-beam { opacity: 1; animation: c-sweep 7s var(--ease-move) infinite alternate; }
 .desk[data-k="active"]:not([data-quiet]) .c-flag { animation: c-wave 2.6s var(--ease-move) infinite alternate; }
 .desk[data-k="active"][data-role="auditor"] .c-who { opacity: 0; }
-/* Quiet for longer than usual: the lights burn low; no smoke, no one moving */
+/* Quiet for longer than usual: the lights burn right down (a faint violet, well below working), no beam, no smoke, no one moving */
 .desk[data-k="active"][data-quiet] .c-win[data-i] { fill-opacity: 1; }
-.desk[data-k="active"][data-quiet] .c-wins { opacity: 0.55; }
+.desk[data-k="active"][data-quiet] .c-wins { opacity: 0.3; }
 /* Needs you: a red lantern by the door, the only red on the street */
 .desk[data-k="needs"] .c-lantern { opacity: 1; }
 .desk[data-k="needs"] .c-lan-glow { animation: c-glow 2.4s var(--ease-move) infinite alternate; }
