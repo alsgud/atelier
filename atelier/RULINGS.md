@@ -43,3 +43,6 @@ _2026-10-28 · owner chat 2026-10-28: when u need my inputs shouldnt u put that 
 
 ## R-14: The Office grows from inspirations 8 Lit shrines, 7 One light per desk and 4 Line and flat colour (board m87r). The next designer step draws 2-3 original Office directions from these, as the real screen with every state and a motion demo, for the owner to pick one.
 _2026-10-28 · owner, Inbox A-2, 2026-10-28_
+
+## R-15: Replaces R-14. The Office grows from inspirations 7 One light per desk and 8 Lit shrines (board m87r; 4 dropped). Characters stay anonymous: no named or specific individuals to get attached to, yet personable and characterful enough to enjoy (posture, small habits, their desk and light). Designers draw 2-3 original directions in this spirit for the owner to pick one.
+_2026-10-28 · owner, Inbox A-4, 2026-10-28: 7 and 8 are cool. something with anonymity... but also personable and characterisable enough to appreciate_
