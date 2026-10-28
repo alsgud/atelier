@@ -2,8 +2,12 @@
    and the words sit under each house. Fixed night palette (both themes): sky #0b1220 → #16233a, walls #2c3848 →
    #202a37, roofs #18202b, lit windows #cdbfff (K1 --active family), lantern --needs #ff8578, finished --done #5fd198. */
 /* The street always spans the floor: as many equal plots as houses (up to 5 a row), never an empty stretch */
-[data-dir="D-C"] .desks { grid-template-columns: repeat(min(var(--n), 5), minmax(0, 1fr)); gap: 0; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); position: relative; }
+[data-dir="D-C"] .desks { grid-template-columns: repeat(var(--cols, min(var(--n), 5)), minmax(0, 1fr)); gap: 0; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); position: relative; }
 [data-dir="D-C"] .desk { border: 0; border-radius: 0; background: transparent; }
+/* the floor frame clips its bays and the lit scene paints over an inset outline, so the ring is drawn on top, inside the bay */
+[data-dir="D-C"] .desk { position: relative; }
+[data-dir="D-C"] .desk:focus-visible { outline: none; }
+[data-dir="D-C"] .desk:focus-visible::after { content: ""; position: absolute; inset: 1px; z-index: 3; border: var(--focus-width) solid var(--focus-ring); pointer-events: none; }
 [data-dir="D-C"] .desk:hover { transform: none; box-shadow: none; background: var(--surface-hover); }
 [data-dir="D-C"] .desk:hover .desk-scene { background: linear-gradient(#0d1526, #1a2942); }
 [data-dir="D-C"] .desk-scene { height: 176px; background: radial-gradient(1px 1px at 18% 22%, #a7b0bb 50%, transparent), radial-gradient(1px 1px at 71% 14%, #a7b0bb 50%, transparent), radial-gradient(1px 1px at 88% 38%, #6b7684 50%, transparent), radial-gradient(1px 1px at 42% 9%, #6b7684 50%, transparent), linear-gradient(#0b1220, #16233a); border-bottom: 0; transition: background-color var(--dur-fast); }
@@ -83,5 +87,6 @@
   [data-dir="D-C"] .desk + .desk { box-shadow: inset 0 1px 0 var(--border); }
   [data-dir="D-C"] .desk + .desk .desk-body { box-shadow: none; }
   [data-dir="D-C"] .desk-scene { height: auto; min-height: 104px; border-right: 0; }
-  [data-dir="D-C"] .desk-scene svg { position: absolute; left: -12px; bottom: 0; width: 120px; height: 98px; }
+  /* the whole house fits its strip of sky (it used to overhang and lose its sides) */
+  [data-dir="D-C"] .desk-scene svg { position: absolute; left: 0; bottom: 2px; width: 100%; height: 100px; }
 }

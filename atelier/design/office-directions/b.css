@@ -2,8 +2,12 @@
    each window. No figures; the glass is the state and the gauge. Fixed night palette (both themes): wall
    #0a0d12 → #121821, frame #222a33, lead lines #0a0d12, lit glass #8f73f0 → #d6c9ff (K1 --active family). */
 /* The wall always spans the floor: as many equal bays as desks (up to 5 a row), never empty bays at the end */
-[data-dir="D-B"] .desks { grid-template-columns: repeat(min(var(--n), 5), minmax(0, 1fr)); gap: 0; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+[data-dir="D-B"] .desks { grid-template-columns: repeat(var(--cols, min(var(--n), 5)), minmax(0, 1fr)); gap: 0; border: var(--border-width) solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
 [data-dir="D-B"] .desk { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+/* the floor frame clips its bays and the lit scene paints over an inset outline, so the ring is drawn on top, inside the bay */
+[data-dir="D-B"] .desk { position: relative; }
+[data-dir="D-B"] .desk:focus-visible { outline: none; }
+[data-dir="D-B"] .desk:focus-visible::after { content: ""; position: absolute; inset: 1px; z-index: 3; border: var(--focus-width) solid var(--focus-ring); pointer-events: none; }
 [data-dir="D-B"] .desk + .desk { box-shadow: inset 1px 0 0 var(--border); }
 [data-dir="D-B"] .desk:hover { transform: none; box-shadow: none; background: var(--surface-hover); }
 [data-dir="D-B"] .desk + .desk:hover { box-shadow: inset 1px 0 0 var(--border); }

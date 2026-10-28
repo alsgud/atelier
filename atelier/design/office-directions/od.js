@@ -55,12 +55,14 @@
 
   const busy = floors.filter(f => !f.quiet);
   const quiet = floors.filter(f => f.quiet);
+  // rows of equal length (7 desks = 4 + 3, never 5 + 2): the wall and street read as one balanced run
+  const cols = n => Math.ceil(n / Math.ceil(n / 5));
   const board = () => `
     <div class="board od-board${state === 'stale' ? ' is-stale' : ''}">
       ${busy.map(f => `
       <section class="floor" aria-labelledby="${fid(f)}" data-floor="${f.p}">
         <header class="floor-head"><h2 id="${fid(f)}">${f.states ? esc(f.p) : `<a href="${keep('../screens2/' + HF.pHref(f.p))}">${f.p}</a>`}</h2>${strip(f)}<span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
-        <div class="desks" style="--n:${f.desks.length}">${f.desks.map(deskHTML).join('')}</div>
+        <div class="desks" style="--n:${f.desks.length};--cols:${cols(f.desks.length)}">${f.desks.map(deskHTML).join('')}</div>
       </section>`).join('')}
       ${quiet.map(f => `<a class="floor-quiet" href="${keep('../screens2/' + HF.pHref(f.p))}" aria-label="${esc(`${f.p}, quiet.${f.needs ? ` ${f.needs} needs you now.` : ''} ${f.note}. ${f.today} today`)}">${D.quiet ? `<span class="fq-art" aria-hidden="true">${D.quiet(f)}</span>` : strip(f)}<b>${f.p}</b>${f.needs ? `<span class="fq-needs">${dot('needs', 'Needs you now')}${f.needs} needs you now</span>` : ''}<span>${esc(f.note)}</span><span class="num">${f.today} today</span></a>`).join('')}
       <ul class="legend" aria-label="How to read a desk">${D.legend.map(([k, t]) => `<li><span class="strip"><i data-k="${k}"></i></span>${t}</li>`).join('')}</ul>

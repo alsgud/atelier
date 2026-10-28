@@ -1186,7 +1186,7 @@ The reviewer found two Inbox items wider than a 360 phone and several inventory 
 
 ## Office directions (vbnh)
 
-**Open `design/office-directions/index.html`.** Three original Offices grown from the owner's picks (R-15, R-16): 7 One light per desk, 8 Lit shrines and 12 Town at night, with 16's idea (state readable at a glance, like a gauge) but not its look. The owner replies with one ID. Status: iteration 1 of the task; recordings and the second critique round are still to come (see Critique log below).
+**Open `design/office-directions/index.html`.** Three original Offices grown from the owner's picks (R-15, R-16): 7 One light per desk, 8 Lit shrines and 12 Town at night, with 16's idea (state readable at a glance, like a gauge) but not its look. The owner replies with one ID. Status: two critique rounds done (see Critique log below); the recordings are still to come.
 
 ### References (what each direction takes, and what it avoids)
 | Source (board #) | Take | Avoid |
@@ -1213,7 +1213,7 @@ All three are the real Office on the D6 shell and the one data model (`ux/wf/wf.
 ### Visual system (additions; everything else is K1 tokens and the D6 sheet)
 - **Scenes are night pictures in both themes.** The light is the information and a lit room only reads against the dark, so light mode frames the scene like a photograph on paper. Scene colours are fixed and named in each direction's CSS header: wall `#0a0d12 → #131922`, furniture `#222a33`/`#313b46`, lit = K1 dark `--active #b39cff` (cone/glass gradients `#8f73f0 → #d6c9ff`), needs `#ff8578`, done `#5fd198`. Words around the scene use only tokens.
 - **Scene heights**: D-A 152 px, D-B 212 px, D-C 176 px; phone tiles 112 / 76 / 96 px wide, min 104–112 px tall (`--space-*` padding as D6).
-- **Floor layout**: D-A keeps D6's card grid (`minmax(280px, 1fr)`). D-B and D-C draw a floor as one continuous wall or street: `repeat(min(--n, 5), minmax(0, 1fr))`, hairline between bays, one radius-`--radius-md` frame.
+- **Floor layout**: D-A keeps D6's card grid (`minmax(280px, 1fr)`). D-B and D-C draw a floor as one continuous wall or street: `repeat(--cols, minmax(0, 1fr))` with `--cols = ceil(n / ceil(n/5))` (balanced rows: 7 desks = 4 + 3), hairline between bays, focus ring drawn inside the bay on top of the scene, one radius-`--radius-md` frame.
 - **The words catch the light**: a working desk's body gets a 7 % `--active` wash from the top (green when finished); needs you never gets a wash (red stays a dot and a word).
 - **Paused** gets its own glyph in the status dot (two bars, `--text-2`) and the word "Paused", as the live app's F-11 rule.
 
@@ -1228,7 +1228,12 @@ Nothing new from the server: the desk model in `dashboard/app.js` (`deskOf`: k, 
 
 ### Critique log (Office directions)
 - **Round 1** (design-critique on 1440/768/390 shots of all three, every state): (1) D-B and D-C used auto-fill columns, so a floor of three desks ended in empty bays and the street just stopped; now the bays always span the floor. (2) D-C houses read too small on wide plots and the sky was empty; viewBox cropped tighter, faint stars added. (3) D-A's floor band was near-black and heavy; lifted to `#0e1218`. The waiting pose's head read as a blob over the chair back; the figure now sits up a little. (4) D-B's halo didn't show behind the frame; gradient raised to 50 % at the centre. (5) D-B's bands each restarted the gradient, so the glass looked striped; one gradient now runs across the whole glass. Measured: 0 console errors, no sideways scroll at 1440, 768 and 390 for all three pages. Before/after: `review/office-directions/r1-*`.
-- **Round 2**: to come (accessibility review with measured contrast, keyboard order and focus, the recordings, phone tile crops).
+- **Round 2** (design-critique on fresh 1440/390 shots, dark and light; accessibility review measured, not guessed):
+  - *Contrast, measured* (`runs/pjv7/tools/pcontrast.mjs`, every visible text run against its real background): a, b, c × `?states`, `empty`, `error`, `stale` × dark and light, plus the pick page at 1440 dark and 390 light. 0 runs under AA. Lowest: dark 6.26 (meta lines), light 4.86 ("3 working" in `--active` on the page). State cues in the scenes are never colour alone: each desk also has its status dot and word.
+  - *Keyboard* (`runs/vbnh/tools/keys.mjs`): the order is skip link → sidebar → desks in reading order → quiet floor → page tag. On the phone, every stop is at least 44 px tall. **Found**: in D-B and D-C the focused bay's ring was hidden over the scene. The floor frame clips it, and the positioned scene paints over an inset outline; pixels showed the ring only around the words. **Fixed**: the ring is drawn as a `::after` on top, inset 1 px, in `--focus-width` `--focus-ring`. It now measures all the way round (`r2-after-b-focus.png`).
+  - *Rows*: a 7-desk floor in D-B/D-C broke 5 + 2, leaving a large empty stretch of frame. Floors now break into balanced rows (`--cols = ceil(n / ceil(n/5))`, so 7 = 4 + 3 and 6 = 3 + 3) and the wall reads as one run (`r2-before-b-rows` → `r2-after-b-rows`).
+  - *D-C phone crop*: the SVG overhung its 96 px strip, cutting off the sides of the studio and the lead's house. It now fills the strip (`width: 100%`, 100 px tall) and every house shows whole (`r2-before-c-phone` → `r2-after-c-phone`).
+  - Kept as is: the dashed mono page tag. It is the shared mock-page marker (`hf.css`), hidden in `?shot` and in demos, and never part of the product.
 
 ## Open questions
 
