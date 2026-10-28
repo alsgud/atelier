@@ -1,0 +1,78 @@
+/* Office inspiration board (m87r). Built on tokens.css (K1 dark). Three views from one page:
+   the board (default), one option as a poster (?n=7, shot to evidence/ as one PNG each),
+   and the overview sheet (?sheet). Colour stays neutral: lilac, red and green keep their Office meanings. */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: var(--text-base)/var(--leading-base) var(--font-sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--text); text-underline-offset: 3px; text-decoration-color: var(--border-field); }
+a:hover { text-decoration-color: var(--text); }
+a:focus-visible { outline: 2px solid var(--focus, var(--active)); outline-offset: 2px; border-radius: var(--radius-xs); }
+.skip { position: absolute; left: var(--space-4); top: -60px; min-height: 44px; display: inline-flex; align-items: center; padding: 0 var(--space-4); background: var(--surface-selected); border-radius: var(--radius-sm); }
+.skip:focus { top: var(--space-4); }
+
+/* ── Board ─────────────────────────────────────────── */
+.wrap { max-width: 1240px; margin: 0 auto; padding: var(--space-8) var(--space-6) 64px; }
+.head { display: grid; gap: var(--space-3); margin-bottom: var(--space-8); max-width: 760px; }
+.eyebrow { font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-3); letter-spacing: .02em; }
+h1 { margin: 0; font: 400 var(--text-2xl)/var(--leading-2xl) var(--font-display); letter-spacing: -.01em; }
+.lede { margin: 0; font-size: var(--text-md); line-height: var(--leading-md); color: var(--text-2); }
+.ask { margin-top: var(--space-2); padding: var(--space-4) var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: var(--text-md); line-height: var(--leading-md); }
+.ask b { font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+
+.grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8) var(--space-6); grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+.opt { display: grid; gap: var(--space-3); align-content: start; scroll-margin-top: var(--space-6); }
+.frame { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius-md); overflow: hidden; background: var(--surface-sunken); border: 1px solid var(--border); }
+.frame img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.frame .num { position: absolute; left: var(--space-3); top: var(--space-3); min-width: 40px; height: 40px; padding: 0 var(--space-2); display: grid; place-items: center; background: rgba(11, 14, 18, .82); backdrop-filter: blur(6px); border-radius: var(--radius-sm); font: 400 22px/1 var(--font-display); color: var(--text); }
+.title { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+.title h2 { margin: 0; font: 400 var(--text-lg)/var(--leading-lg) var(--font-display); }
+.chip { display: inline-flex; align-items: center; gap: var(--space-1-5); height: 22px; padding: 0 var(--space-2); border: 1px solid var(--border-strong); border-radius: var(--radius-full); font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-2); white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); }
+.chip[data-cast="No characters"]::before { background: transparent; border: 1px solid var(--text-2); }
+.chip[data-cast="Characters"]::before { background: var(--text); }
+dl.notes { margin: 0; display: grid; gap: var(--space-2); }
+dl.notes div { display: grid; grid-template-columns: 92px 1fr; gap: var(--space-3); }
+dl.notes dt { font-size: var(--text-xs); line-height: var(--leading-sm); color: var(--text-3); padding-top: 1px; }
+dl.notes dd { margin: 0; font-size: var(--text-sm); line-height: var(--leading-sm); color: var(--text-2); }
+dl.notes div:first-child dd { color: var(--text); font-size: var(--text-base); line-height: var(--leading-base); }
+.effort { display: inline-flex; gap: 3px; vertical-align: middle; margin-right: var(--space-2); }
+.effort i { width: 14px; height: 4px; border-radius: var(--radius-full); background: var(--border-strong); }
+.effort i.on { background: var(--text-2); }
+.src { font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-3); }
+.src a { color: var(--text-2); }
+.foot { margin-top: 64px; padding-top: var(--space-6); border-top: 1px solid var(--border); color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); max-width: 760px; }
+
+/* ── Poster: one option, 1440 × 810, for the Inbox ─────── */
+.poster { width: 1440px; height: 810px; padding: 56px; display: grid; grid-template-columns: 896px 1fr; gap: 56px; align-items: center; overflow: hidden; }
+.poster .frame { aspect-ratio: auto; width: 896px; height: 504px; }
+.poster .frame .num { display: none; } /* the big numeral says it once */
+.poster .pic-src { margin: var(--space-3) 0 0; }
+.poster .side { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.poster .side > .src { margin: var(--space-2) 0 0; }
+.poster .big { font: 400 88px/1 var(--font-display); color: var(--text); letter-spacing: -.02em; }
+.poster .big small { font: var(--text-sm)/var(--leading-sm) var(--font-sans); color: var(--text-3); letter-spacing: .02em; margin-left: var(--space-2); vertical-align: top; }
+.poster h2 { margin: 0; font: 400 var(--text-xl)/var(--leading-xl) var(--font-display); }
+.poster dl.notes { gap: var(--space-4); align-content: start; }
+.poster dl.notes div { grid-template-columns: 1fr; gap: var(--space-1); }
+.poster dl.notes dt { font-size: var(--text-sm); }
+.poster dl.notes dd { font-size: var(--text-md); line-height: var(--leading-md); }
+.poster dl.notes div:first-child dd { font-size: var(--text-md); line-height: var(--leading-md); }
+.poster .src { font-size: var(--text-sm); line-height: var(--leading-sm); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.poster .reply { font-size: var(--text-sm); color: var(--text-3); }
+
+/* ── Overview sheet: all options at a glance, 1440 wide ── */
+.sheet { width: 1440px; padding: 40px 48px 48px; }
+.sheet .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--space-6); }
+.sheet h1 { font-size: var(--text-xl); line-height: var(--leading-xl); }
+.sheet .grid { grid-template-columns: repeat(4, 1fr); gap: var(--space-5) var(--space-4); }
+.sheet .opt { gap: var(--space-2); }
+.sheet .eff { margin-left: auto; font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--text-2); }
+.sheet .title h2 { font-size: var(--text-md); line-height: var(--leading-md); }
+
+@media (max-width: 640px) {
+  .wrap { padding: var(--space-6) var(--space-4) 48px; }
+  h1 { font-size: var(--text-xl-phone); line-height: var(--leading-xl-phone); }
+  .grid { grid-template-columns: 1fr; }
+  dl.notes div { grid-template-columns: 1fr; gap: 2px; }
+  .src a { display: inline-block; min-height: 24px; }
+}

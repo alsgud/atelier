@@ -1155,6 +1155,35 @@ The reviewer found two Inbox items wider than a 360 phone and several inventory 
 | (copy, review 2) Sign in's wrong-token line claimed the token changes on reinstall; it lives in `~/.atelier/dashboard-token` and survives one | "That token didn't match. Copy it again from `atelier open`." | Say only what is true (AC-7: plain sentences) |
 | (a11y) New buttons and folds: Run an audit, Yes / No, Save, Approve, Add | All ≥ 44 tall, named by their result, disabled until there is something to save or add; errors under their field with `aria-invalid` | Same rules as the Inbox dock |
 
+## Office inspiration board (m87r)
+
+**Open `design/office-inspiration/index.html`.** The owner turned down every Office character direction so far (A1–A3, and the 3e5b style families S1–S14 on branch `atelier/3e5b`), so this board goes wider. It shows 16 real, polished sources from games, products and industrial design, and 9 of them show the team **with no characters**. Each option says four things: what our Office would be in that style, why the source looks polished, what to watch out for, and the effort to build it (Light / Medium / Heavy / Very heavy, for about six roles in five states). Each is credited to its maker. The owner replies with numbers, and the next task draws 2–3 original directions from the picks.
+
+| # | Option | Cast | Source |
+|---|---|---|---|
+| 1 | The tower at night | Tiny figures | Project Highrise (SomaSim) |
+| 2 | Busy workshop cutaway | Characters | Oxygen Not Included (Klei) |
+| 3 | Handmade miniatures | Characters | Harold Halibut (Slow Bros.) |
+| 4 | Line and flat colour | Characters | Sable (Shedworks) |
+| 5 | Bold graphic portraits | Characters | Persona 5 Royal (ATLUS) |
+| 6 | Tabletop factory | Tiny figures | Little Big Workshop (Mirage) |
+| 7 | One light per desk | Silhouettes | Control (Remedy) |
+| 8 | Lit shrines | No characters | Monument Valley 3 (ustwo games) |
+| 9 | Machines at work | No characters | Opus Magnum (Zachtronics) |
+| 10 | Glowing flow | No characters | shapez 2 (tobspr) |
+| 11 | The schematic map | No characters | Mini Metro (Dinosaur Polo Club) |
+| 12 | A little town at night | No characters | Townscaper (Oskar Stålberg) |
+| 13 | The desk tells the story | No characters | Unpacking (Witch Beam) |
+| 14 | Rooms as tiles | No characters | Apple Home (Apple) |
+| 15 | Presence, not people | No characters | FigJam (Figma) |
+| 16 | An instrument panel | No characters | teenage engineering |
+
+- **Files**: data and credits are in `insp.js` (one entry per option; the page renders from it), styles in `insp.css` (K1 dark tokens only), and images in `media/` (JPEG, ≤ 1440 px, ≤ 260 KB each, taken from Steam store screenshots and the makers' own public pages). The images are inspiration for a private decision only and never ship.
+- **Views**: the board (default, 390–1440); `?n=1…16` shows one option as a 1440 × 810 poster, which is what the Inbox shows as one PNG per option; `?sheet` shows all 16 at a glance.
+- **Recommendation**: **8** is our N1 window at room scale, needs no characters and is medium to build (the shrines are simple geometry we can draw in SVG, but the role emblems need an illustrator). **7** follows the same light idea and reads as calm and premium. **4** is the best fit if the owner still wants characters.
+- **Why colour stays neutral**: lilac, red and green already mean working, needs you and done in the Office. The board uses only greys, so the chips (filled dot = characters, hollow dot = none) never look like a status.
+- **Critique log**: round 1 found three problems. The poster image floated above a dead band, the number showed twice, and #13 showed a kitchen, not a desk. Fixes: both poster columns are now centred, the badge is hidden in the poster, and #13 is now Unpacking's desk room. Round 2 found the lede saying "eight" options with no characters when there are nine; the count now comes from the data. Measured: 207 text runs each at 390 and 1440, 0 under AA (lowest 6.86:1). Every link is named and shows a focus ring, and the skip link is 44 px. The source links are inline, 24 px tall, which meets 2.5.8. There are 0 broken images, 0 console errors and no sideways scroll. Round 3 (review plus a design-critique skill pass on the sheet and poster 8): #8 was marked Light while its own Watch out line says the emblems need an illustrator. It is now Medium, and the recommendation says so. The sheet showed no effort, although cost is part of the pick, so each name on the sheet now has its effort on the right. #7's alt now describes the actual image (a backlit silhouette among concrete blocks under stars). #16's credit names the OP–XY, which is the device shown.
+
 ## Open questions
 
 - **D6: Office desk data**: latest step, progress unit, last activity, "quiet longer than usual" and a just-finished flag per agent (see Screens (D6) › Endpoint needs). Read data only; the lead confirms the server can send it.
