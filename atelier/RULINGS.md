@@ -40,3 +40,6 @@ _2026-10-28 · owner chat 2026-10-28: i didnt like the direction of the office c
 
 ## R-13: When the lead needs the owner's input, it goes in the dashboard Inbox (gate or criteria requests, with the thing to decide shown there), not only in chat. Chat may point to it.
 _2026-10-28 · owner chat 2026-10-28: when u need my inputs shouldnt u put that in my inbox?_
+
+## R-14: The Office grows from inspirations 8 Lit shrines, 7 One light per desk and 4 Line and flat colour (board m87r). The next designer step draws 2-3 original Office directions from these, as the real screen with every state and a motion demo, for the owner to pick one.
+_2026-10-28 · owner, Inbox A-2, 2026-10-28_
