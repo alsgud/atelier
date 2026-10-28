@@ -1,0 +1,79 @@
+/* P3 · Little lights. One pose shows per state (they cross-fade on --dur-base). The helper is ink against the light,
+   a soft grey (#4a5466) in the dark; its sprout catches the light (lilac working, green finished). Loops 1–4 s, small. */
+.pose { opacity: 0; transition: opacity var(--dur-base) var(--ease-enter); }
+.desk[data-k="active"]:not([data-quiet]) .pose-work,
+.desk[data-k="active"][data-quiet] .pose-quiet,
+.desk[data-k="needs"] .pose-needs,
+.desk[data-k=""]:not([data-held]) .pose-wait,
+.desk[data-held="paused"] .pose-paused,
+.desk[data-k="off"] .pose-off,
+.desk[data-k="done"] .pose-done { opacity: 1; }
+
+.desk:not([data-k="active"]):not([data-k="done"]) .w-in .ink { fill: #4a5466; }
+.desk:not([data-k="active"]):not([data-k="done"]) .w-in .ink-l { stroke: #4a5466; }
+.desk[data-k="off"] .w-in .ink { fill: #353e4d; }
+.desk[data-k="off"] .w-in .ink-l { stroke: #353e4d; }
+/* a rim of light on the body, so the helper still reads where it stands above the stage line, on the dim glass */
+.gb { stroke: transparent; stroke-width: 1.4; transition: stroke var(--dur-slow); }
+.desk[data-k="active"] .gb { stroke: #cbbcff; stroke-opacity: 0.7; }
+.desk[data-k="done"] .gb { stroke: #b8f0d3; stroke-opacity: 0.6; }
+.gs { fill: #4a5466; transition: fill var(--dur-slow); }
+.desk[data-k="active"] .gs { fill: #f1eaff; }
+.desk[data-k="done"] .gs { fill: #e3fff0; }
+.desk[data-k="off"] .gs { fill: #353e4d; }
+
+/* Working loops */
+.p3-stroke { fill: none; stroke: #f4f0ff; stroke-width: 4.5; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0.85; }
+/* the brush is a short chunky one with a loaded, light-coloured tip, so it reads as a brush, not a stick */
+.p3-tip, .p3-blob { fill: #f4f0ff; }
+.p3-blob { opacity: 0; }
+.desk:not([data-k="active"]) .p3-tip { fill: #4a5466; }
+.desk[data-k="active"]:not([data-quiet]) .p3-blob { animation: p3-blob 3.6s var(--ease-move) infinite; }
+@keyframes p3-blob { 0%, 55% { opacity: 0; } 62%, 80% { opacity: 0.9; } 92%, 100% { opacity: 0; } }
+.desk[data-k="active"]:not([data-quiet]) .p3-stroke { animation: p3-stroke 3.6s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .hab-paint { transform-box: fill-box; transform-origin: 0% 100%; animation: p3-paint 3.6s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .pose-work .hab-hop, .desk[data-k="needs"] .hab-hop { transform-origin: 50% 100%; animation: p3-hop 1.4s var(--ease-move) infinite; }
+.desk[data-k="needs"] .hab-hop { animation-duration: 1.1s; }
+.desk[data-k="active"]:not([data-quiet]) .hab-page { transform-origin: 50% 50%; animation: p3-page 3s var(--ease-move) infinite; }
+.desk:is([data-k="active"], [data-k=""]) .hab-legs { transform-origin: 50% 0; animation: p3-legs 1.6s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-peer { animation: p3-peer 4s var(--ease-move) infinite alternate; }
+.p3-lens { fill: #f4f0ff; fill-opacity: 0.25; stroke: #1c1630; stroke-width: 2.4; }
+.desk:not([data-k="active"]) .p3-lens { stroke: #4a5466; fill-opacity: 0; }
+.desk[data-k="active"]:not([data-quiet]) .hab-baton { transform-box: fill-box; transform-origin: 0% 100%; animation: p3-baton 1.8s var(--ease-move) infinite alternate; }
+
+/* Quiet: thinking, three dots one by one */
+.p3-think circle, .p3-cloud { fill: #c9d0da; fill-opacity: 0.85; }
+.p3-think .pv { fill: #3c4553; fill-opacity: 1; }
+.desk[data-k="active"][data-quiet] .p3-think .pv { animation: p3-dot 2.4s steps(1) infinite; }
+.desk[data-k="active"][data-quiet] .p3-think .pv:nth-of-type(4) { animation-delay: 0.4s; }
+.desk[data-k="active"][data-quiet] .p3-think .pv:nth-of-type(5) { animation-delay: 0.8s; }
+
+/* Needs you: a red card held high, a red glow behind */
+.p3-card { fill: #ff8578; }
+.p3-red { opacity: 0; transition: opacity var(--dur-base); }
+.desk[data-k="needs"] .p3-red { opacity: 1; }
+
+/* Off: asleep, breathing */
+.desk[data-k="off"] .hab-breathe { transform-origin: 50% 100%; animation: p3-breathe 3.4s var(--ease-move) infinite alternate; }
+.desk[data-k="off"] .p3-z { animation: p3-z 4.4s var(--ease-move) infinite; }
+
+/* Finished: a jump for joy and three sparks */
+.desk[data-k="done"] .p3-done { transform-origin: 50% 100%; animation: p3-jump 0.9s var(--ease-move) 2; }
+.p3-sparks { opacity: 0; transition: opacity var(--dur-base); }
+.desk[data-k="done"] .p3-sparks { opacity: 1; }
+.desk[data-k="done"] .p3-sparks .pv { animation: p3-spark 1.4s var(--spring-snappy) both; }
+.desk[data-k="done"] .p3-sparks .pv:nth-child(2) { animation-delay: 0.15s; }
+.desk[data-k="done"] .p3-sparks .pv:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes p3-stroke { 0% { stroke-dashoffset: 100; opacity: 0.85; } 60% { stroke-dashoffset: 0; opacity: 0.85; } 85%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes p3-paint { 0%, 100% { transform: rotate(-10deg); } 60% { transform: rotate(14deg); } }
+@keyframes p3-hop { 0%, 100% { transform: translateY(0) scaleY(1); } 15% { transform: translateY(0) scaleY(0.92); } 40% { transform: translateY(-6px) scaleY(1.04); } 65% { transform: translateY(0) scaleY(0.96); } }
+@keyframes p3-page { 0%, 60%, 100% { transform: scaleX(1); } 75% { transform: scaleX(-1); } }
+@keyframes p3-legs { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
+@keyframes p3-peer { from { transform: translateX(-6px); } to { transform: translateX(8px); } }
+@keyframes p3-baton { from { transform: rotate(-16deg); } to { transform: rotate(18deg); } }
+@keyframes p3-dot { 0% { opacity: 0; } 30% { opacity: 1; } 90% { opacity: 1; } }
+@keyframes p3-breathe { from { transform: scaleY(1); } to { transform: scaleY(1.08); } }
+@keyframes p3-z { 0% { opacity: 0; transform: translate(0, 4px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translate(4px, -6px); } }
+@keyframes p3-jump { 0%, 100% { transform: translateY(0) scaleY(1); } 20% { transform: translateY(0) scaleY(0.88); } 50% { transform: translateY(-10px) scaleY(1.06); } 80% { transform: translateY(0) scaleY(0.95); } }
+@keyframes p3-spark { 0% { opacity: 0; transform: scale(0.2) rotate(-40deg); } 50% { opacity: 1; transform: scale(1.15); } 100% { opacity: 0.9; transform: scale(1) rotate(0); } }

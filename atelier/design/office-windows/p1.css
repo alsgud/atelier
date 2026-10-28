@@ -1,0 +1,64 @@
+/* P1 · Lived-in. Each state shows or hides one thing; the role's own things move only while its light is on.
+   Every loop is slow (2.8–9 s) and small (≤ 4 units), so a lit floor reads as calm life, not busyness. */
+.p1-cat, .p1-zz, .p1-flag, .p1-card, .p1-curtains, .p1-sparks, .p1-bloom, .p1-bud { opacity: 0; transition: opacity var(--dur-slow) var(--ease-enter); }
+.p1-bud { fill: #3a4554; }
+
+/* Working: the room's things come alive */
+.hab-steam .st2 { animation-delay: -1.6s !important; }
+.desk[data-k="active"]:not([data-quiet]) .hab-steam path { animation: p1-steam 3.2s var(--ease-move) infinite; }
+.desk:not([data-k="active"]) .hab-steam, .desk[data-quiet] .hab-steam { opacity: 0; }
+.hab-steam { transition: opacity var(--dur-slow); }
+.desk[data-k="active"]:not([data-quiet]) .hab-swing { transform-origin: 50% 0; animation: p1-swing 4.6s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-sway { transform-origin: 50% 100%; animation: p1-sway 5.2s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-settle { animation: p1-settle 3.6s var(--ease-move) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .hab-lamp { transform-origin: 50% 0; animation: p1-swing 6s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-hand { transform-origin: 50% 100%; animation: p1-tick 8s steps(8) infinite; }
+.desk[data-k="active"]:not([data-quiet]) .hab-pan { transform-box: view-box; transform-origin: 108px 147px; animation: p1-pan 9s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-flutter { transform-origin: 50% 0; animation: p1-flutter 2.8s var(--ease-move) infinite alternate; }
+.desk[data-k="active"]:not([data-quiet]) .hab-globe { transform-origin: center; animation: p1-globe 4s linear infinite; }
+.desk[data-k="active"] .p1-bud { opacity: 1; fill: #cbbcff; }
+.desk[data-k="done"] .p1-bud { opacity: 1; fill: #b8f0d3; }
+
+/* Quiet a long while: the light is low and the house cat has come to sleep on the sill (it breathes, slowly) */
+.desk[data-k="active"][data-quiet] :is(.p1-cat, .p1-zz) { opacity: 1; }
+.desk[data-k="active"][data-quiet] .p1-cat .obj, .desk[data-k="active"][data-quiet] .p1-cat .obj-l { stroke: #6f6596; }
+.desk[data-k="active"][data-quiet] .hab-breathe { transform-origin: 50% 100%; animation: p1-breathe 3.4s var(--ease-move) infinite alternate; }
+.desk[data-k="active"][data-quiet] .p1-zz { animation: p1-zz 4.4s var(--ease-move) infinite; }
+
+/* Needs you: the flag goes up on the sill post and waves */
+.p1-flag .hab-wave { transform-origin: 0 50%; transform: scaleY(0.2) translateY(30px); transition: transform var(--spring-snappy-dur) var(--spring-snappy); }
+.desk[data-k="needs"] .p1-flag { opacity: 1; }
+.desk[data-k="needs"] .p1-flag .hab-wave { transform: none; animation: p1-wave 1.8s var(--ease-move) infinite alternate; }
+
+/* Paused: a back-soon card hangs in the glass, the light held grey where it stopped */
+.desk[data-held="paused"] .p1-card { opacity: 1; }
+.desk[data-held="paused"] .hab-card { transform-origin: 50% 0; animation: p1-swing 5s var(--ease-move) 1; }
+
+/* Off: curtains drawn (they close from the sides) */
+.p1-curtains path:nth-child(1) { transform-box: view-box; transform-origin: 36px 0; transform: scaleX(0.18); transition: transform var(--dur-calm) var(--ease-enter); }
+.p1-curtains path:nth-child(2) { transform-box: view-box; transform-origin: 124px 0; transform: scaleX(0.18); transition: transform var(--dur-calm) var(--ease-enter); }
+.desk[data-k="off"] .p1-curtains { opacity: 1; }
+.desk[data-k="off"] .p1-curtains path:nth-child(-n+2) { transform: none; }
+.desk[data-k="off"] .w-in { opacity: 0.4; }
+.w-in { transition: opacity var(--dur-slow); }
+
+/* Finished: green floods up, a flower opens on the sill, three sparks */
+.desk[data-k="done"] :is(.p1-sparks, .p1-bloom) { opacity: 1; }
+.desk[data-k="done"] .p1-sparks .pv { animation: p1-spark 1.4s var(--spring-snappy) both; }
+.desk[data-k="done"] .p1-sparks .pv:nth-child(2) { animation-delay: 0.15s; }
+.desk[data-k="done"] .p1-sparks .pv:nth-child(3) { animation-delay: 0.3s; }
+.desk[data-k="done"] .p1-bloom .pv { animation: p1-bloom var(--dur-calm) var(--spring-snappy) both; }
+
+@keyframes p1-steam { 0% { opacity: 0; transform: translateY(4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes p1-swing { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+@keyframes p1-sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes p1-settle { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
+@keyframes p1-tick { to { transform: rotate(360deg); } }
+@keyframes p1-pan { from { transform: rotate(-5deg); } to { transform: rotate(7deg); } }
+@keyframes p1-flutter { from { transform: skewX(-4deg) scaleY(0.96); } to { transform: skewX(4deg) scaleY(1.04); } }
+@keyframes p1-globe { 0% { transform: scaleX(1); } 50% { transform: scaleX(0.1); } 100% { transform: scaleX(1); } }
+@keyframes p1-breathe { from { transform: scaleY(1); } to { transform: scaleY(1.07); } }
+@keyframes p1-zz { 0% { opacity: 0; transform: translate(0, 4px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translate(4px, -6px); } }
+@keyframes p1-wave { from { transform: skewY(-6deg); } to { transform: skewY(4deg) scaleX(0.92); } }
+@keyframes p1-spark { 0% { opacity: 0; transform: scale(0.2) rotate(-40deg); } 50% { opacity: 1; transform: scale(1.15); } 100% { opacity: 0.9; transform: scale(1) rotate(0); } }
+@keyframes p1-bloom { from { transform: scale(0); } to { transform: scale(1); } }
