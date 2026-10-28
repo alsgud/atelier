@@ -103,7 +103,8 @@
       });
       const flag = document.querySelector('.mock-flag');
       if (flag) { flag.textContent = `Office windows ${V.id} · ${V.name} · for the owner to pick`; flag.href = keep('index.html'); }
-      if (q.has('demo')) demo(q.get('demo') === 'loop');
+      // mount() calls this synchronously, before the demo's consts below exist: start it once the script has run
+      if (q.has('demo')) queueMicrotask(() => demo(q.get('demo') === 'loop'));
     },
   });
 

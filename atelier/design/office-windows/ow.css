@@ -19,7 +19,7 @@
 /* the frame clips its bays and the scene paints over an inset outline, so the ring is drawn on top, inside the bay */
 [data-dir="OW"] .desk:focus-visible { outline: none; }
 [data-dir="OW"] .desk:focus-visible::after { content: ""; position: absolute; inset: 1px; z-index: 3; border: var(--focus-width) solid var(--focus-ring); pointer-events: none; }
-[data-dir="OW"] .desk-scene { height: 236px; padding-top: 10px; background: linear-gradient(#0d1118, #151b26); border-bottom: 0; }
+[data-dir="OW"] .desk-scene { height: 288px; padding-top: 12px; background: linear-gradient(#0d1118, #151b26); border-bottom: 0; }
 
 /* Words: centred under the window like a label under a picture; F-3 meta line (stage · when) */
 [data-dir="OW"] .desk-body { text-align: center; justify-items: center; padding: var(--space-3) var(--space-4) var(--space-5); transition: background-color var(--dur-slow) var(--ease-enter); }

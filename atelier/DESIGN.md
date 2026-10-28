@@ -1249,7 +1249,7 @@ Nothing new from the server: the desk model in `dashboard/app.js` (`deskOf`: k, 
 
 ## Office windows (37h3)
 
-**Open `design/office-windows/index.html`** (in progress). The owner kept one idea from vbnh (R-17): every agent is a window in the shape of our N1 mark, glowing while it works, the glass filling from the sill to the task's stage (D-B). D-A's lamps and figures and D-C's houses are out. This round gives the windows character you see at a glance, in three clearly different ways, still anonymous (R-15): no names, faces or fixed identities, and nothing gloomy or burdened.
+**Open `design/office-windows/index.html`**: the pick page (ids P1–P3, pictures, recordings, my pick). **My pick: P3 Little lights**, then P1 Lived-in. The owner kept one idea from vbnh (R-17): every agent is a window in the shape of our N1 mark, glowing while it works, the glass filling from the sill to the task's stage (D-B). D-A's lamps and figures and D-C's houses are out. This round gives the windows character you see at a glance, in three clearly different ways, still anonymous (R-15): no names, faces or fixed identities, and nothing gloomy or burdened.
 
 ### Frame
 - **Who and when**: the owner, glancing at the Office between other work, often on the phone. **The moment**: "is anything waiting on me, and is work really happening?", answered before reading. **Success feels like**: a lively, warm building at night where each window has a temperament you start to recognise, and a small moment (a curtain twitch, sparks, a cat waking) makes you smile. Calm overall.
@@ -1272,15 +1272,20 @@ Nothing new from the server: the desk model in `dashboard/app.js` (`deskOf`: k, 
 ### Shared visual rules (`ow.css`)
 - **Fixed night palette in both themes** (the light only reads against the dark): wall `#0d1118 → #151b26`, frame `#1a212b`/`#3a4554`, glass `#10151d`, lit `#8f73f0 → #cbbcff` (K1 `--active` family), ink `#1c1630`, things in the dark `#2b3443`, needs `#ff8578`, done `#5fd198`. Objects are neutral ink. Lilac and green appear only as light on them, because colour means state.
 - **Needs you is the same everywhere first**: a soft red glow pools along the sill (`.w-needs`, 75 %), then each variant asks in its own way on top. Added in critique round 1 (below).
-- **Floor**: one continuous wall, balanced rows of at most 4 bays (`--cols`), hairline between bays, focus ring drawn inside the bay as a `::after`. Scene 236 px tall at ≥768; on the phone the window stands left of the words in a 116 px column.
+- **Floor**: one continuous wall, balanced rows of at most 4 bays (`--cols`), hairline between bays, focus ring drawn inside the bay as a `::after`. Scene 288 px tall at ≥768 (was 236: the windows sat small in the 1440 bays); on the phone the window stands left of the words in a 116 px column.
 - **Cards follow audit F-3**: role · status word, the task in one line, the latest step in words, then "stage · when" (e.g. "Building · 4 min ago"). Never "Try N of M".
+
+### Motion (Office windows)
+- **Demo** (`?demo`, `?demo=loop`; 16 s, loop restarts after 1.5 s): 1.2 s the replay reviewer starts · 3.6 s the atelier-ui designer moves on a stage (the light rises on `--spring-soft`) · 6.0 s the auditor needs you · 8.4 s the replay builder finishes (green flood, held 2.4 s like the live app) · 10.8 s back to waiting · 12.4 s atelier-ui's lead goes off duty.
+- **Recordings** (`office-windows/media/`, headless): `p1.webm`, `p2.webm`, `p3.webm` at 1440 and `p1-phone.webm` … at 390 (the phone scrolls to each window as it changes), plus `contact-p1.png` … frame-by-frame sheets of the seven moments. Made with `runs/37h3/tools/rec.mjs` + `sheet.mjs`.
+- **Reduced motion**: `prefers-reduced-motion` or `?motion=reduce` stops every loop and moment; states change by fades of opacity, fill and stroke on `--dur-fast`. Checked by `rec.mjs`: no transform or position animation runs on any of the three during the demo.
 
 ### Critique log (Office windows)
 - **Round 1: `design:design-critique` skill** on fresh 390 and 1440 shots of P1–P3 (Office and `?states`).
   - 🔴 *P2 read as objects, and its waiting/needs "moon streak" looked like cracked glass* (also my iteration-1 note). Its rhythms lived inside the glass and barely showed in a still. **Fixed** (`p2.js`, `p2.css`, new `back` layer in `win.js`): each role now throws its light out onto the wall, big enough to read in a still (orbs, sparks, beam, lamp pool, fairy lights). The moon is gone; waiting keeps a small night-light and its own wall show at 32 %, still, so a resting window is still recognisably its own. Builder and reviewer get their own fill warmth. Before `review/office-windows/r1-before-p2-states.png` → after `r1-after-p2-states.png`.
   - 🔴 *Needs you was the weakest window in P1 and P2*: a 4 px red bulb, a small flag. It is the one state that wants the owner. **Fixed**: a shared red pool along the sill in every variant, P1's flag 1.5× on a taller post, P2's lamp bulb 6 px with a wider glow. P3's red card already read. Before `r1-before-p1-states.png` → after `r1-after-p1-states.png`.
-  - 🟡 *Windows sit small in wide 1440 bays* (lots of plain wall). P2 now uses the wall; P1/P3 keep it as calm night wall. To revisit in round 2.
-  - 🟡 *P3 designer's brush reads as a stick*, and P3's ink body is dark against the dimmer half of the glass. To fix in round 2.
+  - 🟡 *Windows sit small in wide 1440 bays* (lots of plain wall). P2 now uses the wall; P1/P3 keep it as calm night wall. **Fixed after the round**: the scene grows from 236 to 288 px at ≥768, so every window is about 22 % larger and its life reads from across the floor; the phone tile is unchanged.
+  - 🟡 *P3 designer's brush reads as a stick*, and P3's ink body is dark against the dimmer half of the glass. **Fixed after the round**: a short, chunky brush with a ferrule and a light-loaded tip, a thicker stroke that ends at the tip with a dab of paint; a thin rim of light (`.gb`, lilac working, green finished) keeps the helper's outline on the dim glass above the stage line. Before `review/office-windows/r1-followup-before-p3-1440.png` → after `r1-followup-after-p3-1440.png`.
   - ✅ Works: P1's things read at the 116 px phone tile; P3's postures (busy, thinking, holding a card, mug, hammock) say the state without the word; the head counts and F-3 cards match across all three.
 
 ## Open questions

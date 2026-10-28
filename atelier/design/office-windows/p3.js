@@ -18,8 +18,8 @@
   const arm = d => `<path class="ink-l" d="${d}" stroke-width="3"/>`;
 
   const WORK = {
-    designer: `<path class="p3-stroke" d="M54 62c14-16 40-18 58-4" pathLength="100"/>
-      ${glim(62, 164, 1.35, { cls: 'p3-work', extra: `<g class="hab-paint">${arm('M10-18l10-14')}<path class="ink-l" d="M20-32l16-26" stroke-width="2"/><path class="ink" d="M34-56l6-9 3 2-5 9z"/></g>${arm('M-10-16l-6 6')}` })}`,
+    designer: `<path class="p3-stroke" d="M52 92c14-14 34-16 52-6" pathLength="100"/><circle class="p3-blob" cx="104" cy="86" r="3"/>
+      ${glim(62, 164, 1.35, { cls: 'p3-work', extra: `<g class="hab-paint">${arm('M10-18l10-14')}<path class="ink-l" d="M19-31l9-14" stroke-width="3.2"/><path class="ink" d="M26-46l4 2.6 1.6-2.4-4-2.6z"/><path class="p3-tip" d="M27.6-48.4c1-4 4-7 7-8 0.6 3.4-1.4 7-4.4 9.6z"/></g>${arm('M-10-16l-6 6')}` })}`,
     builder: `<rect class="ink" x="96" y="150" width="22" height="14" rx="1"/><rect class="ink" x="99" y="138" width="16" height="12" rx="1"/>
       ${glim(70, 164, 1.35, { cls: 'p3-work hab-hop', extra: `${arm('M-10-20l-4-14M10-20l4-14')}<rect class="ink" x="-11" y="-46" width="22" height="13" rx="1.5"/>` })}`,
     reviewer: `<rect class="ink" x="44" y="154" width="34" height="10" rx="1"/><rect class="ink" x="47" y="145" width="28" height="9" rx="1"/><rect class="ink" x="45" y="137" width="31" height="8" rx="1"/>

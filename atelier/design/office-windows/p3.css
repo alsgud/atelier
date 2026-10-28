@@ -13,13 +13,23 @@
 .desk:not([data-k="active"]):not([data-k="done"]) .w-in .ink-l { stroke: #4a5466; }
 .desk[data-k="off"] .w-in .ink { fill: #353e4d; }
 .desk[data-k="off"] .w-in .ink-l { stroke: #353e4d; }
+/* a rim of light on the body, so the helper still reads where it stands above the stage line, on the dim glass */
+.gb { stroke: transparent; stroke-width: 1.4; transition: stroke var(--dur-slow); }
+.desk[data-k="active"] .gb { stroke: #cbbcff; stroke-opacity: 0.7; }
+.desk[data-k="done"] .gb { stroke: #b8f0d3; stroke-opacity: 0.6; }
 .gs { fill: #4a5466; transition: fill var(--dur-slow); }
 .desk[data-k="active"] .gs { fill: #f1eaff; }
 .desk[data-k="done"] .gs { fill: #e3fff0; }
 .desk[data-k="off"] .gs { fill: #353e4d; }
 
 /* Working loops */
-.p3-stroke { fill: none; stroke: #f4f0ff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0.85; }
+.p3-stroke { fill: none; stroke: #f4f0ff; stroke-width: 4.5; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0.85; }
+/* the brush is a short chunky one with a loaded, light-coloured tip, so it reads as a brush, not a stick */
+.p3-tip, .p3-blob { fill: #f4f0ff; }
+.p3-blob { opacity: 0; }
+.desk:not([data-k="active"]) .p3-tip { fill: #4a5466; }
+.desk[data-k="active"]:not([data-quiet]) .p3-blob { animation: p3-blob 3.6s var(--ease-move) infinite; }
+@keyframes p3-blob { 0%, 55% { opacity: 0; } 62%, 80% { opacity: 0.9; } 92%, 100% { opacity: 0; } }
 .desk[data-k="active"]:not([data-quiet]) .p3-stroke { animation: p3-stroke 3.6s var(--ease-move) infinite; }
 .desk[data-k="active"]:not([data-quiet]) .hab-paint { transform-box: fill-box; transform-origin: 0% 100%; animation: p3-paint 3.6s var(--ease-move) infinite; }
 .desk[data-k="active"]:not([data-quiet]) .pose-work .hab-hop, .desk[data-k="needs"] .hab-hop { transform-origin: 50% 100%; animation: p3-hop 1.4s var(--ease-move) infinite; }
