@@ -54,6 +54,7 @@ Base: main after the owner merges atelier/6dug (speed fix) and atelier/pjv7 (who
 - Then: integration on one branch, try it on a second port (R25), owner tries it, audit.
 
 ## Progress notes
+- 2026-10-28 eve: shift restart. Contracts reopened (owner quote) and re-approved with the read-only API shapes (contracts/dashboard-api.md). Lead checked uey2/hn3n proof. m87r inspiration board waiting on the owner's pick (design gate). Nothing running.
 - 2026-10-26 13:33: owner approved design ("Good"): recommended UX-1..15 answers stand, D6 screens no longer provisional. Owner merged 6dug and pjv7 (whole design chain) into main. Started slice 1, 5u8q, base main. Project total $188.
 - 2026-10-26 ~06:00: D6 pjv7 approved (3 rounds, ~$41). Design gate requested (owner). Approval accepts recommended UX answers unless the owner names changes. Spent so far ~$184.
 - 2026-10-26: owner picked N1 + K1 (R-7), asked for a full UX walkthrough with research (R-8). Started 6umt D5 ($22). Re-price: spent ~$115; remaining design D5 22 + D6 ~25; build 3 slices ~70; integration ~10; audit ~10: total ~$250.
