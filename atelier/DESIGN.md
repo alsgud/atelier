@@ -1301,6 +1301,33 @@ Nothing new from the server: the desk model in `dashboard/app.js` (`deskOf`: k, 
   - *1.1.1 / 4.1.2*: each desk is one link named "Role, state. Task. Latest step"; the scene SVGs are hidden from assistive tech (0 exposed), so a screen reader hears the words, not the drawing. Pick page images carry alt text describing each state.
   - Nothing left to fix.
 
+## Office fresh (f2e6)
+
+**Status: in progress (iteration 1: frame, references, roughs, framing picks).** R-20 resets the Office: 5cbr (dense one-line tiles + animation) is not merged because its balance felt off on PC and phone, and P1 windows were liked as pictures but not in the app. This round starts again from the whole screen, not from any earlier pick page. Files: `design/office-fresh/` (one data set `data.js`, roughs `rough.html?f=`, then the three directions, the pick page `index.html`, shots and recordings).
+
+### Frame
+- **Who and when**: the owner, glancing at the Office between other work, about half the time on the phone. **The moment**: "does anything need me, and is work really happening?" answered before reading, then (rarely) "what is that one doing?" answered in one line.
+- **What went wrong before, in one line each**: the current Office gives every desk the same tall card, so 10 idle desks take as much room as 2 working ones (lots of empty wall). 5cbr fixed density by shrinking idle desks to one-line strips, which made two sizes that don't sit together (big working cards with blank space beside them, then a row of thin tiles). P1 made the picture the whole card, so 3 desks filled a screen.
+- **So the job is balance**: give room to what has news (working, needs you, paused, just finished) and keep everyone else visible as a picture, not a line of text, at one steady rhythm. Measured on real shapes: replay 2 working + 10 idle, atelier-ui 1 needs you, dodge all off.
+- **Kept from taste input (not constraints)**: a figure at a desk with the N1 window behind, lit lilac while working (today's Office); role told by things on and around the desk (P1 Lived-in); one light per desk (7); lit panes in the dark (8); a small, cosy whole seen at once (12). **Avoided**: lamp-and-silhouette, buildings, anything slumped, gloomy or cheap. Anonymous but personable (R-15): no faces or names, character from posture, habits and the desk.
+
+### References (`design/office-fresh/` reuses the m87r and 37h3 images; no new paid sources, R-2)
+| Source | Take | Avoid |
+|---|---|---|
+| Today's Office (`dashboard/app.js` Office, main) | The figure at a desk, the arched N1 window lit lilac while working, the patch of light on the floor | One card size for every state; the 88 px scene strip over a mostly empty card |
+| 37h3 P1 Lived-in (`office-windows/img/p1-*.png`) | Role told by objects: sketches and a plant, boxes and tools, books and a mug, a clock and a checklist, bunting | The window as the whole card (3 per screen); no one at home |
+| Townscaper (`office-inspiration/media/12-townscaper.jpg`, #12) | Many small lit windows read as one cosy whole; you count the lit ones without reading | 3D houses and yellow light (yellow means nothing here) |
+| Control (`07-control.jpg`, #7) | One pool of light marks where the work is; everything else falls back | The gloom and the lone silhouette (R-17) |
+| Monument Valley 3 (`08-mv3.jpg`, #8) | Crisp flat geometry, lit panes on dark, calm | Saturated multicolour glass |
+| Apple Home (`14-home.jpg`) | Tiles on one module where "on" tiles light up and "off" tiles stay quiet but present; two sizes on one grid | Glassy blur and generic device icons |
+| Linear inbox/triage (`references/linear-inbox.png`) | Dense, calm rows; one line per item; detail one click away | A table with no life in it |
+
+### Rough layouts (`office-fresh/rough.html?f=…`, shots in `office-fresh/rough/img/`, 1440 and 390, real data shapes)
+Two framings per direction, greyboxes only, to settle balance before any drawing.
+- **O1 Panorama** (the picture first). *o1a*: each project is one continuous room, every desk a bay at one width, with a line of words under it only for desks with news and one "at rest" line for the rest. *o1b*: the room wraps into a 6-wide block with the words in a column on the right. **Pick: o1a at 1440, the room wrapping 4 to a row at 390.** o1b's side column truncates every task at 1440 and leaves a blank column beside quiet projects; o1a's lines get the full width, and a 12-desk room reads as one row of lights (Townscaper's "count the lit windows").
+- **O2 Desk tiles** (the tile first). *o2a*: a bento module where working and needs-you tiles span two cells. *o2b*: at-work tiles in one band, then a shelf of small standby tiles that are still pictures. **Pick: o2b.** o2a's dense packing scatters the news through the grid and, on the phone, gives idle tiles as much height as the words need. o2b keeps two sizes, but both are pictures on one rhythm (the shelf tile is half a work tile), which is what 5cbr's text strips lacked.
+- **O3 Roster** (the words first). *o3a*: a calm row per desk with news (portrait-size scene, role, task, latest step, stage and time), then a bench of small portraits for everyone at rest. *o3b*: every agent a table row, idle rows shorter. **Pick: o3a.** o3b is the densest but reads as a spreadsheet: twelve near-identical rows, no life (R-17). o3a's bench keeps the idle team present as little people.
+
 ## Open questions
 
 - **D6: Office desk data**: latest step, progress unit, last activity, "quiet longer than usual" and a just-finished flag per agent (see Screens (D6) › Endpoint needs). Read data only; the lead confirms the server can send it.
