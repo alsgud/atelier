@@ -1,0 +1,34 @@
+/* O3 Roster: the words first. Each desk with news is one calm row like a Linear list (picture, who, what and the
+   latest step, stage and time), so the page reads top to bottom in one pass. Everyone at rest sits on a bench of
+   small round portraits under the rows: present and personable, taking one line of height. */
+.o3-rows { display: grid; border-top: var(--border-width) solid var(--border); }
+.o3-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--space-4); align-items: center; padding: var(--space-2-5) var(--space-2); margin: 0 calc(-1 * var(--space-2)); border-bottom: var(--border-width) solid var(--border); border-radius: var(--radius-sm); transition: background var(--dur-fast); }
+.o3-row:hover { background: var(--surface-hover); }
+.o3-row .dk-scene { height: 80px; border-radius: var(--radius-sm); background: var(--surface); border: var(--border-width) solid var(--border); }
+.o3-words { display: grid; grid-template-columns: 150px minmax(0, 1fr) 220px; grid-template-areas: "who what meta" "who step meta"; gap: 0 var(--space-4); align-items: baseline; min-width: 0; }
+.o3-who { grid-area: who; display: grid; gap: var(--space-0-5); align-self: center; }
+.o3-who b { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.o3-what { grid-area: what; font-size: var(--text-base); line-height: var(--leading-base); font-weight: var(--weight-semibold); min-width: 0; }
+.o3-step { grid-area: step; color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); min-width: 0; }
+.o3-meta { grid-area: meta; align-self: center; display: flex; justify-content: flex-end; align-items: center; color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); white-space: nowrap; }
+
+.o3-bench { display: grid; gap: var(--space-2-5); }
+.o3-bench-h { margin: 0; display: flex; gap: var(--space-2); align-items: baseline; color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.o3-bench-h .of-st .w { color: var(--text-2); }
+.o3-seats { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.o3-seat { display: grid; justify-items: center; gap: var(--space-1); width: 64px; }
+.o3-seat .dk-scene { width: 56px; height: 56px; border-radius: var(--radius-full); background: var(--surface); border: var(--border-width) solid var(--border); transition: border-color var(--dur-fast), transform var(--spring-snappy-dur) var(--spring-snappy); }
+.o3-seat:hover .dk-scene { border-color: var(--border-strong); transform: translateY(-2px); }
+.o3-seat:focus-visible { border-radius: var(--radius-sm); }
+.o3-cap b { display: block; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-xs); line-height: var(--leading-xs); font-weight: var(--weight-medium); color: var(--text-2); }
+
+@media (max-width: 1100px) { .o3-words { grid-template-columns: 130px minmax(0, 1fr); grid-template-areas: "who what" "who step" "who meta"; } .o3-meta { justify-content: flex-start; margin-top: var(--space-1); } }
+@media (max-width: 640px) {
+  .o3-row { grid-template-columns: 76px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+  .o3-row .dk-scene { height: 72px; }
+  .o3-words { grid-template-columns: minmax(0, 1fr); grid-template-areas: "who" "what" "step" "meta"; }
+  .o3-who { display: flex; gap: var(--space-2); align-items: baseline; }
+  .o3-seats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2) var(--space-1); }
+  .o3-seat { width: auto; }
+  .o3-cap b { max-width: 64px; }
+}

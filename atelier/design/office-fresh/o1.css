@@ -1,0 +1,41 @@
+/* O1 Panorama: the picture first. A project is one continuous room: its bays share one wall and one floor, so a
+   12-desk team reads as one row of windows and you count the lit ones without reading (Townscaper, #12). Every bay
+   is the same width, whatever its state: balance comes from the room being one calm object, and the words come
+   only for desks with news, full width, under the room. Quiet desks get one shared line instead of twelve. */
+.of-o1 .of-floor { gap: var(--space-3); }
+.o1-room { display: grid; grid-template-columns: repeat(var(--dc), minmax(0, 1fr)); width: min(100%, calc(var(--dc) * 108px)); background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.o1-bay { min-width: 0; display: grid; grid-template-rows: 112px auto; position: relative; transition: background var(--dur-fast); }
+.o1-bay .dk-scene { height: 112px; }
+.o1-bay:hover { background: var(--surface-hover); }
+.o1-bay:focus-visible { outline-offset: -2px; border-radius: var(--radius-sm); }
+.o1-cap { display: grid; justify-items: center; gap: 0; padding: var(--space-1-5) var(--space-1) var(--space-2-5); background: color-mix(in srgb, var(--surface-sunken) 55%, var(--bg)); text-align: center; }
+.o1-cap b { font-size: var(--text-xs); line-height: var(--leading-xs); font-weight: var(--weight-semibold); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o1-cap .of-st { font-size: var(--text-xs); line-height: var(--leading-xs); }
+.o1-cap .of-st .dot { display: none; }
+/* A desk with news has a lilac (or red, or green) sill under its bay: the word under it points to the line below */
+.o1-bay::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: transparent; transition: background var(--dur-slow); }
+.o1-bay[data-k="active"]::after { background: var(--active); }
+.o1-bay[data-k="needs"]::after { background: var(--needs); }
+.o1-bay[data-k="done"]::after { background: var(--done); }
+
+/* News: one line per desk that has some, the full width of the page */
+.o1-news { list-style: none; margin: 0; padding: 0; display: grid; }
+.o1-line { display: grid; grid-template-columns: 168px minmax(0, 1fr) 210px; gap: var(--space-4); align-items: baseline; padding: var(--space-2-5) var(--space-3); margin: 0 calc(-1 * var(--space-3)); border-radius: var(--radius-sm); color: var(--text); text-decoration: none; transition: background var(--dur-fast); }
+.o1-news li + li .o1-line { box-shadow: inset 0 1px 0 var(--border); }
+.o1-line:hover { background: var(--surface-hover); }
+.o1-who { display: flex; gap: var(--space-2); align-items: baseline; min-width: 0; }
+.o1-who b { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.o1-what { display: grid; font-size: var(--text-base); line-height: var(--leading-base); font-weight: var(--weight-medium); min-width: 0; }
+.o1-step { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); font-weight: var(--weight-regular); }
+.o1-meta { color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); text-align: right; white-space: nowrap; }
+.of-o1 .of-rest { padding-top: var(--space-1); }
+
+@media (max-width: 1100px) { .o1-line { grid-template-columns: 150px minmax(0, 1fr); } .o1-meta { grid-column: 2; text-align: left; } }
+/* Phone: the room wraps four bays to a row and the words stack under the role */
+@media (max-width: 640px) {
+  .o1-room { width: 100%; grid-template-columns: repeat(var(--pc), minmax(0, 1fr)); }
+  .o1-bay { grid-template-rows: 92px auto; }
+  .o1-bay .dk-scene { height: 92px; }
+  .o1-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-0-5); padding: var(--space-3); }
+  .o1-meta { grid-column: 1; }
+}
