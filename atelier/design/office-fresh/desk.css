@@ -76,6 +76,9 @@
 /* Waiting: lights off, things still there, tea in hand, the cat asleep on the sill */
 .dk[data-k=""]:not([data-held="paused"]) .dk-sip, .dk[data-k=""]:not([data-held="paused"]) .dk-cat { opacity: 1; }
 .dk[data-k=""]:not([data-held="paused"]) .dk-mug { opacity: 0; }
+/* …and the window is evening, not black: a soft neutral sky, so a resting floor looks at ease, never lights-out (R-17) */
+.dk[data-k=""]:not([data-held="paused"]) .dk-wall-win { fill: color-mix(in srgb, var(--text-3) 24%, var(--surface-selected)); }
+.dk[data-k=""]:not([data-held="paused"]) .dk-cat path:not(.dk-l):not(.dk-z) { fill: color-mix(in srgb, var(--text-3) 85%, var(--surface)); }
 /* Paused: the light left on low, chair pushed back, laptop shut, a "back soon" card on the desk */
 .dk[data-held="paused"] .dk-pane { opacity: .2; }
 .dk[data-held="paused"] .dk-body, .dk[data-held="paused"] .dk-lid, .dk[data-held="paused"] .dk-lid-mark { opacity: 0; }

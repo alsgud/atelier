@@ -63,9 +63,10 @@
   const o2 = {
     floor: f => {
       const nw = f.desks.filter(news), rest = f.desks.filter(d => !news(d));
+      // an odd last tile would leave half a row empty on a wide screen: the shelf takes that cell instead
+      const shelf = rest.length ? `<div class="o2-shelf${f.off ? ' is-off' : ''}${nw.length % 2 ? ' is-beside' : ''}" style="--pc:${bal(rest.length, 5)}">${rest.map(d => o2mini(f, d)).join('')}</div>` : '';
       return `${head(f)}
-        ${nw.length ? `<div class="o2-work">${nw.map(d => o2tile(f, d)).join('')}</div>` : ''}
-        ${rest.length ? `<div class="o2-shelf${f.off ? ' is-off' : ''}" style="--pc:${bal(rest.length, 5)}">${rest.map(d => o2mini(f, d)).join('')}</div>` : ''}
+        ${nw.length ? `<div class="o2-work">${nw.map(d => o2tile(f, d)).join('')}${shelf}</div>` : shelf}
         ${f.off ? `<p class="of-rest">${restLine(f, rest)}</p>` : ''}`;
     },
     words: (f, d) => news(d) ? o2tile(f, d) : o2mini(f, d),

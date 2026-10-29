@@ -40,3 +40,8 @@
 /* While a desk glides between groups (O2, O3), only it moves; the rest of the page holds still */
 ::view-transition-group(*) { animation-duration: var(--spring-soft-dur); animation-timing-function: var(--spring-soft); }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+
+/* At rest says itself: the picture (tea, the cat) and the floor's one line already say "waiting", so a quiet desk's
+   caption is just its role. A state word appears under a picture only when it differs (paused, off, news) */
+.dk[data-k=""]:not([data-held]) .o1-cap .of-st { visibility: hidden; } /* keeps the room's captions one height */
+.dk[data-k=""]:not([data-held]) .o2-cap .of-st { display: none; }
