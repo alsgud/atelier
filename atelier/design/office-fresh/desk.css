@@ -1,0 +1,156 @@
+/* Office fresh (f2e6): the desk drawing's looks and states. A desk is any element .dk with the live app's attributes:
+     data-k     active (Working) · needs (Needs you) · '' (Waiting) · off (Off) · done (Finished just now)
+     data-held  paused | waiting (a held task stays at its desk, F-11)
+     data-quiet (working but quiet for longer than usual: the stuck signal, neutral)
+   Colour keeps its meaning (K1): lilac light = working, red flag = needs you, green flood = done. Everything else is
+   the neutral ramp. State changes cross-fade (--dur-slow); loops are transform/opacity only and stop under reduced
+   motion, where every state still reads from the still picture. */
+.dk-svg { display: block; width: 100%; height: 100%; overflow: hidden;
+  --fig: color-mix(in srgb, var(--text-3) 88%, var(--active));
+  --acc: color-mix(in srgb, var(--text-3) 42%, var(--surface));
+  --thing: color-mix(in srgb, var(--text-3) 30%, var(--surface));
+  --line: color-mix(in srgb, var(--text-3) 52%, var(--surface)); }
+.dk-svg * { transition: opacity var(--dur-slow) var(--ease-enter), fill var(--dur-slow) var(--ease-enter); }
+.dk-floor { fill: color-mix(in srgb, var(--surface-sunken) 55%, var(--bg)); }
+.dk-room, .dk-thing, .dk-tree, .dk-pot, .dk-mug { fill: var(--thing); }
+.dk-l, .dk-bunting { fill: none; stroke: var(--line); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.dk-board { fill: var(--surface-selected); stroke: var(--line); stroke-width: 1.2; }
+.dk-canvas { fill: color-mix(in srgb, var(--text) 10%, var(--surface)); stroke: var(--line); stroke-width: 1.2; }
+.dk-sketch { fill: none; stroke: var(--line); stroke-width: 1.6; stroke-linecap: round; }
+.dk-flags { fill: var(--line); }
+.dk-leaf { fill: color-mix(in srgb, var(--text-3) 40%, var(--surface)); }
+.dk-wall-win { fill: var(--surface-selected); stroke: var(--line); stroke-width: 1.5; }
+.dk-bars { stroke: var(--surface-sunken); stroke-width: 2.2; fill: none; }
+.dk-sill { fill: var(--line); }
+.dk-desk { fill: var(--text-3); }
+.dk-chair rect { fill: var(--surface-selected); stroke: var(--line); stroke-width: 1.2; }
+.dk-body path, .dk-body circle { fill: var(--fig); }
+.dk-body .dk-acc { fill: var(--acc); }
+.dk-body .dk-acc-l { fill: none; stroke: var(--acc); stroke-width: 2.4; stroke-linecap: round; }
+.dk-rim { fill: none !important; stroke: var(--active); stroke-width: 1.6; stroke-linecap: round; opacity: 0; }
+.dk-arm { fill: none; stroke: var(--fig); stroke-width: 4.2; stroke-linecap: round; }
+.dk-handc { fill: var(--fig); }
+.dk-mug-held { fill: var(--acc); }
+.dk-pole { stroke: var(--line); stroke-width: 1.4; }
+.dk-flag { fill: var(--needs); }
+.dk-lid { fill: var(--surface-hover); stroke: var(--line); stroke-width: 1.1; }
+.dk-lid-mark { fill: var(--line); }
+.dk-lid-shut { fill: var(--line); }
+.dk-card path:first-child { fill: color-mix(in srgb, var(--text) 82%, var(--surface)); }
+.dk-card-ii { stroke: var(--surface); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.dk-cat path:not(.dk-l):not(.dk-z) { fill: color-mix(in srgb, var(--text-3) 62%, var(--surface)); }
+.dk-z { fill: none; stroke: var(--text-3); stroke-width: 1; stroke-linejoin: round; }
+.dk-think circle { fill: var(--text-3); }
+.dk-steam path { fill: none; stroke: var(--line); stroke-width: 1.1; stroke-linecap: round; }
+.dk-glow { fill: url(#dk-glow); }
+.dk-pane { fill: url(#dk-pane); }
+.dk-pane-done { fill: var(--done); }
+.dk-patch { fill: var(--active); }
+.dk-curtain path:not(.dk-l) { fill: color-mix(in srgb, var(--text-3) 34%, var(--surface)); }
+.dk-curtain .dk-l { stroke: color-mix(in srgb, var(--text-3) 22%, var(--surface)); }
+.dk-tick { fill: none; stroke: var(--surface); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.dk-spark { fill: var(--done); }
+
+/* Hidden until a state asks for them */
+.dk-pane, .dk-pane-done, .dk-glow, .dk-patch, .dk-curtain, .dk-tick, .dk-spark, .dk-cat, .dk-sip, .dk-wave, .dk-cheer,
+.dk-think, .dk-lid-shut, .dk-card, .dk-steam, .dk-night { opacity: 0; }
+
+/* Working: the window lit to the sill, its patch on the floor, a lilac edge on whoever sits in its light, tea steaming */
+.dk[data-k="active"] .dk-pane { opacity: 1; }
+.dk[data-k="active"] .dk-glow { opacity: .75; }
+.dk[data-k="active"] .dk-patch { opacity: .3; }
+.dk[data-k="active"] .dk-rim { opacity: .9; }
+.dk[data-k="active"] .dk-steam { opacity: 1; }
+.dk[data-k="active"] .dk-sketch { stroke: var(--active); }
+/* Quiet longer than usual: the light stays on but low, and a thought hangs in the air. Neutral, never red */
+.dk[data-k="active"][data-quiet] .dk-pane { opacity: .42; }
+.dk[data-k="active"][data-quiet] .dk-glow { opacity: .22; }
+.dk[data-k="active"][data-quiet] .dk-patch { opacity: .1; }
+.dk[data-k="active"][data-quiet] .dk-think { opacity: 1; }
+.dk[data-k="active"][data-quiet] .dk-steam { opacity: 0; }
+/* Needs you: a hand up with the one red flag in the room; the light dims while it waits for you */
+.dk[data-k="needs"] .dk-pane { opacity: .4; }
+.dk[data-k="needs"] .dk-glow { opacity: .2; }
+.dk[data-k="needs"] .dk-rim { opacity: .5; }
+.dk[data-k="needs"] .dk-wave { opacity: 1; }
+/* Waiting: lights off, things still there, tea in hand, the cat asleep on the sill */
+.dk[data-k=""]:not([data-held="paused"]) .dk-sip, .dk[data-k=""]:not([data-held="paused"]) .dk-cat { opacity: 1; }
+.dk[data-k=""]:not([data-held="paused"]) .dk-mug { opacity: 0; }
+/* …and the window is evening, not black: a soft neutral sky, so a resting floor looks at ease, never lights-out (R-17) */
+.dk[data-k=""]:not([data-held="paused"]) .dk-wall-win { fill: color-mix(in srgb, var(--text-3) 24%, var(--surface-selected)); }
+.dk[data-k=""]:not([data-held="paused"]) .dk-cat path:not(.dk-l):not(.dk-z) { fill: color-mix(in srgb, var(--text-3) 85%, var(--surface)); }
+/* …with a moon and a few stars out: neutral (colour stays reserved for meaning), slow twinkle, a floor at rest looks like a nice evening (round 2) */
+.dk-night { fill: color-mix(in srgb, var(--text-2) 88%, var(--surface)); }
+.dk[data-k=""]:not([data-held="paused"]) .dk-night { opacity: 1; }
+/* Paused: the light left on low, chair pushed back, laptop shut, a "back soon" card on the desk */
+.dk[data-held="paused"] .dk-pane { opacity: .2; }
+.dk[data-held="paused"] .dk-body, .dk[data-held="paused"] .dk-lid, .dk[data-held="paused"] .dk-lid-mark { opacity: 0; }
+.dk[data-held="paused"] .dk-card, .dk[data-held="paused"] .dk-lid-shut { opacity: 1; }
+.dk[data-held="paused"] .dk-cat { opacity: 0; }
+/* Off: curtains drawn, chair tucked in, laptop shut. Calm, not dark: the room is there for tomorrow */
+.dk[data-k="off"] .dk-curtain, .dk[data-k="off"] .dk-lid-shut { opacity: 1; }
+.dk[data-k="off"] .dk-who, .dk[data-k="off"] .dk-lid, .dk[data-k="off"] .dk-lid-mark, .dk[data-k="off"] .dk-mug, .dk[data-k="off"] .dk-bars { opacity: 0; }
+.dk[data-k="off"] .dk-chair { transform: translateY(5px); }
+.dk[data-k="off"] .dk-svg { opacity: .72; }
+/* Finished just now: the window floods green with a tick, arms up, three sparks */
+.dk[data-k="done"] .dk-pane-done, .dk[data-k="done"] .dk-tick, .dk[data-k="done"] .dk-spark, .dk[data-k="done"] .dk-cheer { opacity: 1; }
+.dk[data-k="done"] .dk-glow { opacity: .8; fill: url(#dk-glow-done); }
+.dk[data-k="done"] .dk-patch { opacity: .28; fill: var(--done); }
+.dk[data-k="done"] .dk-bars { stroke: color-mix(in srgb, var(--done) 55%, var(--surface)); }
+/* Stale (the page lost the server): nothing claims to be live */
+.is-stale .dk-svg { filter: saturate(.3); opacity: .8; }
+
+/* ── Life: small loops, each desk a little out of step (--i) so a floor never moves in unison ── */
+.dk-svg { --lag: calc(var(--i, 0) * -0.83s); }
+.dk-body, .dk-sip, .dk-wave, .dk-cheer, .dk-cat, .dk-tree .dk-leaf, .dk-steam path, .dk-think circle, .dk-hand-m, .dk-tool, .dk-z, .dk-spark path, .dk-chair { transform-box: fill-box; }
+.dk-body { transform-origin: 50% 100%; }
+.dk[data-k="active"]:not([data-quiet]) .dk-body { animation: dk-type 1.1s ease-in-out var(--lag) infinite alternate; }
+.dk[data-k="active"][data-quiet] .dk-body { transform: rotate(-4deg); transition: transform var(--dur-slow); }
+.dk[data-k="active"] .dk-steam path { animation: dk-steam 2.6s ease-out var(--lag) infinite; }
+.dk[data-k="active"] .dk-steam path + path { animation-delay: calc(var(--lag) - 1.3s); }
+.dk[data-k="active"]:not([data-quiet]) .dk-glow { animation: dk-breathe 4.8s ease-in-out var(--lag) infinite alternate; }
+.dk[data-k="active"] .dk-hand-m { transform-origin: 50% 100%; animation: dk-spin 8s linear infinite; }
+.dk[data-k="active"] .dk-tool { transform-origin: 50% 0; animation: dk-swing 3.2s ease-in-out var(--lag) infinite alternate; }
+.dk[data-k="active"] .dk-tree .dk-leaf, .dk[data-k=""] .dk-tree .dk-leaf { transform-origin: 50% 100%; animation: dk-sway 6s ease-in-out var(--lag) infinite alternate; }
+.dk[data-k="active"][data-quiet] .dk-think circle { animation: dk-dots 2.4s ease-in-out infinite; }
+.dk[data-k="active"][data-quiet] .dk-think circle:nth-child(2) { animation-delay: .4s; }
+.dk[data-k="active"][data-quiet] .dk-think circle:nth-child(3) { animation-delay: .8s; }
+.dk-wave { transform-origin: 0% 100%; }
+.dk[data-k="needs"] .dk-wave { animation: dk-wave 4.2s ease-in-out infinite; }
+.dk-sip { transform-origin: 0% 100%; }
+.dk[data-k=""]:not([data-held="paused"]) .dk-sip { animation: dk-sip 9s ease-in-out var(--lag) infinite; }
+.dk-cat { transform-origin: 50% 100%; }
+.dk[data-k=""] .dk-cat { animation: dk-purr 4s ease-in-out var(--lag) infinite alternate; }
+.dk[data-k=""] .dk-z { animation: dk-z 4s ease-out var(--lag) infinite; }
+.dk-night circle { transform-box: fill-box; transform-origin: 50% 50%; }
+.dk[data-k=""] .dk-night circle { animation: dk-dots 5s ease-in-out var(--lag) infinite; }
+.dk[data-k=""] .dk-night circle + circle { animation-delay: calc(var(--lag) - 1.7s); }
+.dk-cheer { transform-origin: 50% 100%; }
+.dk[data-k="done"] .dk-cheer { animation: dk-cheer var(--spring-snappy-dur) var(--spring-snappy) both; }
+.dk-spark path { transform-origin: 50% 50%; }
+.dk[data-k="done"] .dk-spark path { animation: dk-twinkle 1.2s ease-out 2 both; }
+.dk[data-k="done"] .dk-spark path:nth-child(2) { animation-delay: .25s; }
+.dk[data-k="done"] .dk-spark path:nth-child(3) { animation-delay: .5s; }
+.dk-chair { transition: transform var(--spring-soft-dur) var(--spring-soft); }
+
+@keyframes dk-type { to { transform: translateY(.8px) rotate(.6deg); } }
+@keyframes dk-steam { 0% { opacity: 0; transform: translateY(2px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-5px); } }
+@keyframes dk-breathe { from { opacity: .6; } to { opacity: .85; } }
+@keyframes dk-spin { to { transform: rotate(360deg); } }
+@keyframes dk-swing { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+@keyframes dk-sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+@keyframes dk-dots { 0%, 100% { opacity: .25; } 40% { opacity: 1; } }
+@keyframes dk-wave { 0%, 40%, 100% { transform: rotate(0); } 8%, 24% { transform: rotate(9deg); } 16%, 32% { transform: rotate(-5deg); } }
+@keyframes dk-sip { 0%, 62%, 100% { transform: rotate(0); } 70%, 82% { transform: rotate(-38deg) translate(-3px, 1px); } }
+@keyframes dk-purr { to { transform: scaleY(1.06); } }
+@keyframes dk-z { 0% { opacity: 0; transform: translate(0, 2px); } 30% { opacity: .9; } 100% { opacity: 0; transform: translate(3px, -6px); } }
+@keyframes dk-cheer { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes dk-twinkle { 0% { transform: scale(.2); opacity: 0; } 40% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: .9; } }
+
+/* A desk that just changed: one soft lift of its picture so the eye finds it (Flow: moves, never flashes) */
+.dk.is-changing .dk-scene { animation: dk-land var(--spring-soft-dur) var(--spring-soft); }
+@keyframes dk-land { from { transform: translateY(var(--shift-sm, 3px)) scale(.985); } to { transform: none; } }
+
+/* Reduced motion: every loop stops; states still read from the still picture and change by a short cross-fade */
+@media (prefers-reduced-motion: reduce) { .dk-svg *, .dk .dk-scene { animation: none !important; } }
+[data-motion="reduce"] .dk-svg *, [data-motion="reduce"] .dk .dk-scene { animation: none !important; }

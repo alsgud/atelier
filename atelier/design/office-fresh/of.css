@@ -1,0 +1,47 @@
+/* Office fresh (f2e6): what the three directions share. Floor heads, the state word, the stage gauge, the quiet
+   "at rest" line and the legend. Layout lives in o1.css / o2.css / o3.css. Every value is a K1 token. */
+.of-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-10); max-width: 1240px; width: 100%; }
+.of-floor { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-content: start; }
+.floor-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
+.floor-head h2 { margin: 0; font-size: var(--text-lg); line-height: var(--leading-lg); font-weight: var(--weight-semibold); letter-spacing: -0.01em; }
+.floor-head h2 a { color: inherit; text-decoration: none; }
+.floor-head h2 a:hover { text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 4px; }
+.floor-sum { color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.is-needs { color: var(--needs); }
+
+.dk { color: var(--text); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.dk-scene { display: block; position: relative; overflow: hidden; }
+.dk:focus-visible, .o1-line:focus-visible { outline: var(--focus-width) solid var(--brand-accent); outline-offset: var(--focus-offset); }
+
+/* The state word: colour only where colour means something (lilac working, red needs you, green done) */
+.of-st { display: inline-flex; align-items: center; gap: var(--space-1-5); color: var(--text-2); font-size: var(--text-sm); line-height: var(--leading-sm); white-space: nowrap; }
+[data-k="active"] .of-st .w { color: var(--active); }
+[data-k="needs"] .of-st .w { color: var(--needs); }
+[data-k="done"] .of-st .w { color: var(--done); }
+[data-k="off"] .of-st .w { color: var(--text-3); }
+
+/* Stage as five small lights (R-16's gauge idea, not its look). Stage only, never tries (F-3) */
+.of-gauge { display: inline-flex; gap: 2px; vertical-align: middle; margin-right: var(--space-2); }
+.of-gauge i { width: 10px; height: 4px; border-radius: var(--radius-full); background: var(--active-track); transition: background var(--dur-slow) var(--ease-enter); }
+.of-gauge i.on { background: var(--active); }
+[data-k="needs"] .of-gauge i.on, [data-held] .of-gauge i.on { background: var(--text-3); }
+[data-k="done"] .of-gauge i.on { background: var(--done); }
+
+.of-rest { margin: 0; color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); }
+.of-legend { list-style: none; margin: 0; padding: var(--space-4) 0 0; border-top: var(--border-width) solid var(--border); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); color: var(--text-3); font-size: var(--text-xs); line-height: var(--leading-xs); }
+.of-legend b { color: var(--text-2); font-weight: var(--weight-medium); }
+.of-legend .a { color: var(--active); } .of-legend .n { color: var(--needs); } .of-legend .d { color: var(--done); }
+
+.of-skel { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.of-skel .skeleton { width: 220px; height: 120px; border-radius: var(--radius-md); }
+.of-empty-art { display: block; width: 220px; height: 128px; margin: 0 auto var(--space-4); }
+.of-empty-art .dk-scene { height: 100%; border-radius: var(--radius-md); background: var(--surface); }
+
+/* While a desk glides between groups (O2, O3), only it moves; the rest of the page holds still */
+::view-transition-group(*) { animation-duration: var(--spring-soft-dur); animation-timing-function: var(--spring-soft); }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+
+/* At rest says itself: the picture (tea, the cat) and the floor's one line already say "waiting", so a quiet desk's
+   caption is just its role. A state word appears under a picture only when it differs (paused, off, news) */
+.dk[data-k=""]:not([data-held]) .o1-cap .of-st { visibility: hidden; } /* keeps the room's captions one height */
+.dk[data-k=""]:not([data-held]) .o2-cap .of-st { display: none; }

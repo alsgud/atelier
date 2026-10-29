@@ -1301,6 +1301,94 @@ Nothing new from the server: the desk model in `dashboard/app.js` (`deskOf`: k, 
   - *1.1.1 / 4.1.2*: each desk is one link named "Role, state. Task. Latest step"; the scene SVGs are hidden from assistive tech (0 exposed), so a screen reader hears the words, not the drawing. Pick page images carry alt text describing each state.
   - Nothing left to fix.
 
+## Office fresh (f2e6)
+
+**Recommendation: O1 Panorama.** Every desk is one size, so the imbalance that sank 5cbr (big cards beside empty gaps, then a row of thin strips) cannot happen on the desk or the phone. It keeps what the owner likes in today's Office, people at desks with the window glowing while they work, and adds Townscaper's row of lights you count at a glance, with words only where there is news. O2 Desk tiles is the close second for more character per desk at the cost of a longer phone page; O3 Roster suits an owner who mostly wants a calm list.
+
+**Status: ready for the owner's pick (iteration 5): pick page `office-fresh/index.html`, recordings, states sheets and the recommendation below; both critique rounds and the accessibility review done.** Pages: `office-fresh/o1.html`, `o2.html`, `o3.html` (`?states`, `?demo`, `?motion=reduce`, `?theme=light`, `?shot`). One drawing for all three (`desk.js` + `desk.css`): someone at a desk in front of an N1 window, one accessory per role (beanie, headphones, bun, cap, scarf) and the role's things around the desk (P1). States: working = window lit lilac, tea steaming, a typing bob; quiet = light low and a thought in the air; needs you = a hand up with the room's one red flag; paused = light left on low, laptop shut, a back-soon card; waiting = tea in hand, cat asleep on the sill; off = curtains drawn, chair tucked in; done = the window floods green with a tick, arms up. Each direction crops it differently: `wide` for O2 work tiles, `bay` for O1 bays, O2 shelf and phone tiles, and O3 rows, and `bust` for O3's round bench portraits. Rows are balanced: 12 desks on a phone sit 4 + 4 + 4, never 4 + 4 + 1. R-20 resets the Office: 5cbr (dense one-line tiles + animation) is not merged because its balance felt off on PC and phone, and P1 windows were liked as pictures but not in the app. This round starts again from the whole screen, not from any earlier pick page. Files: `design/office-fresh/` (one data set `data.js`, roughs `rough.html?f=`, then the three directions, the pick page `index.html`, shots and recordings).
+
+### Frame
+- **Who and when**: the owner, glancing at the Office between other work, about half the time on the phone. **The moment**: "does anything need me, and is work really happening?" answered before reading, then (rarely) "what is that one doing?" answered in one line.
+- **What went wrong before, in one line each**: the current Office gives every desk the same tall card, so 10 idle desks take as much room as 2 working ones (lots of empty wall). 5cbr fixed density by shrinking idle desks to one-line strips, which made two sizes that don't sit together (big working cards with blank space beside them, then a row of thin tiles). P1 made the picture the whole card, so 3 desks filled a screen.
+- **So the job is balance**: give room to what has news (working, needs you, paused, just finished) and keep everyone else visible as a picture, not a line of text, at one steady rhythm. Measured on real shapes: replay 2 working + 10 idle, atelier-ui 1 needs you, dodge all off.
+- **Kept from taste input (not constraints)**: a figure at a desk with the N1 window behind, lit lilac while working (today's Office); role told by things on and around the desk (P1 Lived-in); one light per desk (7); lit panes in the dark (8); a small, cosy whole seen at once (12). **Avoided**: lamp-and-silhouette, buildings, anything slumped, gloomy or cheap. Anonymous but personable (R-15): no faces or names, character from posture, habits and the desk.
+
+### References (`design/office-fresh/` reuses the m87r and 37h3 images; no new paid sources, R-2)
+| Source | Take | Avoid |
+|---|---|---|
+| Today's Office (`dashboard/app.js` Office, main) | The figure at a desk, the arched N1 window lit lilac while working, the patch of light on the floor | One card size for every state; the 88 px scene strip over a mostly empty card |
+| 37h3 P1 Lived-in (`office-windows/img/p1-*.png`) | Role told by objects: sketches and a plant, boxes and tools, books and a mug, a clock and a checklist, bunting | The window as the whole card (3 per screen); no one at home |
+| Townscaper (`office-inspiration/media/12-townscaper.jpg`, #12) | Many small lit windows read as one cosy whole; you count the lit ones without reading | 3D houses and yellow light (yellow means nothing here) |
+| Control (`07-control.jpg`, #7) | One pool of light marks where the work is; everything else falls back | The gloom and the lone silhouette (R-17) |
+| Monument Valley 3 (`08-mv3.jpg`, #8) | Crisp flat geometry, lit panes on dark, calm | Saturated multicolour glass |
+| Apple Home (`14-home.jpg`) | Tiles on one module where "on" tiles light up and "off" tiles stay quiet but present; two sizes on one grid | Glassy blur and generic device icons |
+| Linear inbox/triage (`references/linear-inbox.png`) | Dense, calm rows; one line per item; detail one click away | A table with no life in it |
+
+### Rough layouts (`office-fresh/rough.html?f=…`, shots in `office-fresh/rough/img/`, 1440 and 390, real data shapes)
+Two framings per direction, greyboxes only, to settle balance before any drawing.
+- **O1 Panorama** (the picture first). *o1a*: each project is one continuous room, every desk a bay at one width, with a line of words under it only for desks with news and one "at rest" line for the rest. *o1b*: the room wraps into a 6-wide block with the words in a column on the right. **Pick: o1a at 1440, the room wrapping 4 to a row at 390.** o1b's side column truncates every task at 1440 and leaves a blank column beside quiet projects; o1a's lines get the full width, and a 12-desk room reads as one row of lights (Townscaper's "count the lit windows").
+- **O2 Desk tiles** (the tile first). *o2a*: a bento module where working and needs-you tiles span two cells. *o2b*: at-work tiles in one band, then a shelf of small standby tiles that are still pictures. **Pick: o2b.** o2a's dense packing scatters the news through the grid and, on the phone, gives idle tiles as much height as the words need. o2b keeps two sizes, but both are pictures on one rhythm (the shelf tile is half a work tile), which is what 5cbr's text strips lacked.
+- **O3 Roster** (the words first). *o3a*: a calm row per desk with news (portrait-size scene, role, task, latest step, stage and time), then a bench of small portraits for everyone at rest. *o3b*: every agent a table row, idle rows shorter. **Pick: o3a.** o3b is the densest but reads as a spreadsheet: twelve near-identical rows, no life (R-17). o3a's bench keeps the idle team present as little people.
+
+### Critique log (Office fresh)
+**Round 1** (2026-10-29, design-critique skill, on the three directions at 1440 and 390, dark; before shots in `runs/f2e6/scratch/s3`, after in `scratch/s4`). Focus: balance.
+| Found | Where | Change |
+|---|---|---|
+| A tile on its own in the last row left half the width empty (Tester in replay, Designer in atelier-ui): the 5cbr imbalance again | O2 at ≥ 1100 px | The work band is two columns, and when it ends on an odd tile the shelf of small pictures sits in the empty cell beside it, its top on the tile's top (`.o2-shelf.is-beside`). With an even count, or under 1100 px, the shelf is a row of its own. replay now ends level; atelier-ui is one row (the needs-you tile with its four colleagues beside it) |
+| "Waiting" printed under 9 of 12 bays: a row of grey words where the picture (tea, cat) and the floor's one line already say it | O1 room captions, O2 shelf | A quiet desk's caption is its role only. A state word shows under a picture only when it differs: Paused, Off, Working, Needs you, Done. O1 keeps the empty line so the room's captions stay one height; the screen-reader label still says "Waiting" |
+| Shelf captions wrapped unevenly ("Lead Off" on one line, "Designer / Off" on two; "Performance / Waiting") | O2 shelf | Captions are always role over state, one rhythm |
+| Waiting windows were near-black: a 12-desk floor at rest read as lights-out, close to the "lifeless" R-17 rules out | all (desk.css) | A waiting window is evening, not black: a soft neutral sky (`--text-3` 24 % into `--surface-selected`), and the sleeping cat a step brighter. Still clearly not lit: lilac stays only for working |
+| Bench names cut ("Performa…") | O3 bench at 1440 | Seats 80 px wide (was 64); the gap narrows to keep the bench one line for 9 people |
+| Kept on purpose: O3's wide middle at 1440 (task left, stage and time right) | O3 rows | It is Linear's list rhythm and keeps the time in one column you scan down; capping it made the right edge ragged |
+| Checked, not a bug: the sidebar "2 working" looked faded in a demo frame | demo at 10.4 s | The frame caught the count's rise-in after the done change at 9.6 s |
+
+What works and stays: O1's room reads as one row of lights you count without reading; O2's work tiles carry the most character (the whole corner, the role's furniture); O3 is the calmest and densest. All three hold the real shapes (2 working + 10 at rest, 1 needs you, all off) with no sideways scroll and no console errors at 390 and 1440.
+
+**Round 2** (2026-10-29, design-critique skill on fresh shots `runs/f2e6/scratch/s5`, after in `s6`/`s7`; then the accessibility-review skill with measured checks). Focus: balance, and R-17 on a floor at rest. Before/after: `office-fresh/review/r2-*`.
+| Found | Where | Change |
+|---|---|---|
+| A small team's room (5 desks) filled the left 540 px and left the right half of the page empty, with its one news line far below: a short block over a hole | O1 at ≥ 1100 px (atelier-ui, dodge) | A team of 6 or fewer puts its words beside the room (`.o1-body.is-short`: room `auto`, words `1fr`, `--space-6` gap). Each floor is now one balanced band; replay (12) keeps the full-width room with words under it |
+| Nine waiting desks in a row were the same grey figure on the same grey window: calm, but close to lifeless (R-17) | all, most in O2 shelf and O3 bench | Waiting windows show the evening: a crescent moon and three small stars (`.dk-night`, neutral `--text-2` 88 %, so colour still only means state), the stars twinkling slowly and out of step (`--lag`). Stops under reduced motion |
+| O3 bench portraits were cropped to the figure only, so the room (window, cat, moon) that gives each desk its character was gone | O3 bench | Bust crop widened to `44 22 94 86`: half the window, the person and their desk |
+| "Performa…" cut again on the phone (5 seats a row = 68 px each) | O3 bench at 390 | The phone bench seats up to 5 a row; a bigger bench splits into even rows of at most 4 (`--pc` from `bal(n, 4)`: 9 = 3 + 3 + 3), portraits 64 px; names now whole |
+| Kept: O1's Tab order runs through the waiting bays before the news lines | O1 | It matches the visual order (room above, words below), which 2.4.3 asks for; desks with news skip their bay (`tabindex -1`) so each is one stop, on its line |
+
+Accessibility review (skill pass, measured by `runs/f2e6/tools/a11y.mjs`, `figc.mjs`, `rm.mjs`; data in `review/r2-a11y.json`):
+- **Text contrast (1.4.3)**: every text run on O1-O3 at 390 and 1440, dark and light (79-102 runs a page): 0 under AA. Lowest 6.26:1 dark, 4.86:1 light (the legend's state words on the light surface).
+- **Picture contrast (1.4.11)**, the parts that carry state: lit pane vs unlit window 6.3 dark / 4.86 light; red flag 6.14 / 5.33; green flood 9.3 / 6.27; figure 6.4 / 6.12; back-soon card 10.4 / 9.6; moon on the evening sky 3.58 / 3.11 (raised from 2.53). The evening sky and the curtains are 1.8:1 against the surface on purpose: they are the absence of light, and every waiting or off desk also says so in words (caption, bench header, screen-reader label).
+- **Keyboard (2.1.1, 2.4.3, 2.4.7)**: every desk and news line is a link with a full label ("Frontend, Working. Measure speed on…"); first 20 Tab stops on all 12 page × size × theme runs show a ring (0 without). Order: skip link, sidebar (or phone header), then floors top to bottom.
+- **Tap targets (2.5.5)**: 0 desk links, lines or buttons under 44 × 44 at 390.
+- **Reduced motion (2.3.3)**: on `?demo` after the first change, 112-173 loops run with motion on and 0 with reduced motion, on all three pages; states still read from the still picture.
+- **For the build (not a defect here)**: 173 small loops on one screen is fine for a design page but costs frames in the app (lesson from D7: SVG animations restyle the whole scene). The build should pause loops for desks off screen (`content-visibility` or an IntersectionObserver) and keep the loops on HTML wrappers where it can.
+
+### Motion (Office fresh)
+One 13 s demo per direction (`?demo`, of.js `demo()`), recorded headless at 1440 and 390 dark: `office-fresh/media/{o1,o2,o3}-{1440,390}.webm`, frame-by-frame sheets `img/{o1,o2,o3}-demo.png` (desktop, phone, reduced motion). The journey: replay's Designer starts "Trim handles, round 3" (1.2 s), needs you (4 s), goes back to work after your answer (7 s), finishes (9.6 s; green held 2.4 s like the live app's HOLD) and returns to rest (12 s). A desk that moves between the news group and the rest moves with a view transition (the same desk slides to its new place); its picture changes state by cross-fade. Loops while working: tea steam, a small typing bob, the stage light; at rest: the stars twinkle slowly and out of step. **Reduced motion**: the same changes as plain cross-fades, every loop stopped (rec2.mjs: 0 moving animations at each change on all three; the states still read from the still picture).
+
+### Pick page (Office fresh)
+`office-fresh/index.html` (shares `office-directions/pick.css`): per direction a one-line feel, the build cost, the 1440 dark shot, the phone's first screen (and the whole phone page), the states sheet (1440 and 390), links to the live page with the demo, every state, light mode, reduced motion, both recordings and the frame-by-frame sheet; then the pick. Renders at 390 and 1440 with no console errors and no sideways scroll.
+
+### O1 on PC: every desk its own space (t652, R-21)
+The owner picked O1 Panorama (R-21): the phone stays as it is, but on PC "it looks all cropped into each other". Cause: the room put every desk in one row at any width, so replay's 12 bays got 93 px each at 1440 (66 px at 1024) while the bay drawing is 120 × 112. The drawing was sliced to fit (`preserveAspectRatio slice`) and bays sat edge to edge, so one desk's laptop and mug ran straight into the next desk's window.
+
+**The fix (≥ 641 px only; the phone's rules under 640 px are untouched, as are O2 and O3):**
+- **One bay size on every floor, drawn whole**: the `bay` crop at 1 : 1, `--bw` 120 × `--bh` 112, never sliced or scaled. A 5-desk and a 12-desk team show the same size of person, so the screen reads as one place.
+- **A rhythm of wall between desks**: each bay sits in a slot 16 px wider (`--bgap` = `--space-4`), so between the end of one desk and the next window's sill there are 23 px of plain wall; the room has `--space-2` at each end and `--space-2` of wall above the roofline.
+- **Still one room**: the room, not the bay, paints the wall and the floor (a repeating gradient, one floor band per row from the drawing's floor line at 92/112 down through the captions, `--floor-c`), so the floor runs unbroken through the gaps and under a short last row. Glow and the lit patch fade out over the picture's edge (CSS mask) instead of stopping on a hard line in the gap.
+- **Big teams wrap, they don't shrink**: `of.js` `o1.fit()` counts the whole slots that fit across (on load and on resize) and sets `--dc` to rows of equal length: 12 desks = 6 + 6 at both 1024 and 1440, 7 = 4 + 3 at 1024, one row at 1440. Why not scale down: one row of 12 at 1024 is 66 px a desk, too small for the flag, the cat or the back-soon card, and two people sizes on one screen look accidental. The second row reads as the room's second storey: wall, people, floor, names.
+- **Small teams sit beside their words** when the room fits one row and the words still get 400 px (`.o1-body.is-beside`; 5 desks at 1440). The words then stack in one column (who, what, step, gauge and time) so a task title keeps its line. Otherwise the words run full width under the room, as before.
+- Captions keep one height (`--cap` 48 px, role over state, top-aligned); the news sill sits under its own bay inside the slot. Tap target per desk is now 136 × 168. Every value is a K1 token except the drawing's own sizes (120, 112, 48 px), which are named variables in `o1.css`.
+- Build note unchanged: pause loops for desks off screen.
+
+**Critique log (t652, design-critique skill, focus: own space per desk)**. Before `review/t652-before-*.png` (= f2e6's O1), after `review/t652-after-*.png`, 1024 and 1440, dark and light.
+| Found | Change |
+|---|---|
+| 12 bays in one 93 px row: drawings sliced, window, person and desk running into the neighbour's | Whole 120 × 112 bays in 136 px slots; big teams wrap to equal rows |
+| Bays touching: no gap, so no way to tell where one desk ends | 16 px of the room's wall between drawings; floor painted by the room so it stays continuous |
+| With gaps, the window glow and the lit floor patch ended on hard vertical and horizontal lines | Picture edges fade (mask: 6 px left, 4 px top, 12 px bottom); only glow and floor live in those margins |
+| A 5-desk room beside its words left them 270 px at 1440: "Office: fresh directions for you to pick" broke over two lines next to a 168 px empty "who" column | Beside a room the words stack in one column; the beside rule needs 400 px for words or stacks the floor |
+| Captions spread over the taller fixed row (role at top, state word floating low) | Caption content top-aligned |
+| Kept on purpose: at 1440 replay's room (6 + 6, 832 px) ends before its full-width news lines | The lines need the width for long task titles; stretching bays would give two people sizes on one screen |
+
 ## Open questions
 
 - **D6: Office desk data**: latest step, progress unit, last activity, "quiet longer than usual" and a just-finished flag per agent (see Screens (D6) › Endpoint needs). Read data only; the lead confirms the server can send it.
