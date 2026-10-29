@@ -46,7 +46,7 @@ Rough split (to be re-priced from real costs after the design task):
 | wad8 | frontend | M2 build: Office windows P1 (8 it, $30), brief briefs/office-p1-build.md, base main (37h3 merged), then audit ~$12 | design gate (approved 2026-10-29 "Good") | cancelled: owner kept the current Office (R-19) |
 | 5cbr | frontend | Office upgrade: current look, denser, more animated (8 it, $30), brief briefs/office-upgrade.md, then audit ~$12 | R-19 | cancelled: balance off (A-9, R-20), branch kept |
 | f2e6 | designer | Office fresh exploration O1-O3 (7 it, $25), brief inline | R-20 | done (~$13); owner picked O1 (R-21) |
-| t652 | designer | O1 PC room strip: desks not cropped into each other (4 it, $12), base atelier/f2e6 | R-21 | running |
+| t652 | designer | O1 PC room strip: desks not cropped into each other (4 it, $12), base atelier/f2e6 | R-21 | done (~$6), A-12 + design gate requested |
 | — | frontend | Build the picked Office direction (~$30), then audit ~$12 | owner pick + design gate | not started |
 | uey2 | frontend | Fix audit findings F-2..F-13 (10 it, $55), base main, brief briefs/audit-fixes-m1.md | audit + owner confirmed F-2..F-4 | queued; owner merges, lead marks fixed |
 | — | auditor | End-of-milestone audit | slice 3 | running 2026-10-27 |
