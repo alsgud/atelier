@@ -43,10 +43,10 @@
     floor: f => {
       const nw = f.desks.filter(news), rest = f.desks.filter(d => !news(d));
       return `${head(f)}
-        <div class="o1-room${f.off ? ' is-off' : ''}" style="--dc:${bal(f.desks.length, 12)};--pc:${bal(f.desks.length, 5)}">${f.desks.map(d => `
+        <div class="o1-body${f.desks.length <= 6 ? ' is-short' : ''}"><div class="o1-room${f.off ? ' is-off' : ''}" style="--dc:${bal(f.desks.length, 12)};--pc:${bal(f.desks.length, 5)}">${f.desks.map(d => `
           <a class="dk o1-bay" href="${href(f, d)}" ${attrs(d)} aria-label="${esc(label(d))}"${news(d) ? ' tabindex="-1"' : ''}>${pic(d, 'bay')}
             <span class="dk-words o1-cap"><b>${esc(d.role)}</b>${st(d)}</span></a>`).join('')}</div>
-        <div class="o1-lines" data-lines>${o1.lines(f, nw, rest)}</div>`;
+        <div class="o1-lines" data-lines>${o1.lines(f, nw, rest)}</div></div>`;
     },
     lines: (f, nw, rest) => `${nw.length ? `<ul class="o1-news">${nw.map(d => `<li><a class="o1-line" href="${href(f, d)}" data-line="${d.id}" data-k="${d.k}" aria-label="${esc(label(d))}">
         <span class="o1-who"><b>${esc(d.role)}</b>${st(d)}</span><span class="o1-what">${esc(d.what)}<span class="o1-step">${esc(d.step)}</span></span><span class="o1-meta num">${gauge(d)}${esc(d.ago)}</span></a></li>`).join('')}</ul>` : ''}
@@ -85,7 +85,7 @@
       return `${head(f)}
         ${nw.length ? `<div class="o3-rows">${nw.map(d => o3row(f, d)).join('')}</div>` : ''}
         ${rest.length ? `<div class="o3-bench${f.off ? ' is-off' : ''}"><p class="o3-bench-h">${f.off ? `${st({ k: 'off' })}<span>Everyone is off. Start the lead on the project page.</span>` : `${st({ k: '' })}<span>${restLine(f, rest)}</span>`}</p>
-          <div class="o3-seats">${rest.map(d => o3seat(f, d)).join('')}</div></div>` : ''}`;
+          <div class="o3-seats" style="--pc:${rest.length > 5 ? bal(rest.length, 4) : rest.length}">${rest.map(d => o3seat(f, d)).join('')}</div></div>` : ''}`;
     },
     words: (f, d) => news(d) ? o3row(f, d) : o3seat(f, d),
     group: d => news(d) ? 'rows' : 'bench',

@@ -53,7 +53,7 @@
 
 /* Hidden until a state asks for them */
 .dk-pane, .dk-pane-done, .dk-glow, .dk-patch, .dk-curtain, .dk-tick, .dk-spark, .dk-cat, .dk-sip, .dk-wave, .dk-cheer,
-.dk-think, .dk-lid-shut, .dk-card, .dk-steam { opacity: 0; }
+.dk-think, .dk-lid-shut, .dk-card, .dk-steam, .dk-night { opacity: 0; }
 
 /* Working: the window lit to the sill, its patch on the floor, a lilac edge on whoever sits in its light, tea steaming */
 .dk[data-k="active"] .dk-pane { opacity: 1; }
@@ -79,6 +79,9 @@
 /* …and the window is evening, not black: a soft neutral sky, so a resting floor looks at ease, never lights-out (R-17) */
 .dk[data-k=""]:not([data-held="paused"]) .dk-wall-win { fill: color-mix(in srgb, var(--text-3) 24%, var(--surface-selected)); }
 .dk[data-k=""]:not([data-held="paused"]) .dk-cat path:not(.dk-l):not(.dk-z) { fill: color-mix(in srgb, var(--text-3) 85%, var(--surface)); }
+/* …with a moon and a few stars out: neutral (colour stays reserved for meaning), slow twinkle, a floor at rest looks like a nice evening (round 2) */
+.dk-night { fill: color-mix(in srgb, var(--text-2) 88%, var(--surface)); }
+.dk[data-k=""]:not([data-held="paused"]) .dk-night { opacity: 1; }
 /* Paused: the light left on low, chair pushed back, laptop shut, a "back soon" card on the desk */
 .dk[data-held="paused"] .dk-pane { opacity: .2; }
 .dk[data-held="paused"] .dk-body, .dk[data-held="paused"] .dk-lid, .dk[data-held="paused"] .dk-lid-mark { opacity: 0; }
@@ -119,6 +122,9 @@
 .dk-cat { transform-origin: 50% 100%; }
 .dk[data-k=""] .dk-cat { animation: dk-purr 4s ease-in-out var(--lag) infinite alternate; }
 .dk[data-k=""] .dk-z { animation: dk-z 4s ease-out var(--lag) infinite; }
+.dk-night circle { transform-box: fill-box; transform-origin: 50% 50%; }
+.dk[data-k=""] .dk-night circle { animation: dk-dots 5s ease-in-out var(--lag) infinite; }
+.dk[data-k=""] .dk-night circle + circle { animation-delay: calc(var(--lag) - 1.7s); }
 .dk-cheer { transform-origin: 50% 100%; }
 .dk[data-k="done"] .dk-cheer { animation: dk-cheer var(--spring-snappy-dur) var(--spring-snappy) both; }
 .dk-spark path { transform-origin: 50% 50%; }

@@ -1,7 +1,7 @@
 /* Office fresh (f2e6): the one desk drawing every direction uses. One scene, cropped per direction:
      wide  0 4 200 116   the whole corner: plant, N1 window, the desk, the role's furniture (O2 work tiles)
      bay   28 8 120 112  window + someone at the desk + one desk object (O1 bays, O2 shelf and phone tiles, O3 rows)
-     bust  66 32 76 72   the window's edge, someone, their desk (O3 bench portraits)
+     bust  44 22 94 86   half the window, someone, their desk (O3 bench portraits)
    Everything a state shows is in the drawing at once; desk.css shows the parts for the desk's data-k / data-held /
    data-quiet (the same attributes as the live app's .desk), so a state change is a cross-fade, never a re-render.
    Anonymous but personable (R-15): no face, no name. Character comes from posture (typing, leaning back with a mug,
@@ -47,7 +47,7 @@
 
   function scene(role, crop, i = 0) {
     const r = ROLE(role);
-    const vb = { wide: '0 4 200 116', bay: '28 8 120 112', bust: '66 32 76 72' }[crop];
+    const vb = { wide: '0 4 200 116', bay: '28 8 120 112', bust: '44 22 94 86' }[crop];
     return `<svg class="dk-svg" viewBox="${vb}" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false" style="--i:${i % 7}">
   <rect class="dk-floor" x="-40" y="100" width="280" height="30"/>
   <circle class="dk-glow" cx="56" cy="48" r="50"/>
@@ -57,6 +57,7 @@
   <path class="dk-wall-win" d="${arch}"/>
   <path class="dk-pane" d="${arch}"/>
   <path class="dk-pane-done" d="${arch}"/>
+  <g class="dk-night"><path d="M70 26a5 5 0 1 0 4.4 7.4 4 4 0 1 1-4.4-7.4z"/><circle cx="44" cy="30" r="1.1"/><circle cx="69" cy="58" r=".9"/><circle cx="48" cy="56" r=".8"/></g>
   <path class="dk-bars" d="M56 17V76M36 48H76"/>
   <g class="dk-curtain"><path d="M36.5 76V37A19.5 19.5 0 0 1 54 17.6V76c-2-3-4-3-6 0-2-3-4-3-6 0-2-3-4-3-5.5 0z"/><path d="M75.5 76V37A19.5 19.5 0 0 0 58 17.6V76c2-3 4-3 6 0 2-3 4-3 6 0 2-3 4-3 5.5 0z"/><path class="dk-l" d="M42 22v52M48 18.5v55M64 18.5v55M70 22v52"/></g>
   <path class="dk-tick" d="M47 47l6 6 12-13"/>

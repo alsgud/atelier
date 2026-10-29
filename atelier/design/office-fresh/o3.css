@@ -28,7 +28,9 @@
   .o3-row .dk-scene { height: 72px; }
   .o3-words { grid-template-columns: minmax(0, 1fr); grid-template-areas: "who" "what" "step" "meta"; }
   .o3-who { display: flex; gap: var(--space-2); align-items: baseline; }
-  .o3-seats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2) var(--space-1); }
+  /* --pc: up to 5 seats a row, a big bench splits into even rows of at most 4 so names fit whole (round 2) */
+  .o3-seats { display: grid; grid-template-columns: repeat(var(--pc, 5), minmax(0, 1fr)); gap: var(--space-3) var(--space-1); }
   .o3-seat { width: auto; }
-  .o3-cap b { max-width: 64px; }
+  .o3-seat .dk-scene { width: min(64px, 100%); height: auto; aspect-ratio: 1; }
+  .o3-cap b { max-width: 100%; }
 }

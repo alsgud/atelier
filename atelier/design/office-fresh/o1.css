@@ -30,6 +30,16 @@
 .o1-meta { color: var(--text-3); font-size: var(--text-sm); line-height: var(--leading-sm); text-align: right; white-space: nowrap; }
 .of-o1 .of-rest { padding-top: var(--space-1); }
 
+.o1-body { display: grid; gap: var(--space-3); }
+/* A small team (6 desks or fewer) on a wide screen: the room on the left, its words beside it, so the floor is
+   one balanced band instead of a short room over an empty right half (round 2) */
+@media (min-width: 1100px) {
+  .o1-body.is-short { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+  .o1-body.is-short .o1-room { width: calc(var(--dc) * 108px); }
+  .o1-body.is-short .o1-line { grid-template-columns: 168px minmax(0, 1fr); }
+  .o1-body.is-short .o1-meta { grid-column: 2; text-align: left; }
+  .o1-body.is-short .of-rest { padding-top: var(--space-2); }
+}
 @media (max-width: 1100px) { .o1-line { grid-template-columns: 150px minmax(0, 1fr); } .o1-meta { grid-column: 2; text-align: left; } }
 /* Phone: the room wraps four bays to a row and the words stack under the role */
 @media (max-width: 640px) {
