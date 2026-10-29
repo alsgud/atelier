@@ -43,7 +43,7 @@
     floor: f => {
       const nw = f.desks.filter(news), rest = f.desks.filter(d => !news(d));
       return `${head(f)}
-        <div class="o1-body${f.desks.length <= 6 ? ' is-short' : ''}"><div class="o1-room${f.off ? ' is-off' : ''}" style="--dc:${bal(f.desks.length, 12)};--pc:${bal(f.desks.length, 5)}">${f.desks.map(d => `
+        <div class="o1-body"><div class="o1-room${f.off ? ' is-off' : ''}" style="--dc:${bal(f.desks.length, 12)};--pc:${bal(f.desks.length, 5)}">${f.desks.map(d => `
           <a class="dk o1-bay" href="${href(f, d)}" ${attrs(d)} aria-label="${esc(label(d))}"${news(d) ? ' tabindex="-1"' : ''}>${pic(d, 'bay')}
             <span class="dk-words o1-cap"><b>${esc(d.role)}</b>${st(d)}</span></a>`).join('')}</div>
         <div class="o1-lines" data-lines>${o1.lines(f, nw, rest)}</div></div>`;
@@ -52,6 +52,22 @@
         <span class="o1-who"><b>${esc(d.role)}</b>${st(d)}</span><span class="o1-what">${esc(d.what)}<span class="o1-step">${esc(d.step)}</span></span><span class="o1-meta num">${gauge(d)}${esc(d.ago)}</span></a></li>`).join('')}</ul>` : ''}
       ${restLine(f, rest) ? `<p class="of-rest">${restLine(f, rest)}</p>` : ''}`,
     group: () => 'room',
+    // PC (t652): how many whole bays fit across; a team that doesn't fit wraps into rows of equal length. A room
+    // that fits one row sits beside its words when they still get LINES px. Phone keeps its own rows (--pc, o1.css).
+    fit: () => {
+      if (matchMedia('(max-width: 640px)').matches) return;
+      const LINES = 400, GAP = 24; // --space-6
+      document.querySelectorAll('.o1-body').forEach(b => {
+        const room = b.querySelector('.o1-room'), n = room.children.length;
+        if (!n) return;
+        const slot = room.firstElementChild.getBoundingClientRect().width;
+        const pad = room.offsetWidth - room.clientWidth + parseFloat(getComputedStyle(room).paddingLeft) * 2;
+        const fit = Math.max(1, Math.floor((b.clientWidth - pad) / slot));
+        const cols = n <= fit ? n : bal(n, fit);
+        room.style.setProperty('--dc', cols);
+        b.classList.toggle('is-beside', cols === n && b.clientWidth - (n * slot + pad) - GAP >= LINES);
+      });
+    },
   };
 
   /* ── O2 Desk tiles: a tile with the whole corner for news; a shelf of small pictures for everyone else ── */
@@ -118,6 +134,7 @@
       });
       const flag = document.querySelector('.mock-flag');
       if (flag) { flag.textContent = `Office fresh ${DIR.id.toUpperCase()} · ${DIR.name} · for the owner to pick`; flag.href = keep('index.html'); }
+      if (L.fit) { L.fit(); const b = document.querySelector('.of-board'); if (b) new ResizeObserver(() => L.fit()).observe(b); }
       if (q.has('demo')) queueMicrotask(() => demo(q.get('demo') === 'loop'));
     },
   });

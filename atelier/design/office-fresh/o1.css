@@ -31,14 +31,38 @@
 .of-o1 .of-rest { padding-top: var(--space-1); }
 
 .o1-body { display: grid; gap: var(--space-3); }
-/* A small team (6 desks or fewer) on a wide screen: the room on the left, its words beside it, so the floor is
-   one balanced band instead of a short room over an empty right half (round 2) */
-@media (min-width: 1100px) {
-  .o1-body.is-short { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-6); align-items: start; }
-  .o1-body.is-short .o1-room { width: calc(var(--dc) * 108px); }
-  .o1-body.is-short .o1-line { grid-template-columns: 168px minmax(0, 1fr); }
-  .o1-body.is-short .o1-meta { grid-column: 2; text-align: left; }
-  .o1-body.is-short .of-rest { padding-top: var(--space-2); }
+/* PC and tablet (t652): every desk gets its whole picture and its own space. The owner saw 12 bays squeezed into
+   one strip at 1440 (93 px each, the drawing sliced so window, figure and desk ran into the next desk). Now:
+   - one bay size on every floor: the bay crop drawn whole at 1:1 (120 x 112), never sliced, never scaled;
+   - a 16 px slot of plain wall between desks, so each window, figure and desk reads as its own, in one rhythm;
+   - the room still one object: it draws the wall and one floor band per row behind the bays, so the floor runs
+     unbroken through the gaps and under a short last row;
+   - a team that doesn't fit one row wraps into rows of equal length (12 = 6 + 6 at 1024 and 1440, never 8 + 4).
+     Wrapping, not shrinking: at 1024 a 12-desk strip would be 66 px a desk, too small to read a flag or a cat.
+   of.js fit() counts how many slots fit and sets --dc; it also sets is-beside when the room fits one row and its
+   words still get 400 px next to it (a 5-desk team at 1440), so the floor is one band, not a short room over air. */
+@media (min-width: 641px) {
+  .o1-room { --bw: 120px; --bh: 112px; --bgap: var(--space-4); --top: var(--space-2); --cap: 48px;
+    --floor-c: color-mix(in srgb, var(--surface-sunken) 55%, var(--bg));
+    width: max-content; max-width: 100%; padding: 0 var(--space-2);
+    grid-template-columns: repeat(var(--dc), calc(var(--bw) + var(--bgap))); grid-auto-rows: calc(var(--top) + var(--bh) + var(--cap));
+    /* wall above, floor from the drawing's floor line (y 100 of the crop's 8..120) down through the captions */
+    background: repeating-linear-gradient(to bottom, var(--surface) 0 calc(var(--top) + var(--bh) * 92 / 112),
+      var(--floor-c) 0 calc(var(--top) + var(--bh) + var(--cap))); }
+  .o1-bay { grid-template-rows: var(--bh) var(--cap); padding: var(--top) calc(var(--bgap) / 2) 0; }
+  .o1-bay .dk-scene { width: var(--bw); height: var(--bh);
+    /* the window's glow and the lit patch on the floor fade out at the picture's edges instead of stopping on a hard
+       line in the gap or above the caption (critique t652). Only glow and floor sit in these margins */
+    --fade: linear-gradient(to right, transparent, #000 var(--space-1-5)), linear-gradient(to bottom, transparent, #000 var(--space-1) calc(100% - var(--space-3)), transparent);
+    -webkit-mask-image: var(--fade); -webkit-mask-composite: source-in; mask-image: var(--fade); mask-composite: intersect; }
+  .o1-bay:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+  .o1-cap { background: none; padding-bottom: 0; align-content: start; }
+  .o1-bay::after { left: calc(var(--bgap) / 2 + var(--space-3)); right: calc(var(--bgap) / 2 + var(--space-3)); }
+  .o1-body.is-beside { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+  /* beside a room the words get one column: who, then what, then the gauge, so a long task title keeps its line */
+  .o1-body.is-beside .o1-line { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+  .o1-body.is-beside .o1-meta { grid-column: 1; text-align: left; }
+  .o1-body.is-beside .of-rest { padding-top: var(--space-2); }
 }
 @media (max-width: 1100px) { .o1-line { grid-template-columns: 150px minmax(0, 1fr); } .o1-meta { grid-column: 2; text-align: left; } }
 /* Phone: the room wraps four bays to a row and the words stack under the role */

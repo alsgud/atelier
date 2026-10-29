@@ -1367,6 +1367,28 @@ One 13 s demo per direction (`?demo`, of.js `demo()`), recorded headless at 1440
 ### Pick page (Office fresh)
 `office-fresh/index.html` (shares `office-directions/pick.css`): per direction a one-line feel, the build cost, the 1440 dark shot, the phone's first screen (and the whole phone page), the states sheet (1440 and 390), links to the live page with the demo, every state, light mode, reduced motion, both recordings and the frame-by-frame sheet; then the pick. Renders at 390 and 1440 with no console errors and no sideways scroll.
 
+### O1 on PC: every desk its own space (t652, R-21)
+The owner picked O1 Panorama (R-21): the phone stays as it is, but on PC "it looks all cropped into each other". Cause: the room put every desk in one row at any width, so replay's 12 bays got 93 px each at 1440 (66 px at 1024) while the bay drawing is 120 × 112. The drawing was sliced to fit (`preserveAspectRatio slice`) and bays sat edge to edge, so one desk's laptop and mug ran straight into the next desk's window.
+
+**The fix (≥ 641 px only; the phone's rules under 640 px are untouched, as are O2 and O3):**
+- **One bay size on every floor, drawn whole**: the `bay` crop at 1 : 1, `--bw` 120 × `--bh` 112, never sliced or scaled. A 5-desk and a 12-desk team show the same size of person, so the screen reads as one place.
+- **A rhythm of wall between desks**: each bay sits in a slot 16 px wider (`--bgap` = `--space-4`), so between the end of one desk and the next window's sill there are 23 px of plain wall; the room has `--space-2` at each end and `--space-2` of wall above the roofline.
+- **Still one room**: the room, not the bay, paints the wall and the floor (a repeating gradient, one floor band per row from the drawing's floor line at 92/112 down through the captions, `--floor-c`), so the floor runs unbroken through the gaps and under a short last row. Glow and the lit patch fade out over the picture's edge (CSS mask) instead of stopping on a hard line in the gap.
+- **Big teams wrap, they don't shrink**: `of.js` `o1.fit()` counts the whole slots that fit across (on load and on resize) and sets `--dc` to rows of equal length: 12 desks = 6 + 6 at both 1024 and 1440, 7 = 4 + 3 at 1024, one row at 1440. Why not scale down: one row of 12 at 1024 is 66 px a desk, too small for the flag, the cat or the back-soon card, and two people sizes on one screen look accidental. The second row reads as the room's second storey: wall, people, floor, names.
+- **Small teams sit beside their words** when the room fits one row and the words still get 400 px (`.o1-body.is-beside`; 5 desks at 1440). The words then stack in one column (who, what, step, gauge and time) so a task title keeps its line. Otherwise the words run full width under the room, as before.
+- Captions keep one height (`--cap` 48 px, role over state, top-aligned); the news sill sits under its own bay inside the slot. Tap target per desk is now 136 × 168. Every value is a K1 token except the drawing's own sizes (120, 112, 48 px), which are named variables in `o1.css`.
+- Build note unchanged: pause loops for desks off screen.
+
+**Critique log (t652, design-critique skill, focus: own space per desk)**. Before `review/t652-before-*.png` (= f2e6's O1), after `review/t652-after-*.png`, 1024 and 1440, dark and light.
+| Found | Change |
+|---|---|
+| 12 bays in one 93 px row: drawings sliced, window, person and desk running into the neighbour's | Whole 120 × 112 bays in 136 px slots; big teams wrap to equal rows |
+| Bays touching: no gap, so no way to tell where one desk ends | 16 px of the room's wall between drawings; floor painted by the room so it stays continuous |
+| With gaps, the window glow and the lit floor patch ended on hard vertical and horizontal lines | Picture edges fade (mask: 6 px left, 4 px top, 12 px bottom); only glow and floor live in those margins |
+| A 5-desk room beside its words left them 270 px at 1440: "Office: fresh directions for you to pick" broke over two lines next to a 168 px empty "who" column | Beside a room the words stack in one column; the beside rule needs 400 px for words or stacks the floor |
+| Captions spread over the taller fixed row (role at top, state word floating low) | Caption content top-aligned |
+| Kept on purpose: at 1440 replay's room (6 + 6, 832 px) ends before its full-width news lines | The lines need the width for long task titles; stretching bays would give two people sizes on one screen |
+
 ## Open questions
 
 - **D6: Office desk data**: latest step, progress unit, last activity, "quiet longer than usual" and a just-finished flag per agent (see Screens (D6) › Endpoint needs). Read data only; the lead confirms the server can send it.
