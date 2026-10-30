@@ -5,10 +5,10 @@
 ## State (2026-10-30 12:45)
 - M1 redesign is on main, with audit fixes (uey2, hn3n). All M1 findings F-1..F-13 are marked fixed.
 - M2 Office: the owner picked O1 Panorama (R-21). Design gate approved 2026-10-30. **mfyp** built O1 plus a Projects nav row on PC (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 and 390 Office and the Projects nav. Sent as A-14 ("Looks good"); merged into main via A-15 (owner-approved run, 2026-10-30). mfyp closed.
-- **M2 audit running** (started 2026-10-30, ~$12). Findings come as `finding-to-lead` or to the owner. Today's spend $18.94 of $100; plan 7d 43%.
+- M2 audit done (18f8b91, $12.27): F-14..F-18 with the owner (Inbox); F-19..F-24 to the lead. **5r4a** running: frontend fixes F-19..F-24 (6 it, $18, brief briefs/audit-fixes-m2.md, base main), incl. ATELIER_NO_TICK=1 opt-out for test dashboards (F-21). Owner told in A-16. Today's spend $18.94 of $100; plan 7d 43%.
 
 ## Next
-1. Audit done → `atelier audit atelier-ui findings --lead`; fix or delegate (one frontend task, base main), mark `fixed`. Then a short M2 wrap-up update to the owner.
+1. Owner answers F-14..F-18 → rulings for overrules → one frontend task `--after 5r4a` (same files). 5r4a done → check proof → A-ask merge with --run → mark F-19..F-24 fixed.
 2. If the owner finds the Office sluggish: stop the waiting desks' animation loops first (~40% gain; nf3m measured 21-25 ms/frame at 4x CPU throttle, 60 fps normal).
 - Minor for later: on phone, working cards leave empty space above the small scene.
 
@@ -25,6 +25,8 @@
 - Design gate for m87r reached the owner without pictures (reviewFor image lookup for NN-*.png).
 - `atelier ask --attach` keeps only the first 8 files without warning.
 - Ask answers (A-10) don't appear in `atelier events`.
+- F-21: every dashboard process spawns a tick each minute; with spare-port test dashboards the 60 s stale-lock rule lets one task start several runners (q644, voice-assistant, 2026-10-30; runners 14872/8564 may still be alive). Told in A-16.
+- Owner-approved merges can be run with `atelier ask ... approval --run "git merge --no-ff ..."` (A-15 worked).
 - Stale "replay lead" remote session from xhen's settings test may show in the owner's Claude app.
 
 ## Lead rules learned
