@@ -195,6 +195,8 @@ function st(status, title = status) {
 const taskStatus = t => t.status === 'failed' && /cancelled/.test(t.reason || '') ? 'cancelled' : t.status;
 // A running task the runner holds for the plan window (the server's 'paced' state): waiting, not working, never quiet.
 const pacedWords = x => `Waiting for your plan window${x?.resumesAt ? `, carries on at ${x.resumesAt}` : ''}`;
+// The server writes a real stop as exactly this; an agent's or the runner's text can merely mention the owner.
+const stoppedByYou = s => String(s || '').trim() === 'stopped by owner';
 // A task's reason as one plain sentence (F-6, SPEC R3). The runner's raw note (prefixes, commands, hashes, branch names)
 // stays on the task page under Details; rows and steps show only this.
 function reasonWords(t) {
@@ -208,7 +210,7 @@ function reasonWords(t) {
   if (/^ready on (local )?branch/i.test(r)) return 'Ready on its branch for you to merge';
   if (/^(waiting on request|request:)/i.test(r)) return 'Waiting on another teammate';
   if (/in review/i.test(r)) return 'In review';
-  if (t.status === 'paused' && /owner/i.test(r)) return 'You stopped it';
+  if (t.status === 'paused' && stoppedByYou(r)) return 'You stopped it';
   // Anything else: keep it only if it already reads as a short plain sentence.
   const s = r.replace(/^[a-z-]+:\s*/i, '').replace(/\s*\([0-9a-f]{7,40}\)/g, '').trim();
   return s.length <= 70 && !/[`/\\#{}<>=]|\b[0-9a-f]{7,40}\b|\b[a-z]+\/[a-z0-9-]+\b|\.(md|mjs|js|json)\b/i.test(s) ? cap1(s) : '';
@@ -1678,7 +1680,7 @@ const critText = (alias, id) => {
 };
 // Kinds whose own words add nothing the sentence doesn't say (or only a hint for the lead): no Details, so the feed
 // isn't a column of Details controls.
-const NO_DETAILS = new Set(['iteration', 'pushed', 'gate', 'gate-request', 'criteria-request', 'audit-started', 'needs-lead', 'ownership', 'queued', 'review', 'paused', 'paced',
+const NO_DETAILS = new Set(['iteration', 'pushed', 'gate', 'gate-request', 'criteria-request', 'audit-started', 'ownership', 'queued', 'review', 'paused', 'paced',
   'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-draft', 'criterion-team', 'criterion-retire', 'owner-review', 'finding-confirmed', 'finding-dismissed', 'finding-to-lead']);
 const eventSay = (e, alias = e.project) => { const s = eventWords(e, alias); return NO_DETAILS.has(e.type) ? { ...s, raw: '' } : s; };
 function eventWords(e, alias) {
@@ -1737,7 +1739,8 @@ function eventWords(e, alias) {
     // the event doesn't record who wrote the answer: only text that says so is the lead's, and none is called yours
     case 'answered': return (x = m.match(/^Lead\b[:,]?\s*([\s\S]*)$/)) ? agentSay('The lead answered:', 'The lead sent it an answer', x[1]) : agentSay('An answer was sent:', 'An answer was sent', m);
     case 'iteration': x = m.match(/#(\d+)\s+\w+(?:.*?check (\w+))?/); return x ? S(`Try ${x[1]} ended${x[2] === 'pass' ? ': the check passed' : x[2] === 'fail' ? ': the check failed' : ''}`, '', m) : auto('Try ended');
-    case 'needs-lead': return S('Used all its tries. The lead decides what happens next', '', m);
+    // the runner's reason decides the sentence; anything but running out of room is a block it handed over
+    case 'needs-lead': return S(/^used all\b/.test(m) ? 'Used all its tries. The lead decides what happens next' : /^used the\b.*time limit/.test(m) ? 'Reached its time limit. The lead decides what happens next' : /^reached its\b.*budget/.test(m) ? 'Reached its budget. The lead decides what happens next' : 'Stuck, so it was handed to the lead', '', m);
     case 'failed': return /cancelled by owner/.test(m) ? S('You cancelled it') : /cancelled by the lead/.test(m) ? S('The lead cancelled it') : S('It failed', '', m);
     case 'holdout': return S('Hidden tests were set', '', m);
     case 'test-touch': return S('It changed existing tests', '', m);
@@ -1770,7 +1773,7 @@ function eventWords(e, alias) {
     case 'review-started': x = m.match(/round (\d+)/); return S(`The reviewer started${x ? ` round ${x[1]}` : ''}`);
     case 'done': return task ? S('Finished', '', m) : auto('Done:');
     case 'added': case 'started': return task ? S(EVENT_WORD[e.type]) : auto(`${EVENT_WORD[e.type]}:`);
-    case 'paused': return /owner/.test(m) ? S('You stopped it') : /^for the lead/.test(m) ? S('Paused for the lead to decide', '', m) : /lead/.test(m) ? S('The lead paused it') : auto('Paused:');
+    case 'paused': return stoppedByYou(m) ? S('You stopped it') : /^for the lead/.test(m) ? S('Paused for the lead to decide', '', m) : /lead/.test(m) ? S('The lead paused it') : auto('Paused:');
     case 'paced': return S(/nearly full/.test(m) ? 'Waiting: your plan is nearly used up for now' : /plan limit/.test(m) ? 'Waiting: your plan limit was reached' : 'Waiting for your plan to have room', '', m);
     case 'window-closed': return S('Atelier closed a window opened on your screen without your OK', '', m);
     case 'window-shown': return S('A window opened on your screen, as you allowed', '', m);
@@ -2341,7 +2344,7 @@ const Project = (() => {
     if (p.charter?.tampered) return ['Your charter changed after you approved it.', 'Read what changed, and approve it again if the change is yours.', ['Open the charter', href(a, 'docs', 'charter')]];
     if (top?.kind === 'budget') return [`Today’s ${money(S.dayLimit)} is used, so new work waits.`, 'The tries already running finish. Nothing new starts until midnight, unless you raise today’s limit.', ['Review the budget', `#/inbox/${encodeURIComponent(top.key)}`]];
     if (top && S.waiting) return [S.needsNow ? (S.needsNow === 1 ? 'Something here needs you now.' : `${S.needsNow} things here need you now.`) : S.waiting === 1 ? 'One decision waits for you.' : `${S.waiting} decisions wait for you.`,
-      `First: ${Inbox.describe(top).title}. The team keeps going on anything that doesn’t depend on it.`, [S.waiting === 1 ? 'Open it in the Inbox' : 'Open the first in the Inbox', `#/inbox/${encodeURIComponent(top.key)}`]];
+      `First: ${Inbox.describe(top).title.replace(/([^.?!…])$/, '$1.')} The team keeps going on anything that doesn’t depend on it.`, [S.waiting === 1 ? 'Open it in the Inbox' : 'Open the first in the Inbox', `#/inbox/${encodeURIComponent(top.key)}`]];
     if (!S.lead) return S.working ? ['The lead is off; the work already started carries on.', 'Nothing new starts until you start the lead again.', null]
       : ['The lead is off, so nothing new starts.', `Start it with the button above, then talk to “${a} lead” in the Claude app.`, null];
     if (!p.charter && p.phase === 'brief') return ['The lead is reading your description.', 'It drafts a charter next. You approve it in the Inbox; nothing else to do now.', null];
@@ -2819,7 +2822,6 @@ const Task = (() => {
     if (e.type === 'reviewed') { const x = m.match(/round (\d+): (\w+)/); if (x) return `Review round ${x[1]}: ${/approve/.test(x[2]) ? 'passed' : 'changes asked'}`; }
     if (e.type === 'review-started') return `The reviewer started${m ? ` ${m}` : ''}`;
     if (e.type === 'approved') return 'You approved the plan';
-    if (e.type === 'paused' && /owner/.test(m)) return 'You stopped it';
     // on its own task's page the task's title would only repeat the page's
     return sayLine(eventSay({ ...e, task: null }));
   }
@@ -2864,7 +2866,7 @@ const Task = (() => {
         : { stage: 3, step: 'Waiting for the reviewer', why: 'Its check passed. The reviewer looks at the work next.' }); break;
       case 'done': Object.assign(v, { k: 'done', stage: 4, step: reasonWords(T) || 'Finished', why: 'It passed its check and review.' }); break;
       case 'stalled': Object.assign(v, { step: 'Stopped making progress', why: 'The lead decides what happens next: another try, a new plan, or a question for you.', stop: 'Stop task…' }); break;
-      case 'paused': Object.assign(v, { step: /owner/.test(reason) ? 'You stopped it' : 'Paused', why: 'This try’s work is kept as it is. The lead decides what happens next.' }); break;
+      case 'paused': Object.assign(v, { step: stoppedByYou(reason) ? 'You stopped it' : 'Paused', why: 'This try’s work is kept as it is. The lead decides what happens next.' }); break;
       default: Object.assign(v, { step: v.word, why: reasonWords(T) ? `${reasonWords(T)}.` : '' });
     }
     if (v.k !== 'needs' && screenAsk(m.title)) Object.assign(v, { k: 'needs', word: 'Needs you', step: SCREEN_STEP });
