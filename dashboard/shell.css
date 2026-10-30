@@ -234,6 +234,10 @@ html[data-vt="tab"] #view * { view-transition-name: none !important; }
 /* The new screen opens at its top (or where Back left it); the group doesn't travel, so the old picture is moved back
    to where it was on screen (app.js route() sets --vt-dy) instead of jumping to the page's top as it leaves. */
 html[data-vt="tab"]::view-transition-old(page) { translate: 0 var(--vt-dy, 0px); }
+/* Leaving the Office there is no old picture (app.js route(), F-24): the new screen arrives with the same slide. */
+html[data-arrive="fwd"] #view { animation: flow-arrive var(--spring-glide-dur) var(--spring-glide) both; }
+html[data-arrive="back"] #view { animation: flow-arrive-back var(--spring-glide-dur) var(--spring-glide) both; }
+html[data-arrive] .hf { overflow-x: clip; } /* the slide never widens the page */
 /* The phone's bars stay above that picture (it holds what was scrolled under the top bar) and never move. */
 html[data-vt="tab"]:not([data-motion="reduce"]) #top { view-transition-name: top; }
 html[data-vt="tab"]:not([data-motion="reduce"]) #tabs { view-transition-name: tabs; }
