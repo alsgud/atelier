@@ -2,38 +2,39 @@
 
 <!-- One page of current state. Settled history: atelier/LEDGER-archive.md. -->
 
-## State (2026-10-28)
-- M1 redesign is on main, plus the audit fixes (uey2) and the transition fixes (hn3n). The owner merged atelier/hn3n by fast-forward (main cbdea06, 2026-10-28). Both tasks are closed. F-2..F-13 are marked fixed; the next audit checks them.
-- Charter approved by the owner, 2026-10-28. AC-7 accepted again ("good"). Daily budget is $100, set by the owner.
-- Phase shows `design` because the design gate was reopened for the Office characters work (M2).
-- Owner rejected AC-7 on vbnh (2026-10-28): keep the glowing N1 windows (D-B), drop lamp/silhouettes (sad), add personality (overrule #8, R-17). A-6 answer adds: buildings out too, windows need stronger character. kydj cancelled before start (brief file isn't on its base branch); replaced by **37h3** with the brief inline in the goal: designer, base atelier/vbnh, 6 it, $25, P1-P3. Rule: when basing on a branch, put the brief in the goal, not only in a file on main. 37h3 done 2026-10-29 (atelier/37h3, in review): P1 Lived-in, P2 Temperament, P3 Little lights (designer and lead recommend P3). Lead checked images. Sent as A-7 (6 shots + 2 webm). A-7 answered 2026-10-29: owner picked P1 (P3 OK as second): overrule #9, R-18. Design gate approved by owner ("Good"); 37h3 is in main. wad8 built P1 (~$6), but on A-8 the owner preferred the current Office: P1 dropped (overrule #10, R-19 supersedes R-18). wad8 cancelled, branch kept, not to merge. **5cbr** started 2026-10-29: upgrade the existing Office in place, denser + more animated (frontend, 8 it, $30, priority 2, brief atelier/briefs/office-upgrade.md). **A-9 (14:53): owner: balance off on PC and phone; reset, fresh designer exploration.** Overrule #11, R-20. 5cbr cancelled (branch kept, not to merge). Design gate reopened. **f2e6** started: designer, 3 new directions O1-O3, 7 it, $25, base main, brief inline. f2e6 finished its work in 7 it (~$13, check pass, paused at iteration cap, no extension needed; branch atelier/f2e6). Reviewer round 1 = CHANGES (runs/f2e6/REVIEW.md): must-fix O2 phone shelf tile overlap (o2.css:26, `.o2-mini` minmax(0,1fr)); follow-ups: one tile width per page in O2, demo Inbox badge, carry the "pause off-screen loops" note into the build brief. Told the owner on A-10. **A-10 answered: O1 picked; phone good, PC desks cropped into each other (R-21).** Answer was missed by `events` at check-ins (only seen via `atelier asks`). f2e6 cancelled (branch kept). **t652** started: designer, base atelier/f2e6, fix O1 PC room strip, 4 it, $12. t652 done (~$6), A-12 "Looks good", design gate approved 2026-10-30 ("good but ... is there no way to have a projects screen"). t652 merged and closed. **mfyp** started: frontend build of O1 + a proper Projects nav row on PC (8 it, $30, base main). Told owner on A-13 that Projects exists (phone tab; PC hidden behind the sidebar label). mfyp done (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 Office, 390 Office, Projects nav: right. Sent as A-14. mfyp waits in review on purpose: owner merges (branch autonomy). After merge: `atelier close mfyp`, then `atelier audit atelier-ui run --bg` (~$12). Lead decision (nf3m): O1 animation is 60 fps at normal speed but 21-25 ms/frame with 4x CPU throttle at 1440; kept as approved. If the owner finds the Office sluggish, first stop the waiting desks' loops (~40% gain). It stays paused on purpose until A-10 is answered: if the owner asks to mix directions, extend it by 2-3 it; otherwise the owner merges and the lead closes it. Lead checked O1-O3 at 1440. Sent as A-10 (8 images; designer and lead recommend O1 Panorama). Next: owner's letter → ruling → design gate request (owner merges atelier/f2e6) → frontend build (~$30) → audit (~$12). History: 5cbr done 2026-10-29 (2 it, ~$6, check pass, atelier/5cbr). Lead checked proof: same look, 9→17 desks at 1440, 4→6 at 390, motion within frame budget, reduced motion clean. Sent as A-9. Waits in review on purpose: owner merges (branch autonomy). After merge: `atelier close 5cbr`, then audit (~$12). Minor for later: on phone, working cards leave empty space above the small scene. Missed at the time: the owner rejected AC-7 on 37h3 (01:05): "i like what is currently in place with the characters too but with the window glow symbolism ... I do like both design a lot though especially 02p1 lived in". 5cbr already keeps the figures and the glowing window, so it fits; if the owner asks for more, P1's things-on-the-sill idea could be folded into the current desks. Next: owner's letter → ruling → design gate request with the pick → M2 frontend build brief. vbnh cancelled (branch kept as 37h3's base; not needed to unblock, harmless). vbnh stays in review as kydj's base, unmerged; the owner merges the final design branch. When kydj is done: check images, send as one feedback ask (max 8), then request the design gate with the pick.
+## State (2026-10-30 12:45)
+- M1 redesign is on main, with audit fixes (uey2, hn3n). All M1 findings F-1..F-13 are marked fixed.
+- M2 Office: the owner picked O1 Panorama (R-21). Design gate approved 2026-10-30. **mfyp** built O1 plus a Projects nav row on PC (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 and 390 Office and the Projects nav. Sent as **A-14**, open. Waiting on the owner to merge atelier/mfyp (branch autonomy).
+- Nothing running. Today's spend $18.94 of $100; plan 7d 43%.
 
-## Open
-- F-1 fixed: the owner restarted 4747 on main cbdea06 and said "good" (2026-10-28). All M1 audit findings are now marked fixed.
-- Lead proof check done 2026-10-28: uey2 and hn3n evidence read, F-3/F-8/F-10 shots viewed. Fine.
-- Contracts: reopened with the owner's quote and re-approved by the lead, 2026-10-28. Shapes now in atelier/contracts/dashboard-api.md; dashboard-api-draft.md is a stub to delete (lead git rm is denied).
+## Next
+1. A-14 answered with a merge → `atelier close mfyp` → `atelier audit atelier-ui run --bg` (~$12) → handle findings.
+2. A-14 answered with changes → overrule + ruling first, then a small frontend fix task based on atelier/mfyp, brief inline in the goal.
+3. If the owner finds the Office sluggish: stop the waiting desks' animation loops first (~40% gain; nf3m measured 21-25 ms/frame at 4x CPU throttle, 60 fps normal).
+- Minor for later: on phone, working cards leave empty space above the small scene.
 
-## Waiting on the owner
-1. Office characters: the owner rejected the direction (A1-A3 and board S1-S14; overrule #5, R-12, 2026-10-28). Owner asked for varied sources and inspirations shown in the Inbox to pick from. Running: **m87r** (designer, $25, 6 it, base main, brief atelier/briefs/office-inspiration.md), with 14-18 numbered inspirations I1.., including no-character options. Done 2026-10-28 (atelier/m87r; board at atelier/design/office-inspiration/, I1-I16, 9 with no characters). The lead checked the images. Owner approved the design gate 2026-10-28 21:46 ("Approved") without naming numbers; asked A-2, answered 8, 7, 4 (recorded as R-14) but the owner had not seen the pictures (A-1 reply: "send me the references here in the inbox"). Sent all 16 as A-4 (1-8) and A-5 (9-16). A-4 answered: 7 and 8, anonymous but personable characters (overrule #6, R-15 replaces R-14; brief updated). A-5: 12 also liked; 16's idea but not its look (R-16). vbnh done 2026-10-28 (atelier/vbnh, in review): D-A Lamplight, D-B Lit shrines, D-C Night street; lead checked the images. Sent as A-6 (recommend D-A). Next: owner's letter → ruling → design gate request → M2 frontend build. Build note: cards must follow F-3 (no "Try N of M"); the designs still show it. Brief ready: atelier/briefs/office-directions.md (replace PICKS; designer, base main — m87r merged 2026-10-28 — ~7 it, $30). Next: the owner's numbers become a new ruling and an original-drawing designer task on base atelier/m87r. Branches 9pfh and 3e5b stay unmerged.
+## Housekeeping
+- dashboard-api-draft.md is a stub to delete (lead `git rm` is denied).
+- Unmerged branches kept on purpose, not to merge: 9pfh, 3e5b, vbnh, wad8, 5cbr, f2e6.
 
 ## Tell the owner (Atelier core bugs, owner's code)
-- EPERM card-write race on Windows (frequent; crashes runners). Top core fix: retry the rename on EPERM/EBUSY.
-- Ownership revert undoes merged-in base changes (a46b, 5ee365a). Should skip files equal to the base.
-- `atelier watch` doesn't exit when its parent dies (107 orphans found).
-- Window guard false positives (closed the owner's own Chrome tab, Tailscale installer).
+- EPERM card-write race on Windows (crashes runners): retry the rename on EPERM/EBUSY.
+- Ownership revert undoes merged-in base changes (a46b, 5ee365a).
+- `atelier watch` doesn't exit when its parent dies (107 orphans).
+- Window guard false positives (closed the owner's Chrome tab, Tailscale installer).
 - Chained review branches never auto-close; New project passes the whole brief to `gh repo create --description`.
-- The design gate for m87r reached the owner without its pictures (they couldn't see the board in the Inbox). Check reviewFor's image lookup for designer evidence named NN-*.png.
-- `atelier ask --attach` keeps only the first 8 files without warning (A-3 dropped 9 of 17).
+- Design gate for m87r reached the owner without pictures (reviewFor image lookup for NN-*.png).
+- `atelier ask --attach` keeps only the first 8 files without warning.
+- Ask answers (A-10) don't appear in `atelier events`.
 - Stale "replay lead" remote session from xhen's settings test may show in the owner's Claude app.
 
 ## Lead rules learned
-- Arm the watch only as `timeout 1750 node "C:/Users/oiyew/AppData/Roaming/npm/node_modules/atelier/bin/atelier.mjs" watch atelier-ui`. While nothing runs, let it lapse; rely on the 2-hour check-in.
-- `atelier answer` already requeues a needs-you task; don't also retry/tick.
-- Never put double quotes inside `--goal` (PowerShell truncates); long briefs go in atelier/briefs/*.md.
-- Under `branch` autonomy `atelier land` refuses; the owner merges. Chained branches: close with `atelier close` after the merge.
-- R-10 (spend freely) ended at the weekly reset, Tue 2026-10-27 02:00. R-9 still holds: weekly plan is the only limit, spend with care.
-- An approved gate freezes its files: reopen it (`atelier gate ... reopen --quote "<owner's words>"`) before starting a task that writes them (vbnh was blocked once, 2026-10-28).
-- At every check-in also run `atelier asks atelier-ui`: an A-10 answer never showed in `events` (missed ~a day, 2026-10-30).
-- Run `atelier events --unseen --mark` before acting on any gate/ask answer: owner criterion verdicts (criterion-accept) don't show on the watch as clearly as ask answers (missed AC-7 on 37h3, 2026-10-29).
-- Owner asks now go through `atelier ask atelier-ui approval|question|feedback|update` (R-13).
-- Shift 2026-10-28 eve: single `git add`/`git commit`/`git status` and single `atelier ...` commands run; `git rm` and chained commands are denied. The owner runs commands with a leading `!` (plain pasted text doesn't execute). Read .git/refs to check a merge.
+- Arm the watch as `timeout 1750 node "C:/Users/oiyew/AppData/Roaming/npm/node_modules/atelier/bin/atelier.mjs" watch atelier-ui`. Keep a 2-hour `Check-in.` cron.
+- At every check-in run `atelier events --project atelier-ui --unseen --mark` AND `atelier asks atelier-ui` (ask answers can miss events; criterion verdicts can miss the watch).
+- `atelier answer` already requeues a needs-you task; don't also retry.
+- No double quotes inside `--goal`; long briefs go in atelier/briefs/*.md. When basing on a branch, put the brief in the goal, not only in a file on main.
+- Under `branch` autonomy `atelier land` refuses; the owner merges. Close chained tasks with `atelier close` after the merge.
+- R-9: weekly plan is the only limit; spend with care.
+- An approved gate freezes its files: reopen it with the owner's quote before a task writes them.
+- Owner asks go through `atelier ask` (R-13), never chat only.
+- Permissions: single `git add`/`git commit`/`git status` and single `atelier ...` commands only; chained commands, `git rm` and other shell (Get-Content etc.) are denied. Use Read/Glob for files.
