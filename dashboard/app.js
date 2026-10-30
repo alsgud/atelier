@@ -2103,7 +2103,8 @@ const Project = (() => {
     if (S.working) {
       const ag = p.team?.agents || [], planning = ag.some(x => x.kind === 'lead' && x.state === 'working'), checking = ag.some(x => x.kind === 'auditor' && x.state === 'auditing');
       const t = planning && checking ? 'The lead is planning and the auditor is checking the work.' : planning ? 'The lead is planning.' : checking ? 'The auditor is checking the work.' : 'The team is at work.';
-      return [t, `No task is being built right now${paced ? `; ${paced}` : ''}${queued ? `; ${queued} queued` : ''}. Nothing needs you right now.`, null];
+      const rest = [paced, queued && `${queued} queued`].filter(Boolean).join(', ');
+      return [t, `${rest ? `${cap1(rest)}. ` : ''}Nothing needs you right now.`, null];
     }
     if (S.paced) return ['The team is waiting for your plan window.', `${S.paced === 1 ? 'Its task carries' : `${S.paced} tasks carry`} on by ${S.paced === 1 ? 'itself' : 'themselves'} when the window has room. Nothing needs you right now.`, null];
     if (queued) return ['Work is queued.', `${queued} task${queued === 1 ? '' : 's'} start${queued === 1 ? 's' : ''} as soon as a teammate is free.`, null];
