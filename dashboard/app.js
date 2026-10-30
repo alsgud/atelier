@@ -418,6 +418,21 @@ async function route({ refreshing = false, wait = false } = {}) {
     }
   };
   shownTab = tab;
+  // Leaving the Office (F-24): a view transition first paints a picture of the old screen, and the Office's live scenes
+  // made that take 60-150 ms. The new screen draws at once and arrives with the same slide on its own; the Office's
+  // observers stop after that first paint, not before it.
+  if (moved && prev === 'office' && !document.hidden) {
+    const dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(prev) ? 'fwd' : 'back';
+    if (!RM) {
+      const v = $('view');
+      ROOT.dataset.arrive = dir;
+      const done = e => { if (e.target !== v) return; v.removeEventListener('animationend', done); v.removeEventListener('animationcancel', done); delete ROOT.dataset.arrive; };
+      v?.addEventListener('animationend', done); v?.addEventListener('animationcancel', done);
+    }
+    const p = draw(); toY(); p.then(toY);
+    requestAnimationFrame(() => setTimeout(Office.stop));
+    return p;
+  }
   // Switching screens: the new one slides in the way you went (Flow); reduced motion cross-fades once.
   if (moved && document.startViewTransition && !document.hidden) {
     const dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(prev) ? 'fwd' : 'back';
@@ -761,9 +776,11 @@ const Inbox = (() => {
   function queue() {
     const L = list(), now = L.filter(x => x.needs), later = L.filter(x => !x.needs), D = ledger(), W = working(), C = counts();
     const g = n => rowsMove() ? vt(n, 'row') : '';
+    // Group counts are decisions, as the header's summary counts them: a batch split by "Decide each" lists its items but stays one (F-20).
+    const nd = rows => new Set(rows.map(x => x.q?.from || x.id)).size;
     return `<aside class="queue" aria-label="Waiting on you">
-      ${now.length ? `<div class="queue-group"><div class="queue-head is-needs"${g('h-now')}><span>Needs you now</span><span class="n">${now.length}</span></div>${now.map(qitem).join('')}</div>` : ''}
-      ${later.length ? `<div class="queue-group"><div class="queue-head"${g('h-later')}><span>When you have a minute</span><span class="n">${later.length}</span></div>${later.map(qitem).join('')}</div>` : ''}
+      ${now.length ? `<div class="queue-group"><div class="queue-head is-needs"${g('h-now')}><span>Needs you now</span><span class="n">${nd(now)}</span></div>${now.map(qitem).join('')}</div>` : ''}
+      ${later.length ? `<div class="queue-group"><div class="queue-head"${g('h-later')}><span>When you have a minute</span><span class="n">${nd(later)}</span></div>${later.map(qitem).join('')}</div>` : ''}
       ${D.length ? `<div class="queue-group is-ledger"><div class="queue-head"${g('h-done')}><span>Decided today</span><span class="n">${C.decidedToday}</span></div><div class="ledger">${ledgerRows(D.slice(0, 3))}</div>${D.length > 3 ? `<a href="#/activity" class="ledger-more"${g('l-more')}>${D.length - 3} more today</a>` : ''}</div>` : ''}
       ${W.length ? `<div class="queue-group"><div class="queue-head"${g('h-work')}><span>Working now</span><span class="n">${C.working}</span></div>${W.map(a => agent(a, true)).join('')}</div>` : ''}
     </aside>`;
@@ -1424,7 +1441,9 @@ const Office = (() => {
 
   // The project page's Team facts use the same desks, so a desk and its line there never disagree.
   const desks = p => { const keys = new Set(); return (p.team?.agents || []).map(x => deskOf(p, x, keys)); };
-  return { show, loading, desks, dotOf };
+  // Once the next screen has painted: the observers let go of the old desks (they come back with the next show()).
+  function stop() { if (place() === 'office') return; io?.disconnect(); ro?.disconnect(); io = ro = null; clearTimeout(timer); }
+  return { show, loading, desks, dotOf, stop };
 })();
 
 const etaText = e => e ? `likely ${e.low}–${e.high} min` : '';
@@ -1782,7 +1801,7 @@ const Settings = (() => {
       ['plan', 'Claude plan', `
         <div class="s-meters">${meter('5‑hour window', plan.fiveHour, plan.fiveHour ? `Resets ${esc(resetSoon(plan.fiveHour.resetsAt))}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, plan.sevenDay ? `Resets ${esc(resetAt(plan.sevenDay.resetsAt))}` : 'Shows after the first run')}</div>
         ${planWords(plan, pace).left ? `<p class="field-help">${esc(planWords(plan, pace).left)}.</p>` : ''}
-        <p class="field-help s-spent">Atelier spent <b class="num">${money(C?.spentToday)}</b> today on finished work${C?.working ? `; ${C.working} agent${C.working === 1 ? ' is' : 's are'} still working, so it will rise` : ''}. <span class="num">${tokens.toFixed(1)}</span> M tokens. API-equivalent cost, not a bill.</p>
+        <p class="field-help s-spent">Atelier spent <b class="num">${money(C?.spentToday)}</b> today so far${C?.working ? `, including work still running; ${C.working} agent${C.working === 1 ? ' is' : 's are'} still working, so it will rise` : ''}. <span class="num">${tokens.toFixed(1)}</span> M tokens. API-equivalent cost, not a bill.</p>
         ${holding}
         ${amount('fiveHour', 'Pause Atelier at this much of the 5‑hour window', pace.fiveHour, '%', 'New work waits until the window resets. Running tasks finish.')}
         ${amount('sevenDay', 'Pause Atelier at this much of the week', pace.sevenDay, '%', 'Leaves the rest of the week for you.')}
@@ -2079,7 +2098,13 @@ const Project = (() => {
     if (PH[p.phase]) return [PH[p.phase], 'It comes to your Inbox for your OK when it is ready.', null];
     const queued = S.tasks?.queued || 0;
     const paced = S.paced ? `${S.paced} waiting for your plan window` : '';
-    if (S.working) return ['The team is building.', `${S.working} working${paced ? `, ${paced}` : ''}${queued ? `, ${queued} queued` : ''}. Nothing needs you right now.`, null];
+    // "Building" only while a task of this project runs; a busy lead or auditor alone says what it is doing (F-19).
+    if (S.tasks?.running) return ['The team is building.', `${S.working} working${paced ? `, ${paced}` : ''}${queued ? `, ${queued} queued` : ''}. Nothing needs you right now.`, null];
+    if (S.working) {
+      const ag = p.team?.agents || [], planning = ag.some(x => x.kind === 'lead' && x.state === 'working'), checking = ag.some(x => x.kind === 'auditor' && x.state === 'auditing');
+      const t = planning && checking ? 'The lead is planning and the auditor is checking the work.' : planning ? 'The lead is planning.' : checking ? 'The auditor is checking the work.' : 'The team is at work.';
+      return [t, `No task is being built right now${paced ? `; ${paced}` : ''}${queued ? `; ${queued} queued` : ''}. Nothing needs you right now.`, null];
+    }
     if (S.paced) return ['The team is waiting for your plan window.', `${S.paced === 1 ? 'Its task carries' : `${S.paced} tasks carry`} on by ${S.paced === 1 ? 'itself' : 'themselves'} when the window has room. Nothing needs you right now.`, null];
     if (queued) return ['Work is queued.', `${queued} task${queued === 1 ? '' : 's'} start${queued === 1 ? 's' : ''} as soon as a teammate is free.`, null];
     if (S.tasks?.paused) return ['Work is paused.', `${S.tasks.paused === 1 ? 'One task is' : `${S.tasks.paused} tasks are`} paused. The lead decides what happens next.`, null];
@@ -2144,7 +2169,7 @@ const Project = (() => {
     const more = S.tasksOpen > list.length;
     return `<section class="p-sec" aria-labelledby="work-h" data-r="work"><h2 class="p-h" id="work-h">In progress${S.tasksOpen ? ` <span class="n">${S.tasksOpen}</span>` : ''}</h2>
       ${list.length ? `<div class="p-tasks">${list.map(card).join('')}</div>${more ? `<a class="link p-more" href="${href(p.alias, 'tasks')}">All ${S.tasksOpen} open tasks</a>` : ''}`
-        : `<p class="p-quiet">${S.lead ? 'Nothing is being built yet. Tasks appear here once the lead plans them.' : 'Nothing running. The lead is off, so nothing new starts.'}</p>`}</section>`;
+        : `<p class="p-quiet">${S.lead ? `Nothing is being built ${p.tasks.length ? 'right now. New tasks appear here once the lead plans them.' : 'yet. Tasks appear here once the lead plans them.'}` : 'Nothing running. The lead is off, so nothing new starts.'}</p>`}</section>`;
   };
 
   // ── Recent: the newest few events, in words ──
