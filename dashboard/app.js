@@ -1096,7 +1096,13 @@ const Inbox = (() => {
   const pending = () => [...S.hidden.values()].some(h => !h.committed);
   return {
     show, leave, pending, placeToast,
-    hiddenItems: () => [...S.hidden.values()].filter(h => !h.committed || (state?.queue || []).some(x => x.key === h.x.id)).map(h => ({ project: h.project, needs: h.needs })),
+    // An outcome split out of a batch is part of one decision: the batch leaves the counts once all of it has gone (F-20).
+    hiddenItems: () => {
+      const seen = new Set();
+      return [...S.hidden.values()].filter(h => !h.committed || (state?.queue || []).some(x => x.key === (h.x.q?.from || h.x.id)))
+        .filter(h => { const f = h.x.q?.from; if (!f) return true; if (seen.has(f) || S.items.some(x => x.q?.from === f)) return false; seen.add(f); return true; })
+        .map(h => ({ project: h.project, needs: h.needs }));
+    },
     localDecided: () => S.decided.filter(d => !d.committed || !(state?.decidedToday || []).length).length,
     // For the project page's "Needs you here": the same title and kind words as the Inbox, minus decisions in their Undo window.
     describe: q => { const x = item(q); return { title: x.title, kind: x.kind }; },
