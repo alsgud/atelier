@@ -1685,7 +1685,8 @@ function eventWords(e, alias) {
   // Activity events carry their task's title (null for none); a project's or task's own events are looked up
   const m = String(e.msg || ''), task = (e.task !== undefined ? e.task : (state?.projects || []).flatMap(p => p.tasks || []).find(t => t.id === e.id)?.title) || '';
   // `task` is the event's task in plain words: Activity shows it under the line, a project's Recent after it
-  const S = (w, text = '', raw = '') => ({ w, text: plainTitle(text), raw: raw && raw !== text ? raw : '', task: task ? titleWords(task) : '' });
+  // a request's title is the first words of an agent's message, cut off: it gets a plain name instead
+  const S = (w, text = '', raw = '') => ({ w, text: plainTitle(text), raw: raw && raw !== text ? raw : '', task: !task ? '' : /^Request\b.*…$/s.test(task) ? 'A request from the team' : titleWords(task) });
   // a line the event log cut off mid-sentence says so
   const auto = (w, s = m) => { const t = scrub(s).replace(/\bby (?:the )?owner\b/g, 'by you'), cut = DANGLING.test(t) ? `${t}…` : t; return S(w, cut, t !== s.trim() ? m : ''); };
   const was = ph => /s$/.test(ph) ? 'were' : 'was';
