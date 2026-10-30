@@ -1643,7 +1643,8 @@ const scrub = s => {
 // left hanging where a file name was.
 const ID = '(?=[0-9]*[a-z])(?=[a-z]*\\d)[a-z0-9]{4}';
 const titleWords = s => cap1(unpath(plainTitle(s).replace(/\((?=[a-z]*\d)[a-z0-9]{4}(?:[:,]\s*|\s+(?=\w))/g, '(')
-  .replace(new RegExp(`\\btask ${ID}\\b`, 'g'), 'task').replace(new RegExp(`\\b(for|on|after|from|with|of) ${ID}\\b`, 'g'), '$1 the task'))
+  .replace(new RegExp(`\\btask ${ID}\\b`, 'g'), 'task').replace(new RegExp(`\\b(for|on|after|from|with|of) ${ID}\\b`, 'g'), '$1 the task')
+  .replace(new RegExp(`\\b([A-Za-z]+) ${ID}:`, 'g'), '$1 the task:'))
   .replace(/\s+\b(?:in|on|to|for|from|of|at|into)\b(?=\s*(?:[(,.;:]|$))/g, '').replace(/\s{2,}/g, ' ').trim()) || plainTitle(s);
 // An outcome's own words for its code, from its project (or any project when the event's isn't known).
 const critText = (alias, id) => {
@@ -1655,7 +1656,7 @@ const critText = (alias, id) => {
 };
 // Kinds whose own words add nothing the sentence doesn't say (or only a hint for the lead): no Details, so the feed
 // isn't a column of Details controls.
-const NO_DETAILS = new Set(['iteration', 'pushed', 'gate', 'gate-request', 'criteria-request', 'audit-started', 'needs-lead', 'ownership', 'queued', 'review', 'paused',
+const NO_DETAILS = new Set(['iteration', 'pushed', 'gate', 'gate-request', 'criteria-request', 'audit-started', 'needs-lead', 'ownership', 'queued', 'review', 'paused', 'paced',
   'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-draft', 'criterion-team', 'criterion-retire', 'owner-review', 'finding-confirmed', 'finding-dismissed', 'finding-to-lead']);
 const eventSay = (e, alias = e.project) => { const s = eventWords(e, alias); return NO_DETAILS.has(e.type) ? { ...s, raw: '' } : s; };
 function eventWords(e, alias) {
@@ -1725,6 +1726,7 @@ function eventWords(e, alias) {
     case 'done': return task ? S('Finished', '', m) : auto('Done:');
     case 'added': case 'started': return task ? S(EVENT_WORD[e.type]) : auto(`${EVENT_WORD[e.type]}:`);
     case 'paused': return /owner/.test(m) ? S('You stopped it') : /^for the lead/.test(m) ? S('Paused for the lead to decide', '', m) : /lead/.test(m) ? S('The lead paused it') : auto('Paused:');
+    case 'paced': return S(/nearly full/.test(m) ? 'Waiting: your plan is nearly used up for now' : /plan limit/.test(m) ? 'Waiting: your plan limit was reached' : 'Waiting for your plan to have room', '', m);
     case 'window-closed': return S('Atelier closed a window opened on your screen without your OK', '', m);
     case 'window-shown': return S('A window opened on your screen, as you allowed', '', m);
     case 'screen-request': return S('Asked to open a window on your screen', '', m);
