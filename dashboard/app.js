@@ -34,10 +34,13 @@ const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 // codes goes, and so do codes leading the title. Everything else stays as written.
 const CODE = '[A-Z][A-Z0-9]{0,3}-?[A-Z]{0,2}\\d+[a-z]?(?:/\\d+)*';
 const CODES_IN_BRACKETS = new RegExp(`\\s*[(\\[]\\s*${CODE}(?:\\s*(?:[,;/&]|and)\\s*${CODE})*\\s*[)\\]]`, 'g');
-const CODES_LEADING = new RegExp(`^(?:${CODE}(?:\\s*[:—–]\\s*|\\s+))+(?=\\S)`);
+// A leading code has a hyphen (M2-A7, AC-14) or a colon after it (D6:), so a label like "V1 Quiet" stays.
+const HCODE = '[A-Z][A-Z0-9]{0,3}-[A-Z]{0,2}\\d+[a-z]?(?:/\\d+)*';
+const CODES_LEADING = new RegExp(`^(?:${HCODE}(?:\\s*[:—–]\\s*|\\s+)|${CODE}\\s*[:—–]\\s*)+(?=\\S)`);
+const HCODES_LEADING = new RegExp(`^(?:${HCODE}\\s+)+(?=\\S)`);
 // also after a short lead-in such as "Request: AC-14 verifier…"
 const plainTitle = s => cap1(String(s || '').replace(CODES_IN_BRACKETS, '').replace(/\s*\((?=[a-z0-9]*\d)[a-z0-9]{4}\)/g, '').replace(CODES_LEADING, '')
-  .replace(/^(\w[\w ]{0,20}:\s+)(.+)$/, (_, a, b) => a + b.replace(CODES_LEADING, '')).trim()) || String(s || '');
+  .replace(/^(\w[\w ]{0,20}:\s+)(.+)$/, (_, a, b) => a + b.replace(HCODES_LEADING, '')).trim()) || String(s || '');
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
 const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000); return m <= 0 ? 'now' : m < 60 ? `in ${m} min` : `in ${Math.floor(m / 60)} h ${m % 60} min`; };
 // The one money formatter (F-9): $250 for whole dollars, $72.02 otherwise.
@@ -111,9 +114,10 @@ document.body.insertAdjacentHTML('afterbegin', `<svg xmlns="http://www.w3.org/20
   `<symbol id="i-${k}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${v}</symbol>`).join('')}</svg>`);
 const I = (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
 const icon = (name, cls = '') => `<svg class="${cls}" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
-// Audio proof (voice projects): a player in a proof frame's box, its file name as the caption. src is a view-port URL.
-const sounds = (list, src) => list.length ? `<div class="sounds">${list.map(f => `<figure class="sound"><span class="sound-box"><audio src="${esc(src(f))}" controls preload="none" aria-label="${esc(f.name)}"></audio></span>
-    <figcaption class="frame-cap"><b>${esc(f.name)}</b><span>Sound</span></figcaption></figure>`).join('')}</div>` : '';
+// Audio proof (voice projects): a player in a proof frame's box, captioned Clip 1, Clip 2… in the order given (F-18:
+// file names like t10_A.wav are the agent's, not the owner's). src is a view-port URL.
+const sounds = (list, src) => list.length ? `<div class="sounds">${list.map((f, i) => `<figure class="sound"><span class="sound-box"><audio src="${esc(src(f))}" controls preload="none" aria-label="Clip ${i + 1}"></audio></span>
+    <figcaption class="frame-cap"><b>Clip ${i + 1}</b><span>Sound</span></figcaption></figure>`).join('')}</div>` : '';
 // What the lead attached to a message (lib/asks.mjs): pictures and recordings as frames, sound as players, pages,
 // PDFs and links as links. Everything opens on the view port, never the dashboard's own origin.
 function askMedia(a, { hero = true } = {}) {
@@ -540,11 +544,37 @@ const Inbox = (() => {
     return `<div class="doc${open ? '' : ' is-clamped'}" id="doc-${cssId(id)}" tabindex="-1">${md(text)}</div>${open ? '' : `<button class="btn btn-secondary doc-all" type="button" data-act="show-all" data-for="${esc(id)}" aria-controls="doc-${cssId(id)}">Show all</button>`}`;
   };
 
+  // A plan's plain lede (F-18): the first plain sentence of its brief's goal (else of the brief), skipping headings,
+  // list fragments and any sentence that points at a file, a path or a command. `lists` also reads list items (proof
+  // notes are often all bullets).
+  const planLede = (brief, lists = false) => {
+    const text = String(brief || '').replace(/\r/g, '').replace(/<!--[\s\S]*?-->/g, '');
+    const goal = (text.match(/^#+\s*Goal\b[^\n]*\n([\s\S]*?)(?=^#{1,2}\s|(?![\s\S]))/mi) || [])[1] || '';
+    for (const part of [goal, text]) {
+      const prose = part.split('\n').filter(l => l.trim() && !(lists ? /^\s*(#|>|\||```)/ : /^\s*(#|[-*+]\s|\d+[.)]\s|>|\||```)/).test(l))
+        .map(l => lists ? l.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '').replace(/([^.!?:])\s*$/, '$1.') : l).join(' ');
+      for (const s of prose.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(?=\s|$)/g) || []) {
+        const t = s.replace(/[*_]/g, '').trim();
+        if (t.split(' ').length < 5 || /:$/.test(t) || /\b(read it first|binding)\b/i.test(t) || /^(npm|npx|node|git|cargo|pytest|python|pwsh|powershell|atelier)\b/i.test(t)) continue;
+        if (unpath(t, true) !== t) continue; // a path, file name, command, code or id
+        return t.length > 220 ? `${t.slice(0, 217).replace(/\s+\S*$/, '')}…` : t;
+      }
+    }
+    return '';
+  };
+  // What a plan will be checked against: each outcome in its own words, not its code.
+  const planChecks = (a, ids) => {
+    const list = String(ids || '').split(/[\s,;]+/).filter(Boolean);
+    if (!list.length) return '<span>No outcomes cited yet.</span>';
+    const said = list.map(id => critText(a, id.toUpperCase())).filter(Boolean);
+    return said.length ? `<ul class="olist">${said.map(s => `<li>${esc(s)}</li>`).join('')}</ul>${said.length < list.length ? `<span>And ${list.length - said.length} more of the team’s own checks.</span>` : ''}` : `<span>${list.length} of the team’s own checks.</span>`;
+  };
+
   // One Inbox item, from the server's queue entry: its words, the thing itself, and its dock. The dock's
   // actions are today's, with today's arguments (contracts rule 1).
   function item(q) {
     const a = q.project, A = esc(a);
-    const base = { id: q.key, needs: !!q.needs, project: a, age: ago(q.at), ageLong: longAgo(q.at), title: q.title, q };
+    const base = { id: q.key, needs: !!q.needs, project: a, age: ago(q.at), ageLong: longAgo(q.at), title: titleWords(q.title), q };
     const P = `#/p/${encodeURIComponent(a)}`;
     switch (q.kind) {
       case 'gate': {
@@ -597,7 +627,9 @@ const Inbox = (() => {
         const files = (pr?.files || []).map(f => ({ ...f, url: viewUrl(pr.viewPort, f.url) })).filter(f => f.url);
         const pics = files.filter(f => !f.audio), heard = files.filter(f => f.audio);
         return { ...base, glyph: 'proof', kind: 'Your judgement', short: 'your judgement',
-          body: () => `<p class="lede">${pr?.notes ? `Shown working: ${esc(pr.notes.replace(/[*_`#]/g, ''))}` : 'Try it yourself, then say whether it holds.'}</p>
+          // the proof's first plain sentence leads; the agent's own notes (commands, ports, paths) wait under Details (F-18)
+          body: () => `<p class="lede">${(s => s ? `Shown working: ${esc(s)} ` : pr?.notes ? 'The team showed it working; its notes are below. ' : '')(planLede(pr?.notes, true))}Try it yourself, then say whether it holds.</p>
+            ${pr?.notes ? `<details class="details"><summary>${I('chevron-down')}How it was shown</summary><div class="details-body">${md(pr.notes)}</div></details>` : ''}
             ${pics.length ? `<div class="frames is-hero">${pics.slice(0, 3).map((f, i) => f.video ? `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="frame" aria-label="Recording ${esc(f.name)}, opens in a new tab"><span class="frame-img"><video src="${esc(f.url)}" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video><span class="play">${I('play')}Recording</span></span><span class="frame-cap"><b>Recording</b><span>Open ${I('external')}</span></span></a>` : frame(f.url, f.name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '), /(390|360|phone)/i.test(f.name) && i ? 'is-phone' : '')).join('')}</div>` : ''}
             ${sounds(heard, f => f.url)}
             ${pr ? `<div class="links"><a href="#/t/${encodeURIComponent(pr.task)}">${I('log')}Open the task</a></div>` : ''}`,
@@ -673,10 +705,10 @@ const Inbox = (() => {
             done: `Approved. The lead adds all ${list.length} to the checks.`, toast: `Approved ${list.length} outcomes.`, log: `Approved ${list.length} outcomes for ${a}` } };
       }
       case 'plan':
-        return { ...base, glyph: 'plan', kind: 'Task plan', short: 'task plan', title: `Start a task: ${q.title}`,
-          body: () => `<p class="lede">The ${esc(q.role)} works on it: up to ${esc(q.iterations)} tries${q.budgetLimit ? `, at most ${money(q.budgetLimit)}` : ''}. Its brief says what it will change.</p>
+        return { ...base, glyph: 'plan', kind: 'Task plan', short: 'task plan', title: `Start a task: ${base.title}`,
+          body: () => `<p class="lede">${esc(planLede(q.brief) || 'Its brief says what it will change.')} The ${esc(q.role)} works on it: up to ${esc(q.iterations)} tries${q.budgetLimit ? `, at most ${money(q.budgetLimit)}` : ''}.</p>
             ${q.brief ? inlineDoc(base.id, q.brief) : ''}
-            <details class="details"><summary>${I('chevron-down')}What it will be checked against</summary><div class="details-body"><span>${q.criteria ? `Outcomes ${esc(q.criteria)}.` : 'No outcomes cited yet.'}</span></div></details>`,
+            <details class="details"><summary>${I('chevron-down')}What it will be checked against</summary><div class="details-body">${planChecks(a, q.criteria)}</div></details>`,
           dock: { primary: 'Approve plan', ghost: 'Open the task', ghostHref: `#/t/${encodeURIComponent(q.id)}`,
             send: () => ({ action: 'plan-approve', id: q.id }),
             done: `Approved. The ${q.role} starts within a minute.`, toast: 'Approved the plan.', log: `Approved the plan: ${q.title}` } };
@@ -736,7 +768,7 @@ const Inbox = (() => {
       // A task says its stage and latest step in words, its bar filled by stage (F-3); tries live on the task page.
       const stage = x.state === 'reviewing' || x.kind === 'reviewer' ? 3 : 1;
       const fig = x.audit?.checkers ? { n: x.audit.finished, of: x.audit.checkers, unit: 'checks' } : x.id ? { n: stage + 1, of: STAGES.length, unit: 'stage', words: [STAGES[stage], x.quietMin ? `Quiet for ${x.quietMin} min` : x.step].filter(Boolean).join(' · ') } : null;
-      out.push({ id: `${p.alias}-${x.id || x.kind}`, what: x.what, meta: `${p.alias} · ${who}`, when: x.id && x.lastAt ? longAgo(x.lastAt) : c ? `${c.minutes} min in` : x.kind === 'auditor' ? (x.meta || '').replace(/ · .*/, '') : 'now', href: x.href || '', ...(fig || {}) });
+      out.push({ id: `${p.alias}-${x.id || x.kind}`, what: x.id ? titleWords(x.what) : x.what, meta: `${p.alias} · ${who}`, when: x.id && x.lastAt ? longAgo(x.lastAt) : c ? `${c.minutes} min in` : x.kind === 'auditor' ? (x.meta || '').replace(/ · .*/, '') : 'now', href: x.href || '', ...(fig || {}) });
     }
     return out;
   }
@@ -1279,7 +1311,7 @@ const Office = (() => {
     let key = x.kind === 'lead' ? 'lead' : x.kind === 'auditor' ? 'auditor' : x.kind === 'reviewer' ? 'reviewer' : `r-${x.role || x.who}`;
     if (keys.has(key)) key += `-${x.id || keys.size}`;
     keys.add(key);
-    const d = { key, id: x.id, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: ROLE(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.what || '', step: '', quiet: false, prog: null, ago: '' };
+    const d = { key, id: x.id, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: ROLE(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.id || x.held ? titleWords(x.what) : x.what || '', step: '', quiet: false, prog: null, ago: '' };
     const working = () => Object.assign(d, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started', quiet: !!x.quietMin, stage: x.kind === 'reviewer' ? 3 : 1, ago: longAgo(x.lastAt) });
     if (x.kind === 'lead') {
       if (x.state === 'working') Object.assign(d, { k: 'active', step: `In the Claude app as “${a} lead”` });
@@ -1290,7 +1322,7 @@ const Office = (() => {
       else d.step = p.lastAudit?.at ? `Last audit ${longAgo(p.lastAudit.at)}` : 'Audits start once there is something built to check';
     } else if (x.id) {
       d.task = true; // a task at the desk is news even while it isn't moving (stalled, waiting for the plan window)
-      if (x.kind === 'reviewer') d.what = `Reviewing ${x.what}`;
+      if (x.kind === 'reviewer') d.what = `Reviewing ${d.what}`;
       if (x.state === 'needs') Object.assign(d, { k: 'needs', step: 'It asked you something. Answer it on its page' });
       else if (x.state === 'stuck') d.step = 'Stalled. The lead decides what happens next';
       else if (x.state === 'paced') Object.assign(d, { step: pacedWords(x), stage: x.kind === 'reviewer' ? 3 : 1 });
@@ -1305,8 +1337,8 @@ const Office = (() => {
     } else {
       const f = x.finished;
       if (f && !firstSeen.has(f.id)) firstSeen.set(f.id, Date.now());
-      if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: f.title, step: 'Finished just now', stage: 4, ago: '' });
-      else d.step = f ? `Finished “${f.title}”` : 'Starts when the lead hands it a task';
+      if (f && Date.now() - firstSeen.get(f.id) < HOLD) Object.assign(d, { k: 'done', what: titleWords(f.title), step: 'Finished just now', stage: 4, ago: '' });
+      else d.step = f ? `Finished “${titleWords(f.title)}”` : 'Starts when the lead hands it a task';
     }
     d.word = d.held || WORD[d.k];
     return d;
@@ -1353,7 +1385,7 @@ const Office = (() => {
     }
     const lead = desks.find(d => d.key === 'lead');
     const n = Math.min(own.length, s.needsNow ?? own.length);
-    if (lead && n) Object.assign(lead, { k: 'needs', word: WORD.needs, href: '#/inbox', what: n === 1 ? plainTitle(own[0].title) : `${n} decisions need you now`, step: n === 1 ? 'It’s in your Inbox' : 'They’re in your Inbox' });
+    if (lead && n) Object.assign(lead, { k: 'needs', word: WORD.needs, href: '#/inbox', what: n === 1 ? titleWords(own[0].title) : `${n} decisions need you now`, step: n === 1 ? 'It’s in your Inbox' : 'They’re in your Inbox' });
   }
 
   function model() {
@@ -1600,7 +1632,12 @@ const scrub = s => {
   const cut = t.search(TECH_TAIL);
   return unpath(cut >= 0 ? t.slice(0, cut) : t, true);
 };
-const titleWords = s => unpath(plainTitle(s)) || plainTitle(s);
+// A title in plain words (F-18): also no file names or task ids ("(e8jp: pauses…)" → "(pauses…)"), and no preposition
+// left hanging where a file name was.
+const ID = '(?=[0-9]*[a-z])(?=[a-z]*\\d)[a-z0-9]{4}';
+const titleWords = s => cap1(unpath(plainTitle(s).replace(/\((?=[a-z]*\d)[a-z0-9]{4}(?:[:,]\s*|\s+(?=\w))/g, '(')
+  .replace(new RegExp(`\\btask ${ID}\\b`, 'g'), 'task').replace(new RegExp(`\\b(for|on|after|from|with|of) ${ID}\\b`, 'g'), '$1 the task'))
+  .replace(/\s+\b(?:in|on|to|for|from|of|at|into)\b(?=\s*(?:[(,.;:]|$))/g, '').replace(/\s{2,}/g, ' ').trim()) || plainTitle(s);
 // An outcome's own words for its code, from its project (or any project when the event's isn't known).
 const critText = (alias, id) => {
   for (const p of (state?.projects || []).filter(p => !alias || p.alias === alias)) {
