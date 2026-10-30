@@ -32,10 +32,12 @@ const longAgo = iso => {
 const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 // A title in plain words (F-18): codes like R-31, AC-1, F-14 or M2-A7 are for agents, so a bracket that holds only
 // codes goes, and so do codes leading the title. Everything else stays as written.
-const CODE = '[A-Z][A-Z0-9]{0,3}-?[A-Z]{0,2}\\d+[a-z]?';
+const CODE = '[A-Z][A-Z0-9]{0,3}-?[A-Z]{0,2}\\d+[a-z]?(?:/\\d+)*';
 const CODES_IN_BRACKETS = new RegExp(`\\s*[(\\[]\\s*${CODE}(?:\\s*(?:[,;/&]|and)\\s*${CODE})*\\s*[)\\]]`, 'g');
 const CODES_LEADING = new RegExp(`^(?:${CODE}(?:\\s*[:—–]\\s*|\\s+))+(?=\\S)`);
-const plainTitle = s => cap1(String(s || '').replace(CODES_IN_BRACKETS, '').replace(CODES_LEADING, '').trim()) || String(s || '');
+// also after a short lead-in such as "Request: AC-14 verifier…"
+const plainTitle = s => cap1(String(s || '').replace(CODES_IN_BRACKETS, '').replace(/\s*\((?=[a-z0-9]*\d)[a-z0-9]{4}\)/g, '').replace(CODES_LEADING, '')
+  .replace(/^(\w[\w ]{0,20}:\s+)(.+)$/, (_, a, b) => a + b.replace(CODES_LEADING, '')).trim()) || String(s || '');
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
 const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000); return m <= 0 ? 'now' : m < 60 ? `in ${m} min` : `in ${Math.floor(m / 60)} h ${m % 60} min`; };
 // The one money formatter (F-9): $250 for whole dollars, $72.02 otherwise.
@@ -1570,7 +1572,128 @@ const Projects = (() => {
 })();
 
 // ---------- activity ----------
-const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iteration', criteria: 'Criteria', suite: 'Full suite', 'review-started': 'Review started', reviewed: 'Reviewed', done: 'Finished', review: 'Ready for review', 'needs-you': 'Needs you', stalled: 'Stalled', failed: 'Failed', approved: 'Approved', answered: 'Answered', gate: 'Gate', 'gate-request': 'Gate requested', audit: 'Audit', 'audit-started': 'Audit started', 'finding-confirmed': 'You asked for a fix', 'finding-dismissed': "You said it's fine", 'finding-to-lead': 'Auditor → lead', 'finding-fixed': 'Lead fixed', 'criterion-draft': 'Criterion drafted', 'criterion-approve': 'Criterion approved', 'criterion-accept': 'Criterion accepted', 'criterion-reject': 'Criterion rejected', ruling: 'Ruling', message: 'Message', requested: 'Request', 'test-touch': 'Tests changed', 'owner-review': 'Needs your judgement', trust: 'Gating', reporting: 'Reporting', autonomy: 'Shipping', lead: 'Lead', charter: 'Charter', demoted: 'Trust tightened', ownership: 'Out-of-bounds edit reverted', paced: 'Paused for plan limits', queued: 'Queued', project: 'Project' };
+const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iteration', criteria: 'Criteria', suite: 'Full suite', 'review-started': 'Review started', reviewed: 'Reviewed', done: 'Finished', review: 'Ready for review', 'needs-you': 'Needs you', stalled: 'Stalled', failed: 'Failed', approved: 'Approved', answered: 'Answered', gate: 'Gate', 'gate-request': 'Gate requested', audit: 'Audit', 'audit-started': 'Audit started', 'finding-confirmed': 'You asked for a fix', 'finding-dismissed': "You said it's fine", 'finding-to-lead': 'Auditor → lead', 'finding-fixed': 'Lead fixed', 'criterion-draft': 'Criterion drafted', 'criterion-approve': 'Criterion approved', 'criterion-accept': 'Criterion accepted', 'criterion-reject': 'Criterion rejected', ruling: 'Ruling', message: 'Message', requested: 'Request', 'test-touch': 'Tests changed', 'owner-review': 'Needs your judgement', trust: 'Gating', reporting: 'Reporting', autonomy: 'Shipping', lead: 'Lead', charter: 'Charter', demoted: 'Trust tightened', ownership: 'Out-of-bounds edit reverted', paced: 'Paused for plan limits', queued: 'Queued', project: 'Project', 'budget-warn': 'Heads up', 'budget-day': 'Today’s budget is used up', budget: 'Budget', pace: 'Plan limits', overrule: 'Your call', ownerGates: 'Your approvals' };
+
+// Every event as one plain sentence (F-15): `w` its short name, `text` the rest, `raw` the event's own words when they
+// held anything technical (command output, paths, hashes, CLI hints, codes), for a closed Details control. The event
+// text is written for the lead (lib/asks.mjs, the runner); this is where it becomes the owner's words.
+const TECH_TAIL = /\s*(?:\bOutput:|\(full output\b|\(details:|\bExtend with:|\bTraceback\b|\bfatal:|\berror:)/i;
+// Paths, file names, hashes, links, inline code and CLI hints go; `codes` also takes bare codes (AC-7, F-14) out of
+// free text. Task titles keep mid-sentence codes (plainTitle takes the leading and bracketed ones, F-18).
+const unpath = (s, codes) => {
+  let t = String(s || '').replace(CODES_IN_BRACKETS, '').replace(/`[^`]*`/g, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/(['"])atelier [^'"]*\1|\batelier (?:verify|extend|audit|asks|request|msg|run|approve)\b[^.;,)]*/g, '')
+    .replace(/[A-Za-z]:\\[^\s,;)"']*/g, '').replace(/\*\.\w+/g, '')
+    .replace(/(?:\\\\\?\\|~\/|\.{1,2}\/)?(?:[\w.@*-]+[\\/])+[\w.@*-]*/g, '')
+    .replace(/\b[\w-]+\.(?:mjs|js|ts|tsx|py|ps1|sh|md|json|jsonl|css|html|rs|toml|yaml|yml|wav|mp3|png|jpg|webm|log|txt|exe|dll)(?:::\w+)?\b/gi, '')
+    .replace(/\b(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/g, '')
+    .replace(/\s--[\w-]+/g, '')
+    .replace(/\[[\w-]+\]\s*/g, '')
+    .replace(CODES_IN_BRACKETS, '');
+  if (codes) t = t.replace(/\b[A-Z]{1,3}\d?-\d+[a-z]?\b(?:'s)?:?\s*/g, '').replace(/\b(?=[a-z]*\d)[a-z0-9]{4}'s\b/g, 'the task’s');
+  return t.replace(/\(\s*[,;\s]*\)/g, '').replace(/\s*\((?:of|on|in|for|from)\)/g, '').replace(/(?:\s*,){2,}/g, ',').replace(/''|""/g, '').replace(/\s+([,.;:)])/g, '$1').replace(/\(\s+/g, '(').replace(/\s{2,}/g, ' ')
+    .trim().replace(/^[,;:\-–—·]\s*/, '').replace(/\s*[,;:\-–—·(]$/, '');
+};
+const scrub = s => {
+  let t = String(s || '');
+  const cut = t.search(TECH_TAIL);
+  return unpath(cut >= 0 ? t.slice(0, cut) : t, true);
+};
+const titleWords = s => unpath(plainTitle(s)) || plainTitle(s);
+// An outcome's own words for its code, from its project (or any project when the event's isn't known).
+const critText = (alias, id) => {
+  for (const p of (state?.projects || []).filter(p => !alias || p.alias === alias)) {
+    const c = (p.criteria || []).find(c => c.id === id);
+    if (c?.statement) return c.statement;
+  }
+  return '';
+};
+// Kinds whose own words add nothing the sentence doesn't say (or only a hint for the lead): no Details, so the feed
+// isn't a column of Details controls.
+const NO_DETAILS = new Set(['iteration', 'pushed', 'gate', 'gate-request', 'criteria-request', 'audit-started', 'needs-lead', 'ownership', 'queued', 'review', 'paused',
+  'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-draft', 'criterion-team', 'criterion-retire', 'owner-review', 'finding-confirmed', 'finding-dismissed', 'finding-to-lead']);
+const eventSay = (e, alias = e.project) => { const s = eventWords(e, alias); return NO_DETAILS.has(e.type) ? { ...s, raw: '' } : s; };
+function eventWords(e, alias) {
+  // Activity events carry their task's title (null for none); a project's or task's own events are looked up
+  const m = String(e.msg || ''), task = (e.task !== undefined ? e.task : (state?.projects || []).flatMap(p => p.tasks || []).find(t => t.id === e.id)?.title) || '';
+  // `task` is the event's task in plain words: Activity shows it under the line, a project's Recent after it
+  const S = (w, text = '', raw = '') => ({ w, text: plainTitle(text), raw: raw && raw !== text ? raw : '', task: task ? titleWords(task) : '' });
+  const auto = (w, s = m) => { const t = scrub(s).replace(/\bby (?:the )?owner\b/g, 'by you'); return S(w, t, t !== s.trim() ? m : ''); };
+  const was = ph => /s$/.test(ph) ? 'were' : 'was';
+  const role = r => /^[a-z0-9]{4}$/.test(r) ? 'another agent' : `the ${r}`;
+  let x;
+  switch (e.type) {
+    case 'ask-answered': {
+      x = m.match(/^\S+\s+"([^"]*)"\s+([A-Z]+)/);
+      if (!x) return auto('You answered:');
+      const ran = m.match(/\bran:\s*(OK|FAILED)/);
+      const w = ran ? (ran[1] === 'OK' ? 'A command you approved ran fine:' : 'A command you approved failed:')
+        : x[2] === 'APPROVED' ? 'You approved:' : /REJECT|DECLIN/.test(x[2]) ? 'You said no to:' : 'You answered:';
+      return S(w, scrub(x[1]) || x[1], m);
+    }
+    case 'ask':
+      if ((x = m.match(/^\S+\s+\[(\w+)\]\s*([\s\S]*)$/))) return auto({ approval: 'The lead asks your OK:', question: 'The lead asks you:', feedback: 'The lead asks what you think:', update: 'The lead told you:' }[x[1]] || 'The lead wrote to you:', x[2]);
+      if ((x = m.match(/^\S+\s+lead replied:\s*([\s\S]*)$/))) return auto('The lead replied:', x[1]);
+      return auto('The lead wrote to you:');
+    case 'criterion-approve': case 'criterion-accept': case 'criterion-reject': case 'criterion-draft': case 'criterion-team': case 'criterion-retire': {
+      x = m.match(/^([A-Z]+-\d+)\s*(?::\s*([\s\S]*))?/);
+      const text = (x && (x[2] && !/^-?$/.test(x[2].trim()) ? x[2] : critText(alias, x[1]))) || 'an outcome';
+      return S({ 'criterion-approve': 'You approved:', 'criterion-accept': 'You accepted:', 'criterion-reject': 'You rejected:', 'criterion-draft': 'Outcome drafted:', 'criterion-team': 'Team check set:', 'criterion-retire': 'Retired:' }[e.type], scrub(text) || text, m);
+    }
+    case 'owner-review':
+      x = m.match(/^([A-Z]+-\d+) needs your judgement:\s*([\s\S]*?)(?:\s*\(task \w+\))?$/);
+      return x ? S('Needs your judgement:', scrub(x[2]) || critText(alias, x[1]), m) : auto('Needs your judgement:');
+    case 'finding-confirmed': case 'finding-dismissed': case 'finding-to-lead': case 'finding-fixed': {
+      const w = { 'finding-confirmed': 'You asked for a fix:', 'finding-dismissed': 'You said it’s fine:', 'finding-to-lead': 'The auditor sent the lead a problem:', 'finding-fixed': 'Fixed:' }[e.type];
+      const head = m.replace(/^[A-Z]+-\d+:?\s*/, '').replace(/^owner (?:wants this fixed|says this is fine):\s*/, '').replace(/\s*\([^()]*(?:\([^()]*\)[^()]*)*\)\s*$/, '');
+      return S(w, scrub(head) || 'a problem the auditor found', m);
+    }
+    case 'ruling': return auto('New ruling:', m.replace(/^[A-Z]+-\d+:\s*/, ''));
+    case 'gate':
+      if ((x = m.match(/^(\w+) (approved|skipped|reopened)( by owner| by the lead)?/))) return S(`The ${x[1]} ${was(x[1])} ${x[2]}${x[3] === ' by owner' ? ' by you' : x[3] ? ' by the lead' : ''}`, '', m);
+      return auto(EVENT_WORD.gate);
+    case 'gate-request': x = m.match(/^(\w+):/); return S(x ? `The ${x[1]} ${was(x[1]) === 'were' ? 'are' : 'is'} ready for your OK` : 'Ready for your OK', '', m);
+    case 'criteria-request': return S('The lead asks you to look at new outcomes', '', m);
+    case 'audit-started': return S('An audit started', '', m);
+    case 'audit': return auto('Audit done:', m.replace(/\s*\([^)]*\)\s*$/, ''));
+    case 'screen-allowed': return S(cap1(m.replace(/^owner\b/, 'you')));
+    case 'approved': return task ? S('You approved the plan') : (x = m.match(/^plan approved by owner:\s*([\s\S]*)$/)) ? auto('You approved the plan:', x[1]) : auto('Plan approved:');
+    case 'answered': return (x = m.match(/^Lead:\s*([\s\S]*)$/)) ? auto('The lead answered:', x[1]) : auto('You answered:');
+    case 'iteration': x = m.match(/#(\d+)\s+\w+(?:.*?check (\w+))?/); return x ? S(`Try ${x[1]} ended${x[2] === 'pass' ? ': the check passed' : x[2] === 'fail' ? ': the check failed' : ''}`, '', m) : auto('Try ended');
+    case 'needs-lead': return S('Used all its tries. The lead decides what happens next', '', m);
+    case 'failed': return /cancelled by owner/.test(m) ? S('You cancelled it') : /cancelled by the lead/.test(m) ? S('The lead cancelled it') : S('It failed', '', m);
+    case 'holdout': return S('Hidden tests were set', '', m);
+    case 'test-touch': return S('It changed existing tests', '', m);
+    case 'evidence': return S('It showed its work', '', m);
+    case 'ownership': x = m.match(/(\d+) file/); return S(`Atelier undid ${x ? `${x[1]} edit${x[1] === '1' ? '' : 's'}` : 'edits'} outside its own files`, '', m);
+    case 'project': return S('Project created', '', m);
+    case 'message': return (x = m.match(/^\S+\s+\[\w+\]\s+(\S+)\s+→\s+(\S+):\s*([\s\S]*)$/)) ? auto(`The ${x[1]} told ${role(x[2])}:`, x[3].replace(/^[a-z0-9]{4}:\s*/, '')) : auto('Message:');
+    case 'requested': return (x = m.match(/^(?:\[[\w-]+\]\s*)?(\S+)\s+→\s+(\S+):\s*([\s\S]*)$/)) ? auto(`The ${x[1]} asked ${role(x[2])}:`, x[3].replace(/^[a-z0-9]{4}:\s*/, '')) : auto('Request:');
+    case 'push-failed': return S('Couldn’t reach GitHub, will retry', '', m);
+    case 'pushed': x = m.match(/^(\d+) commit/); return S(x ? `Sent ${x[1]} change${x[1] === '1' ? '' : 's'} to GitHub` : 'Sent to GitHub', '', m);
+    case 'queued': return S('What it was waiting for is done, so it is queued', '', m);
+    case 'review': return S('Ready for review', '', m);
+    case 'suite': return /pass/.test(m) ? S('The full test suite passes') : S('The full test suite ran', '', m);
+    case 'criteria': x = m.match(/(\d+)\/(\d+)/); return x ? S(`Outcomes checked: ${x[1]} of ${x[2]} pass`) : auto('Outcomes checked:');
+    case 'reviewed': x = m.match(/round (\d+): (\w+)/); return x ? S(`Review round ${x[1]}: ${/approve/.test(x[2]) ? 'passed' : 'changes asked'}`) : auto(EVENT_WORD.reviewed);
+    case 'review-started': x = m.match(/round (\d+)/); return S(`The reviewer started${x ? ` round ${x[1]}` : ''}`);
+    case 'done': return task ? S('Finished', '', m) : auto('Done:');
+    case 'added': case 'started': return task ? S(EVENT_WORD[e.type]) : auto(`${EVENT_WORD[e.type]}:`);
+    case 'paused': return /owner/.test(m) ? S('You stopped it') : /^for the lead/.test(m) ? S('Paused for the lead to decide', '', m) : /lead/.test(m) ? S('The lead paused it') : auto('Paused:');
+    case 'window-closed': return S('Atelier closed a window opened on your screen without your OK', '', m);
+    case 'window-shown': return S('A window opened on your screen, as you allowed', '', m);
+    case 'screen-request': return S('Asked to open a window on your screen', '', m);
+    case 'extended': return auto('More tries given:', m.replace(/iterations?/g, 'tries'));
+  }
+  const w = EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' '));
+  if (!m) return S(w);
+  const s = auto(`${w}:`);
+  // "Lead: Lead started" says its name twice
+  return s.text.toLowerCase().startsWith(w.toLowerCase()) ? { ...s, w: s.text, text: '' } : s;
+}
+const sayLine = s => `${s.w}${s.text ? ` ${s.text}` : ''}`.replace(/:$/, '');
+const rawDetails = (s, cls = '') => s.raw ? `<details class="details p-raw${cls}"><summary>Details${I('chevron-down')}</summary><div class="details-body"><code>${esc(s.raw)}</code></div></details>` : '';
 
 // =====================================================================================================
 // Activity (D6 design/screens2/activity.html; UX-13 A). One feed by day, newest first, each event a line you can read
@@ -1587,7 +1710,6 @@ const Activity = (() => {
   const DAY = 86_400_000;
 
   const keyOf = e => `${e.ts}|${e.id}|${e.type}`;
-  const word = e => EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' '));
   const KW = { needs: 'Needs you: ', past: 'Problem: ', done: 'Good news: ', '': '' };
   // Red only for what needs the owner now (SPEC R8, F-10): a problem whose task still waits on the owner. Past problems are muted.
   let waitingIds = new Set();
@@ -1607,13 +1729,14 @@ const Activity = (() => {
     return name;
   };
   const linkOf = e => e.task ? `#/t/${encodeURIComponent(e.id)}` : e.project ? `#/p/${encodeURIComponent(e.project)}/overview` : '';
-  const sub = e => [e.project, e.task || (e.id !== e.project ? e.id : '')].filter(Boolean).join(' · ');
-  const label = e => `${hhmm(e.ts)}, ${[e.project, e.task].filter(Boolean).join(', ') || e.id}. ${KW[kOf(e)]}${word(e)}. ${e.msg}`;
+  const sub = (e, s) => [e.project, s.task].filter(Boolean).join(' · ');
+  const label = (e, s) => `${hhmm(e.ts)}, ${[e.project, s.task].filter(Boolean).join(', ') || e.id}. ${KW[kOf(e)]}${sayLine(s)}.`;
+  // One plain sentence a row (F-15); the event's own technical words wait under a closed Details beside it.
   const row = e => {
-    const href = linkOf(e), tag = href ? 'a' : 'div';
-    return `<li data-key="${esc(keyOf(e))}"><${tag} class="act-row"${href ? ` href="${href}"` : ''} data-k="${kOf(e)}" aria-label="${esc(label(e))}">
+    const href = linkOf(e), tag = href ? 'a' : 'div', s = eventSay(e);
+    return `<li data-key="${esc(keyOf(e))}"><${tag} class="act-row"${href ? ` href="${href}"` : ''} data-k="${kOf(e)}" aria-label="${esc(label(e, s))}">
       <time class="num" datetime="${esc(e.ts)}">${hhmm(e.ts)}</time><span class="dot${kOf(e) === 'needs' || kOf(e) === 'done' ? ` dot-${kOf(e)}` : ''}" aria-hidden="true"></span>
-      <span class="act-t"><span class="act-l"><b>${esc(word(e))}</b> ${esc(e.msg)}</span>${sub(e) ? `<span class="act-s">${esc(sub(e))}</span>` : ''}</span></${tag}></li>`;
+      <span class="act-t"><span class="act-l"><b>${esc(s.w.replace(/:$/, s.text ? ':' : ''))}</b>${s.text ? ` ${esc(s.text)}` : ''}</span>${sub(e, s) ? `<span class="act-s">${esc(sub(e, s))}</span>` : ''}</span></${tag}>${rawDetails(s, ' act-raw')}</li>`;
   };
 
   const readKey = () => f.p ? `p:${f.p}` : 'all';
@@ -2212,10 +2335,9 @@ const Project = (() => {
 
   // ── Recent: the newest few events, in words ──
   const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || / pass|approve/.test(e.msg || '');
-  // A failed push reads as a plain sentence; git's own error waits under Details (F-6).
-  const eventWords = (p, e) => { if (e.type === 'push-failed') return 'Couldn’t reach GitHub, will retry'; const t = p.tasks.find(x => x.id === e.id); const w = EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' ')); return t ? `${w}: ${t.title}` : `${w}${e.msg ? `: ${e.msg}` : ''}`; };
-  const rawOf = e => e.type === 'push-failed' && e.msg ? `<details class="details p-raw"><summary>Details${I('chevron-down')}</summary><div class="details-body"><code>${esc(e.msg)}</code></div></details>` : '';
-  const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${esc(eventWords(p, e))}${rawOf(e)}</span></li>`).join('')}</ol>`;
+  // One plain sentence an event, as on Activity (F-6, F-15): the event's own technical words wait under Details.
+  const eventLine = (p, e) => { const s = eventSay({ ...e, task: p.tasks.find(x => x.id === e.id)?.title || null }, p.alias); return `${esc(sayLine(s))}${s.task ? ` · ${esc(s.task)}` : ''}${rawDetails(s)}`; };
+  const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${eventLine(p, e)}</span></li>`).join('')}</ol>`;
   const recent = p => `<section class="p-sec" aria-labelledby="rec-h" data-r="recent"><h2 class="p-h" id="rec-h">Recent</h2>
       ${p.events.length ? feed(p, p.events.slice(0, 4)) : '<p class="p-quiet">Nothing has happened here yet.</p>'}
       <a class="link p-more" href="#/activity?p=${encodeURIComponent(p.alias)}">All activity for ${esc(p.alias)}</a></section>`;
@@ -2607,8 +2729,8 @@ const Task = (() => {
     if (e.type === 'answered') return `You answered: ${m}`;
     if (e.type === 'approved') return 'You approved the plan';
     if (e.type === 'paused' && /owner/.test(m)) return 'You stopped it';
-    const w = EVENT_WORD[e.type] || cap1(e.type.replace(/-/g, ' '));
-    return m ? `${w}: ${m}` : w;
+    // on its own task's page the task's title would only repeat the page's
+    return sayLine(eventSay({ ...e, task: null }));
   }
 
   // ── The page's figures and words, from the summary first and the read second ──
