@@ -309,7 +309,7 @@ function renderChrome() {
       <a class="nav-item" href="#/activity"${aria('activity')}>${I('activity')}Activity</a>
     </nav>
     <nav class="nav" aria-label="Projects">
-      <a class="nav-label" href="#/projects"${aria('projects')}>Projects</a>
+      <a class="nav-item" href="#/projects"${aria('projects')}>${I('projects')}Projects</a>
       ${P.map(p => `<a class="nav-item" href="#/p/${esc(p.alias)}/overview"${aria(p.alias)} aria-label="${esc(p.alias)}${n(pw(p.alias)) && `, ${pw(p.alias)} waiting`}, lead ${p.lead?.running ? 'on' : 'off'}"><span class="dot${p.lead?.running ? ' dot-active' : ''}" role="img" aria-label="${p.lead?.running ? 'Lead on' : 'Lead off'}"></span>${esc(p.alias)}<span class="count">${n(pw(p.alias))}</span></a>`).join('')}
       <a class="nav-item" href="#/new"${aria('new')}>${I('plus')}New project</a>
     </nav>
@@ -324,6 +324,7 @@ function renderChrome() {
     <a href="#/office" aria-label="Office${k ? `, ${now.working} working` : ''}"${aria('office')}>${I('office')}${n(now.working) && `<span class="rc is-active">${now.working}</span>`}</a>
     <a href="#/activity" aria-label="Activity"${aria('activity')}>${I('activity')}</a>
     <hr>
+    <a href="#/projects" aria-label="Projects"${aria('projects')}>${I('projects')}</a>
     ${P.map(p => `<a href="#/p/${esc(p.alias)}/overview" aria-label="${esc(p.alias)}${n(pw(p.alias)) && `, ${pw(p.alias)} waiting`}, lead ${p.lead?.running ? 'on' : 'off'}"${aria(p.alias)}><span class="ini">${esc(p.alias.slice(0, 2))}</span><span class="dot${p.lead?.running ? ' dot-active' : ''}"></span></a>`).join('')}
     <a href="#/new" aria-label="New project"${aria('new')}>${I('plus')}</a>
     <a class="push" href="#/settings" aria-label="Settings${k && plan ? `, plan ${plan.used}% used` : ''}${k ? `, ${spent} spent today` : ''}"${aria('settings')}>${I('settings')}</a>`;
@@ -1142,47 +1143,97 @@ function renderLogin() {
 // The screens slices 2 and 3 rebuild, as they were, inside the shell. Their figures now come from the summary.
 // =====================================================================================================
 
-// ---------- Office (D6 screens2/office.html; UX-8 A, UX-9 A, UX-7 A) ----------
+// ---------- Office: O1 Panorama (R-20, R-21; atelier/design/office-fresh o1 + of.js + desk.js) ----------
 // A floor per project, busiest first, and a desk per agent from the server's team list (the same list the sidebar
-// and the project page count). Each desk's scene is the N1 mark at room scale: an arched window whose light is on
-// while the agent works, the light's patch on the floor, a desk, the agent, and one thing on the wall for the role.
-// Light on = working, hand up = needs you, light off = waiting, empty desk = off; a desk whose agent just finished
-// shows the green window with a tick once. A refresh patches each desk in place (R7): lights fade by CSS, nothing
-// re-renders, scroll and focus stay.
+// and the project page count). A project is one room: every desk a bay of one size, in the team's own order, so the
+// room never reshuffles; a line of words only for desks with news (working, needs you, paused, just finished, or a
+// task at the desk that isn't moving) and one quiet line for the rest. Each bay is someone at a desk in front of an
+// N1 window: lit lilac while working, a hand up with the red flag when it needs you, evening sky and a sleeping cat
+// while waiting, curtains when off, green with a tick once when it finishes. A refresh patches each desk in place
+// (R7): the drawing cross-fades by CSS, nothing re-renders, scroll and focus stay.
 const Office = (() => {
-  const arch = 'M14 64V30a16 16 0 0 1 32 0V64z';
-  const PROPS = {
-    designer: '<rect x="130" y="16" width="24" height="26" rx="1.5"/><path d="M136 37v-9a6 6 0 0 1 12 0v9z"/>',
-    auditor: '<rect x="132" y="14" width="20" height="28" rx="1.5"/><path d="M138 14v-2h8v2M136 22l2 2 3-3M143 23h5M136 30l2 2 3-3M143 31h5M136 37h12"/>',
-    builder: '<path d="M126 42h30"/><rect x="128" y="30" width="10" height="12" rx="1"/><rect x="140" y="34" width="8" height="8" rx="1"/><rect x="130" y="22" width="7" height="8" rx="1"/>',
-    reviewer: '<path d="M126 42h30"/><rect x="129" y="26" width="4" height="16" rx=".8"/><rect x="134" y="22" width="4" height="20" rx=".8"/><rect x="139" y="28" width="4" height="14" rx=".8"/><path d="m145 42 5-17 3.6 1-5 17"/>',
-    lead: '<rect x="128" y="16" width="28" height="24" rx="1.5"/><path d="M133 23h12M133 28h18M133 33h9"/><circle cx="142" cy="16" r="1.6"/>',
+  // ── The desk drawing (desk.js): one scene, cropped. bay = window + someone at the desk + one desk object (the
+  // rooms); wide = the whole corner with the role's furniture (the empty state). Anonymous but personable (R-15): no
+  // face or name; character from posture, one accessory per role and the things around the desk. ──
+  const ROLE = r => /lead/i.test(r) ? 'lead' : /design/i.test(r) ? 'designer' : /audit/i.test(r) ? 'auditor'
+    : /review|writ/i.test(r) ? 'reviewer' : 'builder'; // five looks: writers read, every other maker builds
+  const arch = 'M36 76V37a20 20 0 0 1 40 0V76z';
+  const HAT = {
+    designer: '<path class="dk-acc" d="M104.4 57a7.6 7.6 0 0 1 15.2 0z"/><circle class="dk-acc" cx="112" cy="48.6" r="1.9"/>',
+    builder: '<path class="dk-acc-l" d="M103.6 59a8.4 8.4 0 0 1 16.8 0"/><rect class="dk-acc" x="101.8" y="57" width="3.6" height="6" rx="1.6"/><rect class="dk-acc" x="118.6" y="57" width="3.6" height="6" rx="1.6"/>',
+    reviewer: '<circle class="dk-acc" cx="112" cy="49.2" r="3.3"/>',
+    auditor: '<path class="dk-acc" d="M104.4 57.4a7.6 7.6 0 0 1 15.2 0z"/><path class="dk-acc-l" d="M118.5 57.4h5.5"/>',
+    lead: '<path class="dk-acc" d="M104.6 65.6h14.8l-1.6 3h-11.6z"/><path class="dk-acc" d="M115 68l2.4 6h-3l-.8-6z"/>',
   };
-  // Five wall props for any roster: every role that makes things gets the builder's boxes.
-  const propOf = r => /lead/.test(r) ? 'lead' : /design/.test(r) ? 'designer' : /audit/.test(r) ? 'auditor' : /review/.test(r) ? 'reviewer' : 'builder';
-  const scene = prop => `<svg viewBox="0 0 160 88" aria-hidden="true" focusable="false">
-    <g class="sc-prop">${PROPS[prop]}</g><circle class="sc-glow" cx="30" cy="42" r="40"/>
-    <path class="sc-wallwin" d="${arch}"/><path class="sc-pane" d="${arch}"/><path class="sc-done" d="${arch}"/>
-    <path class="sc-bars" d="M30 14V64M14 40H46"/><path class="sc-tick" d="M22.5 40.5l5 5 10-11"/>
-    <polygon class="sc-patch" points="14,72 46,72 66,88 34,88"/>
-    <g class="sc-who"><circle cx="95" cy="36" r="7"/><path d="M80 58c0-10 6.5-14 15-14s15 4 15 14z"/></g>
-    <g class="sc-hand"><path d="M106 49 113 31"/><circle cx="113.5" cy="28.5" r="3"/></g><circle class="sc-flag" cx="121" cy="20" r="3.5"/>
-    <ellipse class="sc-screen" cx="95" cy="41" rx="12" ry="7"/><path class="sc-lid" d="M85 47h20l-1.5 11h-17z"/><rect class="sc-lid-shut" x="85" y="56" width="20" height="2" rx="1"/>
-    <rect class="sc-desk" x="70" y="58" width="50" height="3" rx="1.5"/><rect class="sc-desk" x="73" y="61" width="2.5" height="11"/><rect class="sc-desk" x="114.5" y="61" width="2.5" height="11"/></svg>`;
-  const defs = '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><radialGradient id="hf-glow"><stop offset="0" style="stop-color:var(--active);stop-opacity:.42"/><stop offset="1" style="stop-color:var(--active);stop-opacity:0"/></radialGradient></defs></svg>';
+  const ON_DESK = {
+    designer: '<rect x="86" y="80" width="12" height="4" rx="1"/><path d="M89 80l6-9" class="dk-l"/>',
+    builder: '<rect x="86.5" y="76" width="10" height="8" rx="1"/><path d="M86.5 79h10" class="dk-l"/>',
+    reviewer: '<rect x="86" y="80.5" width="12" height="3.5" rx=".8"/><rect x="87" y="77" width="10" height="3.5" rx=".8"/><rect x="86.5" y="73.5" width="11" height="3.5" rx=".8"/>',
+    auditor: '<rect x="87" y="72" width="9" height="12" rx="1"/><path d="M89 76h5M89 79h5" class="dk-l"/>',
+    lead: '<circle cx="92" cy="77.5" r="4.5"/><path d="M88 77.5h8M92 73v9" class="dk-l"/><rect x="90.6" y="82" width="2.8" height="2" rx=".5"/>',
+  };
+  const ROOM = {
+    designer: `<path class="dk-l" d="M168 100l9-46 9 46M177 54v46"/><rect class="dk-canvas" x="163" y="56" width="28" height="24" rx="1.5"/>
+      <path class="dk-sketch" d="M168 75c4-8 8-12 11-6s6-2 8-8"/><path class="dk-l" d="M162 80h30"/>`,
+    builder: `<rect x="154" y="86" width="20" height="14" rx="1.5"/><rect x="176" y="90" width="14" height="10" rx="1.5"/><rect x="159" y="74" width="12" height="12" rx="1.5"/>
+      <path class="dk-l" d="M154 92h20M159 79h12"/><rect class="dk-board" x="156" y="40" width="34" height="24" rx="1.5"/>
+      <path class="dk-l dk-tool" d="M163 46v12M160 46h6M180 45v13M177.5 45.5l2.5 3 2.5-3"/>`,
+    reviewer: `<rect class="dk-board" x="154" y="42" width="38" height="58" rx="1.5"/><path class="dk-l" d="M154 62h38M154 82h38"/>
+      <rect x="158" y="49" width="4" height="13"/><rect x="163" y="46" width="4" height="16"/><rect x="168" y="51" width="4" height="11"/><path d="M174 62l4-14 3.5 1-4 13z"/>
+      <rect x="158" y="70" width="4" height="12"/><rect x="163" y="72" width="5" height="10"/><rect x="176" y="68" width="4" height="14"/><rect x="181" y="71" width="4" height="11"/>
+      <rect x="160" y="90" width="9" height="10" rx="1"/><rect x="172" y="88" width="14" height="12" rx="1"/>`,
+    auditor: `<circle class="dk-board" cx="172" cy="36" r="9"/><path class="dk-l dk-hand-m" d="M172 36v-6"/><path class="dk-l dk-hand-h" d="M172 36h4"/>
+      <path class="dk-l" d="M164 100l8-22 8 22M172 78v22"/><rect x="164" y="64" width="22" height="7" rx="3.5" transform="rotate(-24 175 67.5)"/>`,
+    lead: `<path class="dk-bunting" d="M30 14q46 12 92 0"/><path class="dk-flags" d="M38 16.2l3 6 3-5.2zM52 19.5l3 6 3-4.8zM66 21.3l3 5.8 3-5.8zM80 21.3l3 5.8 3-5.8zM94 19.6l3 5.8 3-6zM108 16.6l3 5.6 3-6.4z"/>
+      <circle class="dk-board" cx="173" cy="74" r="12"/><path class="dk-l" d="M161 74h24M173 62v24M164 66q9 6 18 0M164 82q9-6 18 0M173 86v8M165 100h16l-2-6h-12z"/>`,
+  };
+  const scene = (r, crop, i = 0) => `<svg class="dk-svg" viewBox="${crop === 'wide' ? '0 4 200 116' : '28 8 120 112'}" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false" style="--i:${i % 7}">
+  <rect class="dk-floor" x="-40" y="100" width="280" height="30"/><circle class="dk-glow" cx="56" cy="48" r="50"/><polygon class="dk-patch" points="40,100 74,100 100,124 52,124"/>
+  <g class="dk-room">${ROOM[r]}</g>
+  <g class="dk-tree"><path class="dk-l" d="M17 100V70"/><path class="dk-leaf" d="M17 72c-9-2-12-10-9-16 6 2 9 8 9 16zM17 80c8-1 12-8 10-15-6 2-10 7-10 15zM17 64c-4-6-2-12 3-15 3 5 1 11-3 15z"/><path d="M10 100l2-12h10l2 12z"/></g>
+  <path class="dk-wall-win" d="${arch}"/><path class="dk-pane" d="${arch}"/><path class="dk-pane-done" d="${arch}"/>
+  <g class="dk-night"><path d="M70 26a5 5 0 1 0 4.4 7.4 4 4 0 1 1-4.4-7.4z"/><circle cx="44" cy="30" r="1.1"/><circle cx="69" cy="58" r=".9"/><circle cx="48" cy="56" r=".8"/></g>
+  <path class="dk-bars" d="M56 17V76M36 48H76"/>
+  <g class="dk-curtain"><path d="M36.5 76V37A19.5 19.5 0 0 1 54 17.6V76c-2-3-4-3-6 0-2-3-4-3-6 0-2-3-4-3-5.5 0z"/><path d="M75.5 76V37A19.5 19.5 0 0 0 58 17.6V76c2-3 4-3 6 0 2-3 4-3 6 0 2-3 4-3 5.5 0z"/><path class="dk-l" d="M42 22v52M48 18.5v55M64 18.5v55M70 22v52"/></g>
+  <path class="dk-tick" d="M47 47l6 6 12-13"/>
+  <g class="dk-spark"><path d="M32 22l1.4 3.6L37 27l-3.6 1.4L32 32l-1.4-3.6L27 27l3.6-1.4z"/><path d="M82 30l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><path d="M78 12l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z"/></g>
+  <rect class="dk-sill" x="32" y="75.5" width="48" height="3.5" rx="1.75"/>
+  <g class="dk-pot"><path d="M67 75.5l1-6h7l1 6z"/><path class="dk-leaf" d="M71.5 69.5c-4-1-6-5-4-8 3 1 4 4 4 8zM71.5 69.5c4-1 6-4 4.5-8-3 1-4.5 4-4.5 8z"/></g>
+  <g class="dk-cat"><path d="M40 75.5c0-5 4-7.5 9-7.5s8 2.5 8 7.5z"/><path d="M53 70l1.4-3.4 1.8 3zM50 69.2l1.6-3.2 1.4 3.2z"/><path class="dk-l" d="M40.5 75c-3 0-4-2-2.6-3.4"/><path class="dk-z" d="M57.5 61.5h4l-4 4.5h4"/></g>
+  <g class="dk-chair"><rect x="99" y="58" width="26" height="30" rx="6"/></g>
+  <g class="dk-who">
+    <g class="dk-body"><path d="M96 88c0-12.5 7-19 16-19s16 6.5 16 19z"/><circle cx="112" cy="58" r="7.5"/>${HAT[r]}
+      <path class="dk-rim" d="M105.4 54.5a7.5 7.5 0 0 0 0 7M97.6 84c.4-6 2.2-10 5.4-12.4"/></g>
+    <g class="dk-sip"><path class="dk-arm" d="M124 76l4-6"/><rect class="dk-mug-held" x="125.5" y="62" width="6" height="7" rx="1.2"/></g>
+    <g class="dk-wave"><path class="dk-arm" d="M124 74l7-16"/><circle class="dk-handc" cx="131.6" cy="56.2" r="2.8"/><path class="dk-pole" d="M131.6 54V40"/><path class="dk-flag" d="M132 40.5l10 3.5-10 3.5z"/></g>
+    <g class="dk-cheer"><path class="dk-arm" d="M100 74l-7-15M124 74l7-15"/><circle class="dk-handc" cx="92.6" cy="57.4" r="2.8"/><circle class="dk-handc" cx="131.4" cy="57.4" r="2.8"/></g>
+  </g>
+  <g class="dk-think"><circle cx="128" cy="47" r="1.5"/><circle cx="133" cy="47" r="1.5"/><circle cx="138" cy="47" r="1.5"/></g>
+  <path class="dk-lid" d="M100 84l2-13h20l2 13z"/><path class="dk-lid-mark" d="M110 80v-3.4a2 2 0 0 1 4 0V80z"/>
+  <rect class="dk-lid-shut" x="100" y="81.5" width="24" height="2.5" rx="1"/>
+  <g class="dk-card"><path d="M104 84l3-9h10l3 9z"/><path class="dk-card-ii" d="M110 78.4v3M114 78.4v3"/></g>
+  <g class="dk-mug"><rect x="130" y="77.5" width="6.5" height="6.5" rx="1.2"/><path class="dk-l" d="M136.5 79.2h1.4a1.6 1.6 0 0 1 0 3.2h-1.4"/></g>
+  <g class="dk-steam"><path d="M131.6 75c-1.5-2 1.5-3 0-5"/><path d="M134.8 75c-1.5-2 1.5-3 0-5"/></g>
+  <g class="dk-thing">${ON_DESK[r]}</g>
+  <rect class="dk-desk" x="83" y="84" width="62" height="3.5" rx="1.75"/><rect class="dk-desk" x="87" y="87.5" width="2.6" height="12.5"/><rect class="dk-desk" x="138.4" y="87.5" width="2.6" height="12.5"/>
+</svg>`;
+  const defs = '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>'
+    + '<radialGradient id="dk-glow"><stop offset="0" style="stop-color:var(--active);stop-opacity:.5"/><stop offset="1" style="stop-color:var(--active);stop-opacity:0"/></radialGradient>'
+    + '<radialGradient id="dk-glow-done"><stop offset="0" style="stop-color:var(--done);stop-opacity:.5"/><stop offset="1" style="stop-color:var(--done);stop-opacity:0"/></radialGradient>'
+    + '<linearGradient id="dk-pane" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--active)"/><stop offset="1" style="stop-color:color-mix(in srgb, var(--active) 62%, var(--surface))"/></linearGradient>'
+    + '</defs></svg>';
 
   // Only the design's words on a desk: Working, Needs you, Waiting, Off, and Done for a moment (S1 copy).
   const WORD = { active: 'Working', needs: 'Needs you', '': 'Waiting', off: 'Off', done: 'Done' };
   const ORDER = { needs: 0, active: 1, done: 2, '': 3, off: 4 };
   const HOLD = 2400; // the green window after a finish, then the light goes out
   const firstSeen = new Map(); // finished task id → when this page first showed it
-  let sig = '', shown = new Map(), timer = null;
+  let sig = '', shown = new Map(), lines = new Map(), timer = null, io = null, ro = null;
 
   // A desk says its stage and when it last did something, as the task page does (F-3); tries live on the task page.
-  // An audit's figure is its checks done; a task's bar fills by stage, never by tries.
+  // An audit's figure is its checks done; a task's gauge lights by stage, never by tries.
   const progText = p => !p || p[2] === 'try' ? '' : `${p[0]} of ${p[1]} ${p[2]}`;
-  const meta = d => [d.stage !== undefined && STAGES[d.stage], progText(d.prog), d.ago].filter(Boolean).join(' · ');
-  const fillOf = d => d.stage !== undefined ? (d.stage + 1) / STAGES.length : d.prog && d.prog[1] && d.prog[2] !== 'try' ? Math.min(1, d.prog[0] / d.prog[1]) : 0;
+  const meta = d => [d.k !== 'done' && d.stage !== undefined && STAGES[d.stage], progText(d.prog), d.ago].filter(Boolean).join(' · ');
   const dotOf = (k, word) => `<span class="dot${k && k !== 'off' ? ` dot-${k}` : ''}${k === 'active' && !failedAt ? ' is-live' : ''}" role="img" aria-label="${esc(word)}"></span>`;
 
   // One desk from one team entry. Every word is the server's or a fixed phrase; agent text goes through esc().
@@ -1192,7 +1243,7 @@ const Office = (() => {
     let key = x.kind === 'lead' ? 'lead' : x.kind === 'auditor' ? 'auditor' : x.kind === 'reviewer' ? 'reviewer' : `r-${x.role || x.who}`;
     if (keys.has(key)) key += `-${x.id || keys.size}`;
     keys.add(key);
-    const d = { key, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: propOf(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.what || '', step: '', quiet: false, prog: null, ago: '' };
+    const d = { key, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: ROLE(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.what || '', step: '', quiet: false, prog: null, ago: '' };
     const working = () => Object.assign(d, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started', quiet: !!x.quietMin, stage: x.kind === 'reviewer' ? 3 : 1, ago: longAgo(x.lastAt) });
     if (x.kind === 'lead') {
       if (x.state === 'working') Object.assign(d, { k: 'active', step: `In the Claude app as “${a} lead”` });
@@ -1202,6 +1253,7 @@ const Office = (() => {
       if (x.audit) Object.assign(d, { k: 'active', step: x.audit.quietMin ? `Quiet for ${x.audit.quietMin} min, longer than usual` : cap1(x.audit.stage || 'Getting ready'), quiet: !!x.audit.quietMin, prog: x.prog || null, ago: `${x.audit.startedMin} min in` });
       else d.step = p.lastAudit?.at ? `Last audit ${longAgo(p.lastAudit.at)}` : 'Audits start once there is something built to check';
     } else if (x.id) {
+      d.task = true; // a task at the desk is news even while it isn't moving (stalled, waiting for the plan window)
       if (x.kind === 'reviewer') d.what = `Reviewing ${x.what}`;
       if (x.state === 'needs') Object.assign(d, { k: 'needs', step: 'It asked you something. Answer it on its page' });
       else if (x.state === 'stuck') d.step = 'Stalled. The lead decides what happens next';
@@ -1224,47 +1276,97 @@ const Office = (() => {
     return d;
   }
 
+  // News: a desk whose words get a line under the room. Everyone else is told by the picture and one shared line.
+  const news = d => d.k === 'active' || d.k === 'needs' || d.k === 'done' || d.held === 'Paused' || !!d.task;
   const label = d => `${d.role}, ${d.word}. ${d.what}. ${d.step ? `${d.step}. ` : ''}${meta(d)}`.trim();
-  const deskBody = d => `<span class="desk-who"><b>${esc(d.role)}</b><span class="desk-st">${dotOf(d.k, d.word)}<span class="w">${esc(d.word)}</span></span></span>
-    <span class="desk-what">${esc(d.what)}</span>${d.step ? `<span class="desk-step">${esc(d.step)}</span>` : ''}
-    <span class="desk-prog"><span class="desk-track"><i style="--p:${fillOf(d).toFixed(3)}"></i></span><span class="desk-meta num">${esc(meta(d))}</span></span>`;
-  const desk = d => `<a class="desk" href="${esc(d.href)}" data-key="${esc(d.key)}" data-k="${d.k}"${d.quiet ? ' data-quiet' : ''} aria-label="${esc(label(d))}"><span class="desk-scene">${scene(d.prop)}</span><span class="desk-body">${deskBody(d)}</span></a>`;
-  const strip = f => `<span class="strip" aria-hidden="true">${f.desks.map(d => `<i data-k="${d.k}"></i>`).join('')}</span>`;
+  const attrs = d => `data-key="${esc(d.key)}" data-k="${d.k}"${d.held ? ` data-held="${d.held.toLowerCase()}"` : ''}${d.quiet ? ' data-quiet' : ''}`;
+  // the dot inside a desk is decoration: the link's label says the state, and a news line shouldn't add a pulse loop
+  const st = d => `<span class="of-st"><span class="dot${d.k && d.k !== 'off' ? ` dot-${d.k}` : ''}" aria-hidden="true"></span><span class="w">${esc(d.word)}</span></span>`;
+  const cap = d => `<b>${esc(d.role)}</b>${st(d)}`;
+  // the stage as five small lights (R-16: readable at a glance like a gauge). Stage only, never tries (F-3)
+  const gauge = d => d.stage === undefined ? '' : `<span class="of-gauge" role="img" aria-label="Stage ${d.stage + 1} of ${STAGES.length}, ${STAGES[d.stage]}">${STAGES.map((_, i) => `<i${i <= d.stage ? ' class="on"' : ''}></i>`).join('')}</span>`;
+  const bay = d => `<a class="dk o1-bay" href="${esc(d.href)}" ${attrs(d)} aria-label="${esc(label(d))}"${news(d) ? ' tabindex="-1"' : ''}><span class="dk-scene">${scene(d.prop, 'bay', d.i)}</span><span class="o1-cap">${cap(d)}</span></a>`;
+  // rows of equal length: 12 desks at most 5 a row = 4 + 4 + 4, never 5 + 5 + 2
+  const bal = (k, max) => Math.ceil(k / Math.ceil(k / max));
+  const restLine = (f, rest) => f.desks.every(d => d.k === 'off') ? 'Everyone is off. Start the lead on the project page and the team comes back in.'
+    : (rest = rest.filter(d => d.k !== 'off')).length ? `${rest.length} at ${rest.length === 1 ? 'their desk' : 'their desks'}, ready for the lead’s next task` : '';
+  const linesOf = f => {
+    const nw = f.desks.filter(news).map((d, i) => [d, i]).sort((x, y) => ORDER[x[0].k] - ORDER[y[0].k] || x[1] - y[1]).map(x => x[0]);
+    const rest = restLine(f, f.desks.filter(d => !news(d)));
+    return `${nw.length ? `<ul class="o1-news">${nw.map(d => `<li><a class="o1-line" href="${esc(d.href)}" data-k="${d.k}"${d.held ? ` data-held="${d.held.toLowerCase()}"` : ''} aria-label="${esc(label(d))}">
+      <span class="o1-who">${cap(d)}</span><span class="o1-what">${esc(d.what)}${d.step ? `<span class="o1-step">${esc(d.step)}</span>` : ''}</span><span class="o1-meta num">${gauge(d)}${esc([progText(d.prog), d.ago].filter(Boolean).join(' · '))}</span></a></li>`).join('')}</ul>` : ''}${rest ? `<p class="of-rest">${rest}</p>` : ''}`;
+  };
   // Money in words (UX-11 C): the limit in red, "most of it used" from 80 %.
   const moneyLine = s => `${money(s.spentToday)} today${s.atLimit ? ', <span class="is-needs">at its limit</span>' : s.dayLimit && s.spentToday >= 0.8 * s.dayLimit ? ', most of it used' : ''}`;
-  const floorSum = f => `${f.s.working} working${f.s.paced ? ` · ${f.s.paced} waiting for your plan window` : ''} · ${moneyLine(f.s)}`;
-  const quietNote = f => `Lead off · nothing running${f.s.waiting ? ` · ${f.s.waiting} waiting on you in the Inbox` : ''}`;
+  const floorSum = f => f.quiet ? `Lead off · nothing running${f.s.waiting ? ` · ${f.s.waiting} waiting on you in the Inbox` : ''} · ${moneyLine(f.s)}`
+    : `${f.s.working} working${f.s.paced ? ` · ${f.s.paced} waiting for your plan window` : ''}${f.s.agentsNeed ? ` · <span class="is-needs">${f.s.agentsNeed} need${f.s.agentsNeed === 1 ? 's' : ''} you</span>` : ''} · ${moneyLine(f.s)}`;
 
   function model() {
     const C = counts();
+    let i = 0;
     const floors = state.projects.filter(p => !p.error && p.team).map(p => {
       const keys = new Set();
-      const desks = p.team.agents.map(x => deskOf(p, x, keys)).map((d, i) => [d, i]).sort((x, y) => ORDER[x[0].k] - ORDER[y[0].k] || x[1] - y[1]).map(x => x[0]);
       const s = C.projects[p.alias] || {};
-      return { a: p.alias, s, desks, quiet: !p.lead?.running && !s.working && !s.paced && !s.agentsNeed };
+      const quiet = !p.lead?.running && !s.working && !s.paced && !s.agentsNeed;
+      // the room keeps the team's own order, so a desk never moves when its state changes
+      const desks = p.team.agents.map(x => deskOf(p, x, keys));
+      for (const d of desks) {
+        d.i = i++;
+        // lead off and nothing running: the whole team is off for the day (curtains), not waiting on a lead who isn't there
+        if (quiet && d.k === '' && !d.held && !d.task) Object.assign(d, { k: 'off', word: WORD.off });
+      }
+      return { a: p.alias, s, desks, quiet };
     });
-    floors.sort((x, y) => (y.s.working - x.s.working) || (y.s.agentsNeed - x.s.agentsNeed) || (+y.s.lead - +x.s.lead));
+    floors.sort((x, y) => (+x.quiet - +y.quiet) || (y.s.working - x.s.working) || (y.s.agentsNeed - x.s.agentsNeed) || (+y.s.lead - +x.s.lead));
     return { C, floors };
   }
 
   const head = C => `<h1>Office</h1>${C ? `<span class="hf-sum num"><span data-count="working">${C.working}</span> working · ${C.paced ? `${C.paced} waiting for your plan window · ` : ''}<span${C.agentsNeed ? ' class="is-needs"' : ''}>${C.agentsNeed} need${C.agentsNeed === 1 ? 's' : ''} you</span> · ${C.onDuty} on duty</span>` : ''}<span class="end">${liveLine()}</span>`;
 
-  const board = floors => `<div class="board${failedAt ? ' is-stale' : ''}">
-    ${floors.filter(f => !f.quiet).map(f => `<section class="floor" aria-labelledby="fl-${esc(f.a)}" data-floor="${esc(f.a)}">
-      <header class="floor-head"><h2 id="fl-${esc(f.a)}"><a href="#/p/${esc(f.a)}/overview">${esc(f.a)}</a></h2>${strip(f)}<span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
-      <div class="desks">${f.desks.map(desk).join('')}</div></section>`).join('')}
-    ${floors.filter(f => f.quiet).map(f => `<a class="floor-quiet" href="#/p/${esc(f.a)}/overview" data-floor="${esc(f.a)}" aria-label="${esc(`${f.a}, quiet.${f.s.needsNow ? ` ${f.s.needsNow} needs you now.` : ''} ${quietNote(f)}. ${money(f.s.spentToday)} today`)}">${strip(f)}<b>${esc(f.a)}</b>${f.s.needsNow ? `<span class="fq-needs">${dotOf('needs', 'Needs you now')}${f.s.needsNow} need${f.s.needsNow === 1 ? 's' : ''} you now</span>` : ''}<span>${esc(quietNote(f))}</span><span class="num">${money(f.s.spentToday)} today</span></a>`).join('')}
-    <ul class="legend" aria-label="How to read a desk">
-      <li><span class="strip"><i data-k="active"></i></span>Light on: working</li><li><span class="strip"><i data-k="needs"></i></span>Hand up: needs you</li>
-      <li><span class="strip"><i data-k=""></i></span>Light off: waiting</li><li><span class="strip"><i data-k="off"></i></span>Empty desk: off</li></ul></div>`;
+  const LEGEND = ['<b class="a">Window lit</b>, tea steaming: working', '<b>Light low</b>, a thought in the air: quiet a long while',
+    '<b class="n">Hand up with a red flag</b>: needs you', '<b>Back-soon card</b>, light left on: paused', '<b>Tea in hand</b>, cat asleep on the sill: waiting',
+    '<b>Curtains drawn</b>: off', '<b class="d">Window floods green</b>, arms up: just finished'];
+  const floorHTML = f => `<header class="floor-head"><h2 id="fl-${esc(f.a)}"><a href="#/p/${esc(f.a)}/overview">${esc(f.a)}</a></h2><span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
+      <div class="o1-body"><div class="o1-room" style="--dc:${bal(f.desks.length, 12)};--pc:${bal(f.desks.length, 5)}">${f.desks.map(bay).join('')}</div>
+      <div class="o1-lines" data-lines>${linesOf(f)}</div></div>`;
+  const board = floors => `<div class="board of-board${failedAt ? ' is-stale' : ''}">
+    ${floors.map(f => `<section class="floor of-floor" aria-labelledby="fl-${esc(f.a)}" data-floor="${esc(f.a)}">${floorHTML(f)}</section>`).join('')}
+    <ul class="of-legend" aria-label="How to read a desk">${LEGEND.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
 
-  const emptyBuilding = `<svg viewBox="0 0 120 96" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 94V28a42 22 0 0 1 84 0v66"/><path d="M8 94h104"/>${[0, 1, 2].map(r => [0, 1, 2].map(c => `<path d="M${33 + c * 20} ${50 + r * 16}v-5a5 5 0 0 1 10 0v5z"/>`).join('')).join('')}</svg>`;
-  const empty = () => `<div class="hf-empty office-empty">${emptyBuilding}<h2>No one is working yet.</h2><p>Start a project and its team moves in here: one floor for the project, one desk for each agent.</p><a class="btn btn-primary" href="#/new">${I('plus')}New project</a></div>`;
+  const empty = () => `<div class="hf-empty office-empty"><span class="of-empty-art dk" data-k="off" aria-hidden="true"><span class="dk-scene">${scene('lead', 'wide')}</span></span><h2>No one is in yet.</h2><p>Start a project and its team moves in here: a room for the project, a desk for each agent.</p><a class="btn btn-primary" href="#/new">${I('plus')}New project</a></div>`;
 
-  // Loading: two floors of skeleton desks, counts hidden.
+  // PC (t652): how many whole bays fit across; a team that doesn't fit wraps into rows of equal length, and a room
+  // that fits one row sits beside its words when they still get 400 px. Every room is the board's width, so this reads
+  // one width and lays out nothing (floors off screen stay skipped). SLOT and PAD mirror office.css: a 120 px bay in a
+  // 136 px slot, the room's 8 px padding and 1 px border each side. The phone keeps its own rows (--pc).
+  function fit() {
+    const b = $('view').querySelector('.of-board');
+    if (!b || matchMedia('(max-width: 640px)').matches) return;
+    const SLOT = 136, PAD = 18, LINES = 400, GAP = 24, W = b.clientWidth;
+    const room = Math.max(1, Math.floor((W - PAD) / SLOT));
+    b.querySelectorAll('.o1-room').forEach(r => {
+      const n = r.childElementCount, cols = n <= room ? n : bal(n, room);
+      if (r.style.getPropertyValue('--dc') !== String(cols)) r.style.setProperty('--dc', cols);
+      r.parentElement.classList.toggle('is-beside', cols === n && W - (n * SLOT + PAD) - GAP >= LINES);
+    });
+  }
+  // Build note: loops hold still for desks off screen and while the tab is hidden (office.css is-away, data-tab-hidden).
+  const tabHidden = () => document.documentElement.toggleAttribute('data-tab-hidden', document.hidden);
+  document.addEventListener('visibilitychange', tabHidden);
+  function watch(view) {
+    io?.disconnect(); ro?.disconnect();
+    const b = view.querySelector('.of-board');
+    if (!b) return;
+    fit();
+    ro = new ResizeObserver(fit); ro.observe(b);
+    io = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('is-away', !e.isIntersecting)), { rootMargin: '120px 0px' });
+    b.querySelectorAll('.dk').forEach(d => io.observe(d));
+  }
+
+  // Loading: two rooms' shape, counts hidden.
   function loading() {
-    $('view').innerHTML = `<header class="hf-head">${head(null)}</header><div class="hf-body office"><div class="board" aria-busy="true" aria-label="Loading the Office">${[3, 3].map(n => `<section class="floor"><span class="skeleton" style="width:160px;height:20px"></span>
-      <div class="desks">${Array.from({ length: n }, () => `<span class="desk is-skeleton"><span class="desk-scene skeleton"></span><span class="desk-body"><span class="skeleton" style="width:40%;height:14px"></span><span class="skeleton" style="width:85%;height:18px;margin-top:6px"></span><span class="skeleton" style="width:60%;height:14px;margin-top:4px"></span></span></span>`).join('')}</div></section>`).join('')}</div></div>`;
+    $('view').innerHTML = `<header class="hf-head">${head(null)}</header><div class="hf-body office"><div class="board of-board" aria-busy="true" aria-label="Loading the Office">${[5, 3].map(n => `<section class="of-floor"><span class="skeleton" style="width:160px;height:20px"></span>
+      <div class="of-skel">${Array.from({ length: n }, () => '<span class="skeleton"></span>').join('')}</div></section>`).join('')}</div></div>`;
     sig = '';
   }
 
@@ -1277,7 +1379,9 @@ const Office = (() => {
     else {
       sig = next;
       view.innerHTML = `<header class="hf-head" data-office-head>${head(C)}</header><div class="hf-body office">${defs}${floors.length ? board(floors) : empty()}</div>`;
-      shown = new Map(floors.flatMap(f => f.desks.map(d => [`${f.a}/${d.key}`, JSON.stringify(d)])));
+      shown = new Map(floors.flatMap(f => f.desks.map(d => [`${f.a}/${d.key}`, JSON.stringify({ ...d, i: 0 })])));
+      lines = new Map(floors.map(f => [f.a, linesOf(f)]));
+      watch(view);
     }
     // A green window holds for a moment, then the light goes out: look again when the first one is due.
     clearTimeout(timer);
@@ -1285,32 +1389,36 @@ const Office = (() => {
     if (due) timer = setTimeout(() => { if (place() === 'office' && state) show(); }, HOLD + 50);
   }
 
-  // Same floors and desks as on screen: change each desk's own light, words and track, nothing else.
+  // Same floors and desks as on screen: change each desk's attributes (its drawing cross-fades by CSS) and caption, and
+  // the floor's lines only when their words changed. The room itself never re-renders.
   function patch(view, C, floors) {
     const h = view.querySelector('[data-office-head]');
     const hh = head(C);
     if (h && h.dataset.html !== hh) { h.innerHTML = hh; h.dataset.html = hh; }
-    view.querySelector('.board')?.classList.toggle('is-stale', !!failedAt);
+    view.querySelector('.of-board')?.classList.toggle('is-stale', !!failedAt);
     for (const f of floors) {
       const fl = view.querySelector(`[data-floor="${CSS.escape(f.a)}"]`);
       if (!fl) continue;
-      fl.querySelectorAll('.strip i').forEach((i, n) => { const k = f.desks[n]?.k ?? ''; if (i.dataset.k !== k) i.dataset.k = k; });
       const fs = fl.querySelector('[data-floor-sum]');
       if (fs && fs.innerHTML !== floorSum(f)) fs.innerHTML = floorSum(f);
       for (const d of f.desks) {
-        const id = `${f.a}/${d.key}`, json = JSON.stringify(d);
+        const id = `${f.a}/${d.key}`, json = JSON.stringify({ ...d, i: 0 });
         if (shown.get(id) === json) continue;
         const was = JSON.parse(shown.get(id) || '{}');
         shown.set(id, json);
-        const el = fl.querySelector(`.desk[data-key="${CSS.escape(d.key)}"]`);
+        const el = fl.querySelector(`.dk[data-key="${CSS.escape(d.key)}"]`);
         if (!el) continue;
         el.dataset.k = d.k;
+        if (d.held) el.dataset.held = d.held.toLowerCase(); else delete el.dataset.held;
         el.toggleAttribute('data-quiet', d.quiet);
         el.setAttribute('aria-label', label(d));
         el.setAttribute('href', d.href);
-        el.querySelector('.desk-body').innerHTML = deskBody(d);
-        if (was.what !== d.what || was.step !== d.step) { el.classList.remove('is-changing'); void el.offsetWidth; el.classList.add('is-changing'); }
+        if (news(d)) el.setAttribute('tabindex', '-1'); else el.removeAttribute('tabindex');
+        el.querySelector('.o1-cap').innerHTML = cap(d);
+        if (was.k !== d.k || was.held !== d.held || was.what !== d.what) { el.classList.remove('is-changing'); void el.offsetWidth; el.classList.add('is-changing'); }
       }
+      const ln = linesOf(f);
+      if (lines.get(f.a) !== ln) { lines.set(f.a, ln); fl.querySelector('[data-lines]').innerHTML = ln; }
     }
   }
 
