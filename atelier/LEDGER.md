@@ -4,7 +4,7 @@
 
 ## State (2026-10-30 12:45)
 - M1 redesign is on main, with audit fixes (uey2, hn3n). All M1 findings F-1..F-13 are marked fixed.
-- M2 Office: the owner picked O1 Panorama (R-21). Design gate approved 2026-10-30. **mfyp** built O1 plus a Projects nav row on PC (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 and 390 Office and the Projects nav. Sent as **A-14**, open. Waiting on the owner to merge atelier/mfyp (branch autonomy).
+- M2 Office: the owner picked O1 Panorama (R-21). Design gate approved 2026-10-30. **mfyp** built O1 plus a Projects nav row on PC (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 and 390 Office and the Projects nav. Sent as A-14; owner answered "Looks good" (2026-10-30) but didn't merge. Sent **A-15**: one-tap approval that runs the merge on their PC.
 - Nothing running. Today's spend $18.94 of $100; plan 7d 43%.
 
 ## Next
