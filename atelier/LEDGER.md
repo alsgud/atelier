@@ -4,13 +4,12 @@
 
 ## State (2026-10-30 12:45)
 - M1 redesign is on main, with audit fixes (uey2, hn3n). All M1 findings F-1..F-13 are marked fixed.
-- M2 Office: the owner picked O1 Panorama (R-21). Design gate approved 2026-10-30. **mfyp** built O1 plus a Projects nav row on PC (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 and 390 Office and the Projects nav. Sent as A-14; owner answered "Looks good" (2026-10-30) but didn't merge. Sent **A-15**: one-tap approval that runs the merge on their PC.
-- Nothing running. Today's spend $18.94 of $100; plan 7d 43%.
+- M2 Office: the owner picked O1 Panorama (R-21). Design gate approved 2026-10-30. **mfyp** built O1 plus a Projects nav row on PC (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 and 390 Office and the Projects nav. Sent as A-14 ("Looks good"); merged into main via A-15 (owner-approved run, 2026-10-30). mfyp closed.
+- **M2 audit running** (started 2026-10-30, ~$12). Findings come as `finding-to-lead` or to the owner. Today's spend $18.94 of $100; plan 7d 43%.
 
 ## Next
-1. A-14 answered with a merge → `atelier close mfyp` → `atelier audit atelier-ui run --bg` (~$12) → handle findings.
-2. A-14 answered with changes → overrule + ruling first, then a small frontend fix task based on atelier/mfyp, brief inline in the goal.
-3. If the owner finds the Office sluggish: stop the waiting desks' animation loops first (~40% gain; nf3m measured 21-25 ms/frame at 4x CPU throttle, 60 fps normal).
+1. Audit done → `atelier audit atelier-ui findings --lead`; fix or delegate (one frontend task, base main), mark `fixed`. Then a short M2 wrap-up update to the owner.
+2. If the owner finds the Office sluggish: stop the waiting desks' animation loops first (~40% gain; nf3m measured 21-25 ms/frame at 4x CPU throttle, 60 fps normal).
 - Minor for later: on phone, working cards leave empty space above the small scene.
 
 ## Housekeeping
