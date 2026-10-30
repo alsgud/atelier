@@ -38,6 +38,7 @@
 - No double quotes inside `--goal`; long briefs go in atelier/briefs/*.md. When basing on a branch, put the brief in the goal, not only in a file on main.
 - Under `branch` autonomy `atelier land` refuses; the owner merges. Close chained tasks with `atelier close` after the merge.
 - R-9: weekly plan is the only limit; spend with care.
+- A task's hours count wall-clock from its start, paced time included: after a long pace hold, extend hours by 2-3, not 1 (ghjy, 2026-10-30).
 - An approved gate freezes its files: reopen it with the owner's quote before a task writes them.
 - Owner asks go through `atelier ask` (R-13), never chat only.
 - Task goals start with one plain sentence of what changes for the owner; file pointers after it (the Inbox shows the goal's start; F-18).
