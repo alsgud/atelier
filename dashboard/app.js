@@ -30,6 +30,12 @@ const longAgo = iso => {
   return m < 2880 ? 'yesterday' : m < 7 * 1440 ? d.toLocaleDateString('en-GB', { weekday: 'long' }) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 };
 const cap1 = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+// A title in plain words (F-18): codes like R-31, AC-1, F-14 or M2-A7 are for agents, so a bracket that holds only
+// codes goes, and so do codes leading the title. Everything else stays as written.
+const CODE = '[A-Z][A-Z0-9]{0,3}-?[A-Z]{0,2}\\d+[a-z]?';
+const CODES_IN_BRACKETS = new RegExp(`\\s*[(\\[]\\s*${CODE}(?:\\s*(?:[,;/&]|and)\\s*${CODE})*\\s*[)\\]]`, 'g');
+const CODES_LEADING = new RegExp(`^(?:${CODE}(?:\\s*[:—–]\\s*|\\s+))+(?=\\S)`);
+const plainTitle = s => cap1(String(s || '').replace(CODES_IN_BRACKETS, '').replace(CODES_LEADING, '').trim()) || String(s || '');
 const PHASES = ['brief', 'spec', 'design', 'contracts', 'build'];
 const resetIn = sec => { const m = Math.round((sec * 1000 - Date.now()) / 60000); return m <= 0 ? 'now' : m < 60 ? `in ${m} min` : `in ${Math.floor(m / 60)} h ${m % 60} min`; };
 // The one money formatter (F-9): $250 for whole dollars, $72.02 otherwise.
@@ -1266,7 +1272,7 @@ const Office = (() => {
     let key = x.kind === 'lead' ? 'lead' : x.kind === 'auditor' ? 'auditor' : x.kind === 'reviewer' ? 'reviewer' : `r-${x.role || x.who}`;
     if (keys.has(key)) key += `-${x.id || keys.size}`;
     keys.add(key);
-    const d = { key, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: ROLE(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.what || '', step: '', quiet: false, prog: null, ago: '' };
+    const d = { key, id: x.id, role: x.kind === 'lead' ? 'Lead' : cap1(who), prop: ROLE(who), href: x.href || `#/p/${encodeURIComponent(a)}/overview`, k: '', what: x.what || '', step: '', quiet: false, prog: null, ago: '' };
     const working = () => Object.assign(d, { k: 'active', step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'Getting started', quiet: !!x.quietMin, stage: x.kind === 'reviewer' ? 3 : 1, ago: longAgo(x.lastAt) });
     if (x.kind === 'lead') {
       if (x.state === 'working') Object.assign(d, { k: 'active', step: `In the Claude app as “${a} lead”` });
@@ -1321,8 +1327,27 @@ const Office = (() => {
   };
   // Money in words (UX-11 C): the limit in red, "most of it used" from 80 %.
   const moneyLine = s => `${money(s.spentToday)} today${s.atLimit ? ', <span class="is-needs">at its limit</span>' : s.dayLimit && s.spentToday >= 0.8 * s.dayLimit ? ', most of it used' : ''}`;
+  const needsSum = s => s.needsNow ? ` · <span class="is-needs">${s.needsNow} need${s.needsNow === 1 ? 's' : ''} you</span>` : '';
   const floorSum = f => f.quiet ? `Lead off · nothing running${f.s.waiting ? ` · ${f.s.waiting} waiting on you in the Inbox` : ''} · ${moneyLine(f.s)}`
-    : `${f.s.working} working${f.s.paced ? ` · ${f.s.paced} waiting for your plan window` : ''}${f.s.agentsNeed ? ` · <span class="is-needs">${f.s.agentsNeed} need${f.s.agentsNeed === 1 ? 's' : ''} you</span>` : ''} · ${moneyLine(f.s)}`;
+    : `${f.s.working} working${f.s.paced ? ` · ${f.s.paced} waiting for your plan window` : ''}${needsSum(f.s)} · ${moneyLine(f.s)}`;
+
+  // "Needs you" has one source, the summary's needsNow (F-14): a desk raises the red flag only for a decision in the
+  // Inbox's "Needs you now". An agent's own question flags its desk; everything else (lead asks, gates, findings…) is
+  // the lead's desk, so the flags on a floor add up to its count and the floors to the head.
+  function flagNeeds(p, desks, s) {
+    const own = state.queue.filter(q => q.project === p.alias && q.needs && !Inbox.isHidden(q.key));
+    for (const d of desks) {
+      if (d.k !== 'needs') continue;
+      const q = own.find(q => q.kind === 'question' && q.id === d.id);
+      if (q) { own.splice(own.indexOf(q), 1); continue; }
+      // asked, but not (yet) a decision for you: the lead answers first, or it waits in the Inbox for a quiet minute
+      const later = state.queue.some(q => q.kind === 'question' && q.id === d.id && !Inbox.isHidden(q.key));
+      Object.assign(d, { k: '', word: WORD[''], step: later ? 'It asked a question. It waits in your Inbox for when you have a minute' : 'It asked a question. The lead answers it first' });
+    }
+    const lead = desks.find(d => d.key === 'lead');
+    const n = Math.min(own.length, s.needsNow ?? own.length);
+    if (lead && n) Object.assign(lead, { k: 'needs', word: WORD.needs, href: '#/inbox', what: n === 1 ? plainTitle(own[0].title) : `${n} decisions need you now`, step: n === 1 ? 'It’s in your Inbox' : 'They’re in your Inbox' });
+  }
 
   function model() {
     const C = counts();
@@ -1330,9 +1355,10 @@ const Office = (() => {
     const floors = state.projects.filter(p => !p.error && p.team).map(p => {
       const keys = new Set();
       const s = C.projects[p.alias] || {};
-      const quiet = !p.lead?.running && !s.working && !s.paced && !s.agentsNeed;
+      const quiet = !p.lead?.running && !s.working && !s.paced && !s.needsNow;
       // the room keeps the team's own order, so a desk never moves when its state changes
       const desks = p.team.agents.map(x => deskOf(p, x, keys));
+      flagNeeds(p, desks, s);
       for (const d of desks) {
         d.i = i++;
         // lead off and nothing running: the whole team is off for the day (curtains), not waiting on a lead who isn't there
@@ -1340,11 +1366,11 @@ const Office = (() => {
       }
       return { a: p.alias, s, desks, quiet };
     });
-    floors.sort((x, y) => (+x.quiet - +y.quiet) || (y.s.working - x.s.working) || (y.s.agentsNeed - x.s.agentsNeed) || (+y.s.lead - +x.s.lead));
+    floors.sort((x, y) => (+x.quiet - +y.quiet) || (y.s.working - x.s.working) || ((y.s.needsNow || 0) - (x.s.needsNow || 0)) || (+y.s.lead - +x.s.lead));
     return { C, floors };
   }
 
-  const head = C => `<h1>Office</h1>${C ? `<span class="hf-sum num"><span data-count="working">${C.working}</span> working · ${C.paced ? `${C.paced} waiting for your plan window · ` : ''}<span${C.agentsNeed ? ' class="is-needs"' : ''}>${C.agentsNeed} need${C.agentsNeed === 1 ? 's' : ''} you</span> · ${C.onDuty} on duty</span>` : ''}<span class="end">${liveLine()}</span>`;
+  const head = C => `<h1>Office</h1>${C ? `<span class="hf-sum num"><span data-count="working">${C.working}</span> working · ${C.paced ? `${C.paced} waiting for your plan window · ` : ''}<span${C.needsNow ? ' class="is-needs"' : ''}>${C.needsNow} need${C.needsNow === 1 ? 's' : ''} you</span> · ${C.onDuty} on duty</span>` : ''}<span class="end">${liveLine()}</span>`;
 
   const LEGEND = ['<b class="a">Window lit</b>, tea steaming: working', '<b>Light low</b>, a thought in the air: quiet a long while',
     '<b class="n">Hand up with a red flag</b>: needs you', '<b>Back-soon card</b>, light left on: paused', '<b>Tea in hand</b>, cat asleep on the sill: waiting',
