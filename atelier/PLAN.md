@@ -51,7 +51,7 @@ Rough split (to be re-priced from real costs after the design task):
 | uey2 | frontend | Fix audit findings F-2..F-13 (10 it, $55), base main, brief briefs/audit-fixes-m1.md | audit + owner confirmed F-2..F-4 | queued; owner merges, lead marks fixed |
 | — | auditor | End-of-milestone audit | slice 3 | done 2026-10-27 |
 | — | auditor | M2 audit | mfyp merged | done 2026-10-30 ($12.27): F-14..F-18 owner, F-19..F-24 lead |
-| 5r4a | frontend | Fix M2 audit F-19..F-24 (6 it, $18), brief briefs/audit-fixes-m2.md, base main | M2 audit | running |
+| 5r4a | frontend | Fix M2 audit F-19..F-24 (6 it, $18), brief briefs/audit-fixes-m2.md, base main | M2 audit | merged A-17, closed, F-19..F-24 fixed |
 | ghjy | frontend | Fix owner-confirmed F-14..F-18 (8 it, $25), brief briefs/audit-fixes-m2-owner.md | 5r4a | approved, waits on 5r4a |
 
 ## Ready-to-send briefs
