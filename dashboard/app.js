@@ -212,7 +212,7 @@ function reasonWords(t) {
   if (/in review/i.test(r)) return 'In review';
   if (t.status === 'paused' && stoppedByYou(r)) return 'You stopped it';
   // Anything else: keep it only if it already reads as a short plain sentence.
-  const s = r.replace(/^[a-z-]+:\s*/i, '').replace(/\s*\([0-9a-f]{7,40}\)/g, '').trim();
+  const s = r.replace(/^for the lead:\s*/i, '').replace(/^[a-z-]+:\s*/i, '').replace(/\s*\([0-9a-f]{7,40}\)/g, '').trim();
   return s.length <= 70 && !/[`/\\#{}<>=]|\b[0-9a-f]{7,40}\b|\b[a-z]+\/[a-z0-9-]+\b|\.(md|mjs|js|json)\b/i.test(s) ? cap1(s) : '';
 }
 const STATUS_WORD = { 'needs-you': 'Needs you', running: 'Working', queued: 'Queued', planned: 'Waiting for your OK', requested: 'Request', review: 'In review', done: 'Done', stalled: 'Stalled', failed: 'Failed', cancelled: 'Cancelled', paused: 'Paused' };
@@ -2429,8 +2429,8 @@ const Project = (() => {
   };
 
   // ── Recent: the newest few events, in words ──
-  // Good news, as the server's Activity marks it: a partial or failed check isn't.
-  const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || (/ pass|approve/.test(e.msg || '') && !/FAIL/.test(e.msg) && !/^(\d+)\/(?!\1\b)\d+ criteria/.test(e.msg));
+  // Good news, as the server's Activity marks it: a partial or failed check isn't, and stopped work never is ("check pass" in its message or not).
+  const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || (!/^(needs-lead|paused)$/.test(e.type) && / pass|approve/.test(e.msg || '') && !/FAIL/.test(e.msg) && !/^(\d+)\/(?!\1\b)\d+ criteria/.test(e.msg));
   // One plain sentence an event, as on Activity (F-6, F-15): the event's own technical words wait under Details.
   const eventLine = (p, e) => { const s = eventSay({ ...e, task: p.tasks.find(x => x.id === e.id)?.title || null }, p.alias); return `${esc(sayLine(s))}${s.task ? ` · ${esc(s.task)}` : ''}${rawDetails(s)}`; };
   const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${eventLine(p, e)}</span></li>`).join('')}</ol>`;
