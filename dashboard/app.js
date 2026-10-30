@@ -52,16 +52,21 @@ const resetAt = sec => {
 };
 // The 5-hour window keeps its countdown after the time: "today 14:00, in 25 min".
 const resetSoon = sec => `${resetAt(sec)}${resetIn(sec) === 'now' ? '' : `, ${resetIn(sec)}`}`;
-const resetDay = sec => sec * 1000 - Date.now() > 864e5 ? DMY.format(new Date(sec * 1000)) : resetAt(sec);
-// The Claude plan in words, the same on every screen (F-4): both windows, the week's reset, and what is left for the
-// owner before Atelier's own stop (Settings › pause at this much of the week).
+// The Claude plan in words, the same on every screen (F-4, F-16): each window always says "used", where Atelier stops
+// (Settings › pause at), so how much at least stays the owner's, and when it resets:
+// "Week: 44% used. Atelier stops at 90%, so at least 10% stays yours. Resets Tue 3 Nov, 02:00."
+// `rest` is that line after "Week: 44% used." for a meter that already shows the figure.
 const planWords = (plan, pace) => {
-  const f = plan?.fiveHour, w = plan?.sevenDay, stop = Number(pace?.sevenDay) || 0;
-  if (!f && !w) return { line: '', short: '', left: '' };
-  const short = [f && `5‑hour ${f.used}%`, w && `week ${w.used}%`].filter(Boolean).join(', ');
-  const line = short + (w ? `, resets ${resetDay(w.resetsAt)}` : '');
-  const left = w && stop ? (w.used < stop ? `Left for you: ${stop - w.used}% of the week before Atelier stops at ${stop}%` : `Atelier has stopped for the week at ${stop}%; the rest is yours`) : '';
-  return { line, short, left };
+  const one = (name, x, stop, when) => {
+    if (!x) return null;
+    const used = `${x.used}% used`;
+    const mid = !stop ? '' : x.used < stop ? `Atelier stops at ${stop}%, so at least ${100 - stop}% stays yours. ` : `Atelier has stopped at ${stop}%, so the rest is yours. `;
+    const rest = `${mid}Resets ${when(x.resetsAt)}.`;
+    return { used, rest, line: `${name}: ${used}. ${rest}` };
+  };
+  const five = one('5‑hour', plan?.fiveHour, Number(pace?.fiveHour) || 0, resetSoon), week = one('Week', plan?.sevenDay, Number(pace?.sevenDay) || 0, resetAt);
+  const short = [week && `week ${week.used}`, five && `5‑hour ${five.used}`].filter(Boolean).join(', ');
+  return { five, week, short, lines: [week, five].filter(Boolean).map(x => x.line) };
 };
 
 // ---------- icons (the design's set, atelier/design/icons.js, as one inline sprite) ----------
@@ -320,7 +325,7 @@ function renderChrome() {
       <a class="nav-item" href="#/new"${aria('new')}>${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
-      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${k && plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${k && plan ? Math.min(100, plan.used) : 0}%"></i></div><span class="meter-foot">${k && pw4.line ? esc(pw4.line) : 'Shows after the first run'}</span>${pw4.left ? `<span class="meter-foot">${esc(pw4.left)}</span>` : ''}</div>
+      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${k && plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${k && plan ? Math.min(100, plan.used) : 0}%"></i></div>${k && pw4.lines.length ? [pw4.five, pw4.week].filter(Boolean).map(x => `<span class="meter-foot">${esc(x.line)}</span>`).join('') : '<span class="meter-foot">Shows after the first run</span>'}</div>
       <div class="meter"><div class="meter-head"><span>Spent today</span><b class="num">${spent}</b></div><span class="meter-foot">${esc(limitLine)}</span></div>
       <a class="nav-item" href="#/settings"${aria('settings')} style="margin:0 calc(-1 * var(--space-2))">${I('settings')}Settings</a>
     </div>`;
@@ -336,7 +341,7 @@ function renderChrome() {
     <a class="push" href="#/settings" aria-label="Settings${k && plan ? `, plan ${plan.used}% used` : ''}${k ? `, ${spent} spent today` : ''}"${aria('settings')}>${I('settings')}</a>`;
   $('top').innerHTML = `
     <a class="brand" href="#/inbox" aria-label="Atelier, Inbox">${lockup(20)}</a>
-    <a class="spend" href="#/settings" aria-label="Spent today on all projects ${k ? spent : 'not known yet'}${k && pw4.line ? `. Plan: ${pw4.line}` : ''}. Plan settings"><span class="spend-l">Today, all projects<b class="num">${spent}</b></span>${k && pw4.line ? `<span class="spend-p num">Plan: ${esc(pw4.short)}</span>` : ''}</a>
+    <a class="spend" href="#/settings" aria-label="Spent today on all projects ${k ? spent : 'not known yet'}.${k && pw4.lines.length ? ` Claude plan: ${pw4.lines.join(' ')}` : ''} Plan settings"><span class="spend-l">Today, all projects<b class="num">${spent}</b></span>${k && pw4.short ? `<span class="spend-p num">Plan: ${esc(pw4.short)}</span>` : ''}</a>
     <a class="gear" href="#/settings" aria-label="Settings">${I('settings')}</a>`;
   const tabIs = t => ((t === 'projects' ? ['projects', 'new', 't', ...P.map(p => p.alias)] : [t]).includes(cur) ? ' aria-current="page"' : '');
   $('tabs').innerHTML = `
@@ -1823,7 +1828,8 @@ const Settings = (() => {
   // ── Every project ──
   function global() {
     const C = counts(), plan = C?.plan || {}, pace = state.pace || {}, t = state.atelierToday || {};
-    const upd = plan.savedAt ? ` · updated ${longAgo(new Date(plan.savedAt * 1000).toISOString())}` : '';
+    const upd = plan.savedAt ? ` Updated ${longAgo(new Date(plan.savedAt * 1000).toISOString())}.` : '';
+    const pw = planWords(plan, pace);
     const tokens = ((t.tokens || 0) + (t.liveTokens || 0)) / 1e6;
     const holding = pace.holdingUntil
       ? `<p class="s-hold is-holding" role="status">${I('refresh')}<span><b>Holding new work until ${esc(resetAt(pace.holdingUntil))}.</b> ${holdWhy(pace, plan)} Running tasks finish first.</span></p>`
@@ -1831,12 +1837,11 @@ const Settings = (() => {
     const rows = (state.projects || []).filter(p => !p.error).map(p => `<a class="p-row" href="#/settings?p=${encodeURIComponent(p.alias)}">${Office.dotOf(p.lead?.running ? 'active' : '', p.lead?.running ? 'Lead on' : 'Lead off')}<span class="t"><b>${esc(p.alias)}</b><span class="s">${TRUST[p.trust] || cap1(p.trust)} gating · ${money(p.budget?.day)} a day · ${SHIP[p.autonomy] || esc(p.autonomy)}</span></span><span class="m">${I('chevron-right')}</span></a>`).join('');
     return [
       ['plan', 'Claude plan', `
-        <div class="s-meters">${meter('5‑hour window', plan.fiveHour, plan.fiveHour ? `Resets ${esc(resetSoon(plan.fiveHour.resetsAt))}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, plan.sevenDay ? `Resets ${esc(resetAt(plan.sevenDay.resetsAt))}` : 'Shows after the first run')}</div>
-        ${planWords(plan, pace).left ? `<p class="field-help">${esc(planWords(plan, pace).left)}.</p>` : ''}
+        <div class="s-meters">${meter('5‑hour window', plan.fiveHour, pw.five ? `${esc(pw.five.rest)}${upd}` : 'Shows after the first run')}${meter('This week', plan.sevenDay, pw.week ? esc(pw.week.rest) : 'Shows after the first run')}</div>
         <p class="field-help s-spent">Atelier spent <b class="num">${money(C?.spentToday)}</b> today so far${C?.working ? `, including work still running; ${C.working} agent${C.working === 1 ? ' is' : 's are'} still working, so it will rise` : ''}. <span class="num">${tokens.toFixed(1)}</span> M tokens. API-equivalent cost, not a bill.</p>
         ${holding}
         ${amount('fiveHour', 'Pause Atelier at this much of the 5‑hour window', pace.fiveHour, '%', 'New work waits until the window resets. Running tasks finish.')}
-        ${amount('sevenDay', 'Pause Atelier at this much of the week', pace.sevenDay, '%', 'Leaves the rest of the week for you.')}
+        ${amount('sevenDay', 'Pause Atelier at this much of the week', pace.sevenDay, '%', 'Atelier stops there, so the rest of the week stays yours.')}
         <label class="f-switch"><span>Spread work evenly over the week<small>Holds work when today has used more than its share.</small></span><input type="checkbox" name="spread"${pace.spread ? ' checked' : ''} data-say="Spread work evenly"></label>`,
         'Shared by every project, and by your own chats and Claude Code sessions. Atelier paces itself so the plan lasts.'],
       ['look', 'Appearance', `<fieldset class="f-sec"><legend class="sr-only">Theme</legend><div class="f-row3">${Object.entries(THEME).map(([k, v]) => radio('theme', k, v, '', themePick())).join('')}</div></fieldset>`,
@@ -2217,7 +2222,7 @@ const Project = (() => {
 
   // ── Facts (R14): money, the plan, the team, how it runs ──
   function facts(p, S, C) {
-    const a = esc(p.alias), plan = C.plan?.fiveHour, week = C.plan?.sevenDay, left = planWords(C.plan, state.pace).left, sp = S.split || {};
+    const a = esc(p.alias), plan = C.plan?.fiveHour, week = C.plan?.sevenDay, pw = planWords(C.plan, state.pace), sp = S.split || {};
     const planMeter = (label, w, foot) => `<div class="meter"><div class="meter-head"><span>${label}</span><b class="num">${w ? `${w.used}%` : '–'} <small>used</small></b></div><div class="meter-track${w && w.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${w ? `${label}: ${w.used}% used` : `${label}: not known yet`}"><i style="--value:${w ? Math.min(100, w.used) : 0}%"></i></div>
             <span class="meter-foot">${esc(foot)}</span></div>`;
     const pct = S.dayLimit ? Math.min(100, Math.round(S.spentToday / S.dayLimit * 100)) : 0;
@@ -2235,9 +2240,8 @@ const Project = (() => {
             <dl class="p-dl num"><dt>Tasks</dt><dd>${money(sp.tasks)}</dd><dt>Lead</dt><dd>${money(sp.lead)}</dd><dt>Audits</dt><dd>${money(sp.audits)}</dd></dl>
             <span>API-equivalent cost, not a bill.</span></div></details></section>
         <section class="p-fact" aria-labelledby="f-plan"><h3 class="section-label" id="f-plan">Your Claude plan</h3>
-          ${planMeter('5‑hour window', plan, plan ? `Resets ${esc(resetSoon(plan.resetsAt))} · shared by every project` : 'Shows after the first run')}
-          ${planMeter('This week', week, week ? `Resets ${resetAt(week.resetsAt)}` : 'Shows after the first run')}
-          ${left ? `<p class="meter-foot">${esc(left)}</p>` : ''}</section>
+          ${planMeter('5‑hour window', plan, pw.five ? `${pw.five.rest} Shared by every project.` : 'Shows after the first run')}
+          ${planMeter('This week', week, pw.week ? pw.week.rest : 'Shows after the first run')}</section>
         <section class="p-fact" aria-labelledby="f-team"><h3 class="section-label" id="f-team">Team</h3>
           <ul class="p-team">${team.map(d => `<li>${dot(d.k === 'off' ? '' : d.k, d.word)}<b>${esc(d.role)}</b><span class="w${d.k && d.k !== 'off' ? ` is-${d.k}` : ''}">${esc(d.word)}</span></li>`).join('')}</ul>
           <a class="link p-more" href="#/office">Open the Office</a></section>
