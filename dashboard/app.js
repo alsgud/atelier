@@ -1371,7 +1371,7 @@ const Office = (() => {
     : `${f.s.working} working${f.s.paced ? ` · ${f.s.paced} waiting for your plan window` : ''}${needsSum(f.s)} · ${moneyLine(f.s)}`;
 
   // "Needs you" has one source, the summary's needsNow (F-14): a desk raises the red flag only for a decision in the
-  // Inbox's "Needs you now". An agent's own question flags its desk; everything else (lead asks, gates, findings…) is
+  // Inbox's "Needs you now". An agent's own question or screen request flags its desk; everything else (lead asks, gates, findings…) is
   // the lead's desk, so the flags on a floor add up to its count and the floors to the head.
   function flagNeeds(p, desks, s) {
     const own = state.queue.filter(q => q.project === p.alias && q.needs && !Inbox.isHidden(q.key));
@@ -1382,6 +1382,13 @@ const Office = (() => {
       // asked, but not (yet) a decision for you: the lead answers first, or it waits in the Inbox for a quiet minute
       const later = state.queue.some(q => q.kind === 'question' && q.id === d.id && !Inbox.isHidden(q.key));
       Object.assign(d, { k: '', word: WORD[''], step: later ? 'It asked a question. It waits in your Inbox for when you have a minute' : 'It asked a question. The lead answers it first' });
+    }
+    // a request for your screen belongs to the agent working on that task (the queue names the task by its title)
+    for (const q of own.filter(q => q.kind === 'screen')) {
+      const d = desks.find(d => d.id && d.k !== 'needs' && d.what.replace(/^Reviewing /, '') === titleWords(q.taskTitle));
+      if (!d) continue;
+      Object.assign(d, { k: 'needs', word: WORD.needs, href: '#/inbox', step: 'It asks to open a window on your screen. It’s in your Inbox' });
+      own.splice(own.indexOf(q), 1);
     }
     const lead = desks.find(d => d.key === 'lead');
     const n = Math.min(own.length, s.needsNow ?? own.length);
