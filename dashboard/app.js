@@ -539,8 +539,10 @@ const Inbox = (() => {
   const para = s => String(s || '').split(/\n\s*\n/)[0];
   // The thing itself, inline (AC-15, F-8): a document through md(), folded to about 8 lines with Show all when longer.
   const shownAll = new Set(); // item ids whose document the owner opened in full
-  const inlineDoc = (id, text) => {
-    const long = String(text).split('\n').filter(l => l.trim()).length > 8 || text.length > 700, open = !long || shownAll.has(id);
+  const inlineDoc = (id, text, closed = false) => {
+    const long = String(text).split('\n').filter(l => l.trim()).length > 8 || text.length > 700, open = (!closed && !long) || shownAll.has(id);
+    // A plan's brief is written for its agent: all of it stays behind Show all (F-18)
+    if (closed && !open) return `<div class="doc" id="doc-${cssId(id)}" tabindex="-1" hidden>${md(text)}</div><button class="btn btn-secondary doc-all" type="button" data-act="show-all" data-for="${esc(id)}" aria-controls="doc-${cssId(id)}">Show all</button>`;
     return `<div class="doc${open ? '' : ' is-clamped'}" id="doc-${cssId(id)}" tabindex="-1">${md(text)}</div>${open ? '' : `<button class="btn btn-secondary doc-all" type="button" data-act="show-all" data-for="${esc(id)}" aria-controls="doc-${cssId(id)}">Show all</button>`}`;
   };
 
@@ -707,7 +709,7 @@ const Inbox = (() => {
       case 'plan':
         return { ...base, glyph: 'plan', kind: 'Task plan', short: 'task plan', title: `Start a task: ${base.title}`,
           body: () => `<p class="lede">${esc(planLede(q.brief) || 'Its brief says what it will change.')} The ${esc(q.role)} works on it: up to ${esc(q.iterations)} tries${q.budgetLimit ? `, at most ${money(q.budgetLimit)}` : ''}.</p>
-            ${q.brief ? inlineDoc(base.id, q.brief) : ''}
+            ${q.brief ? inlineDoc(base.id, q.brief, true) : ''}
             <details class="details"><summary>${I('chevron-down')}What it will be checked against</summary><div class="details-body">${planChecks(a, q.criteria)}</div></details>`,
           dock: { primary: 'Approve plan', ghost: 'Open the task', ghostHref: `#/t/${encodeURIComponent(q.id)}`,
             send: () => ({ action: 'plan-approve', id: q.id }),
@@ -816,7 +818,7 @@ const Inbox = (() => {
     return `<a href="${esc(a.href || '#/office')}" class="agent" data-agent="${esc(a.id)}"${named && rowsMove() ? vt(`w-${cssId(a.id)}`, 'row') : ''} aria-label="${esc(a.what)}. ${esc(a.meta)}${fig ? `. ${fig}` : ''}"><span class="agent-dot"><span class="dot dot-active${failedAt ? '' : ' is-live'}" role="img" aria-label="Working"></span></span><span class="agent-what">${esc(a.what)}</span><span class="agent-meta">${esc(a.meta)} · <span class="when">${esc(a.when)}</span></span>${a.of ? `<span class="agent-progress"><span class="track"><i style="--v:${Math.min(1, a.n / a.of).toFixed(4)}"></i></span><span class="fig">${esc(fig)}</span></span>` : ''}</a>`;
   }
   function ledgerRows(rows) {
-    return rows.map(r => { const t = r.id && tname(r.id); return `<a href="#/p/${encodeURIComponent(r.project)}/overview" class="ledger-row"${r.id ? ` data-lid="${esc(r.id)}"` : ''} aria-label="${esc(r.what)}. ${esc(r.project)}, ${r.age === 'now' ? 'just now' : `${esc(r.age)} ago`}"${(r.id || r.key) && rowsMove() ? vt(`l-${cssId(r.id || r.key)}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(r.what)}</span><span class="qitem-age">${esc(r.age)}</span><span class="meta">${esc(r.project)}</span></a>`; }).join('');
+    return rows.map(r => { const t = r.id && tname(r.id), what = titleWords(r.what); return `<a href="#/p/${encodeURIComponent(r.project)}/overview" class="ledger-row"${r.id ? ` data-lid="${esc(r.id)}"` : ''} aria-label="${esc(what)}. ${esc(r.project)}, ${r.age === 'now' ? 'just now' : `${esc(r.age)} ago`}"${(r.id || r.key) && rowsMove() ? vt(`l-${cssId(r.id || r.key)}`, 'row') : ''}>${I('check')}<span class="what"${t ? vt(t, 'title') : ''}>${esc(what)}</span><span class="qitem-age">${esc(r.age)}</span><span class="meta">${esc(r.project)}</span></a>`; }).join('');
   }
   function queue() {
     const L = list(), now = L.filter(x => x.needs), later = L.filter(x => !x.needs), D = ledger(), W = working(), C = counts();
@@ -1091,7 +1093,7 @@ const Inbox = (() => {
     if (act === 'each') decideEach();
     if (act === 'toast-undo') undo();
     if (act === 'toast-retry') retry();
-    if (act === 'show-all') { shownAll.add(a.dataset.for); const d = $(a.getAttribute('aria-controls')); a.remove(); d?.classList.remove('is-clamped'); d?.focus({ preventScroll: true }); }
+    if (act === 'show-all') { shownAll.add(a.dataset.for); const d = $(a.getAttribute('aria-controls')); a.remove(); d?.classList.remove('is-clamped'); d?.removeAttribute('hidden'); d?.focus({ preventScroll: true }); }
   });
   document.addEventListener('change', e => { if (S.active && e.target.name === 'ans') { S.choice = e.target.value; if (S.dock === 'invalid') { S.dock = 'ready'; render(); } } });
   document.addEventListener('input', e => { if (S.active && e.target.id === 'note') S.note = e.target.value; });
@@ -1377,17 +1379,15 @@ const Office = (() => {
     const own = state.queue.filter(q => q.project === p.alias && q.needs && !Inbox.isHidden(q.key));
     for (const d of desks) {
       if (d.k !== 'needs') continue;
-      const q = own.find(q => q.kind === 'question' && q.id === d.id);
-      if (q) { own.splice(own.indexOf(q), 1); continue; }
-      // asked, but not (yet) a decision for you: the lead answers first, or it waits in the Inbox for a quiet minute
-      const later = state.queue.some(q => q.kind === 'question' && q.id === d.id && !Inbox.isHidden(q.key));
-      Object.assign(d, { k: '', word: WORD[''], step: later ? 'It asked a question. It waits in your Inbox for when you have a minute' : 'It asked a question. The lead answers it first' });
+      const a = askOf(d.id);
+      if (a.needs) { own.splice(own.findIndex(q => q.kind === 'question' && q.id === d.id), 1); continue; }
+      Object.assign(d, { k: '', word: WORD[''], step: a.step });
     }
     // a request for your screen belongs to the agent working on that task (the queue names the task by its title)
     for (const q of own.filter(q => q.kind === 'screen')) {
       const d = desks.find(d => d.id && d.k !== 'needs' && d.what.replace(/^Reviewing /, '') === titleWords(q.taskTitle));
       if (!d) continue;
-      Object.assign(d, { k: 'needs', word: WORD.needs, href: '#/inbox', step: 'It asks to open a window on your screen. It’s in your Inbox' });
+      Object.assign(d, { k: 'needs', word: WORD.needs, href: '#/inbox', step: SCREEN_STEP });
       own.splice(own.indexOf(q), 1);
     }
     const lead = desks.find(d => d.key === 'lead');
@@ -1395,21 +1395,25 @@ const Office = (() => {
     if (lead && n) Object.assign(lead, { k: 'needs', word: WORD.needs, href: '#/inbox', what: n === 1 ? titleWords(own[0].title) : `${n} decisions need you now`, step: n === 1 ? 'It’s in your Inbox' : 'They’re in your Inbox' });
   }
 
+  // One project's desks, the same on the Office, the project page's Team list and the Projects strip.
+  function teamOf(p, s) {
+    const keys = new Set();
+    const quiet = !p.lead?.running && !s.working && !s.paced && !s.needsNow;
+    // the room keeps the team's own order, so a desk never moves when its state changes
+    const desks = (p.team?.agents || []).map(x => deskOf(p, x, keys));
+    flagNeeds(p, desks, s);
+    // lead off and nothing running: the whole team is off for the day (curtains), not waiting on a lead who isn't there
+    for (const d of desks) if (quiet && d.k === '' && !d.held && !d.task) Object.assign(d, { k: 'off', word: WORD.off });
+    return { desks, quiet };
+  }
+
   function model() {
     const C = counts();
     let i = 0;
     const floors = state.projects.filter(p => !p.error && p.team).map(p => {
-      const keys = new Set();
       const s = C.projects[p.alias] || {};
-      const quiet = !p.lead?.running && !s.working && !s.paced && !s.needsNow;
-      // the room keeps the team's own order, so a desk never moves when its state changes
-      const desks = p.team.agents.map(x => deskOf(p, x, keys));
-      flagNeeds(p, desks, s);
-      for (const d of desks) {
-        d.i = i++;
-        // lead off and nothing running: the whole team is off for the day (curtains), not waiting on a lead who isn't there
-        if (quiet && d.k === '' && !d.held && !d.task) Object.assign(d, { k: 'off', word: WORD.off });
-      }
+      const { desks, quiet } = teamOf(p, s);
+      for (const d of desks) d.i = i++;
       return { a: p.alias, s, desks, quiet };
     });
     floors.sort((x, y) => (+x.quiet - +y.quiet) || (y.s.working - x.s.working) || ((y.s.needsNow || 0) - (x.s.needsNow || 0)) || (+y.s.lead - +x.s.lead));
@@ -1518,12 +1522,22 @@ const Office = (() => {
   }
 
   // The project page's Team facts use the same desks, so a desk and its line there never disagree.
-  const desks = p => { const keys = new Set(); return (p.team?.agents || []).map(x => deskOf(p, x, keys)); };
+  const desks = p => teamOf(p, counts().projects[p.alias] || {}).desks;
   // Once the next screen has painted: the observers let go of the old desks (they come back with the next show()).
   function stop() { if (place() === 'office') return; io?.disconnect(); ro?.disconnect(); io = ro = null; clearTimeout(timer); }
   return { show, loading, desks, dotOf, stop };
 })();
 
+// Is a task's question a decision for you now (F-14)? Only if the Inbox has it under "Needs you now". Otherwise the lead
+// answers first, or it waits in the Inbox for a quiet minute. Office, project page, Activity and task page all ask here.
+function askOf(id) {
+  const asks = (state?.queue || []).filter(q => q.kind === 'question' && q.id === id && !Inbox.isHidden(q.key));
+  if (!state?.queue || asks.some(q => q.needs)) return { needs: true, step: 'It asked you something. Answer it on its page' };
+  return { needs: false, step: asks.length ? 'It asked a question. It waits in your Inbox for when you have a minute' : 'It asked a question. The lead answers it first' };
+}
+// A request for your screen needs you too; the queue names its task by title, so the desk, card and page all match it here.
+const SCREEN_STEP = 'It asks to open a window on your screen. It’s in your Inbox';
+const screenAsk = title => (state?.queue || []).some(q => q.kind === 'screen' && q.needs && !Inbox.isHidden(q.key) && titleWords(q.taskTitle) === titleWords(title));
 const etaText = e => e ? `likely ${e.low}–${e.high} min` : '';
 const isBusy = s => s === 'working' || s === 'reviewing' || s === 'auditing';
 
@@ -1537,10 +1551,11 @@ const Projects = (() => {
   let shown = new Map(); // card id → the words on screen
   const needWord = n => `${n} need${n === 1 ? 's' : ''} you now`;
   // "working" is agents working (the summary's S.working), the same figure as the project page and the Office (F-7).
+  // Who needs you is waitWords' needsNow alone (F-14): a task's status isn't that figure.
   const tasksLine = S => {
     const T = S.tasks || {};
-    const parts = [[S.working, 'working'], [S.paced, 'waiting for your plan window'], [T['needs-you'], n => `${n} need${n === 1 ? 's' : ''} you`], [T.queued, 'queued'], [T.done, 'done']]
-      .filter(([n]) => n).map(([n, w]) => typeof w === 'function' ? w(n) : `${n} ${w}`);
+    const parts = [[S.working, 'working'], [S.paced, 'waiting for your plan window'], [T.queued, 'queued'], [T.done, 'done']]
+      .filter(([n]) => n).map(([n, w]) => `${n} ${w}`);
     return parts.length ? parts.join(' · ') : 'No tasks yet';
   };
   const moneyWords = S => `${money(S.spentToday)} of ${money(S.dayLimit)} today${S.atLimit ? ', at its limit' : S.dayLimit && S.spentToday >= 0.8 * S.dayLimit ? ', most of it used' : ''}`;
@@ -1619,13 +1634,22 @@ const EVENT_WORD = { added: 'Task added', started: 'Started', iteration: 'Iterat
 const TECH_TAIL = /\s*(?:\bOutput:|\(full output\b|\(details:|\bExtend with:|\bTraceback\b|\bfatal:|\berror:)/i;
 // Paths, file names, hashes, links, inline code and CLI hints go; `codes` also takes bare codes (AC-7, F-14) out of
 // free text. Task titles keep mid-sentence codes (plainTitle takes the leading and bracketed ones, F-18).
+const FILE_EXT = 'mjs|js|ts|tsx|py|ps1|sh|md|json|jsonl|css|html|rs|toml|yaml|yml|wav|mp3|png|jpg|webm|log|txt|exe|dll';
+// A path needs more than one slash-joined pair of words to be one: "A/B", "and/or" and "3/4" are plain words.
+const NOT_PATH = '(?!(?:A\\/B|and\\/or|\\d[\\d.]*\\/\\d[\\d.]*)(?![\\w\\/]))';
+const TECH_WORD = `(?:\`[^\`]*\`|[A-Za-z]:\\\\|${NOT_PATH}(?:\\\\\\\\\\?\\\\|~\\/|\\.{1,2}\\/)?(?:[\\w.@*-]+[\\\\/])+|[\\w-]+\\.(?:${FILE_EXT})\\b|(?=[0-9a-f]*\\d)[0-9a-f]{7,40}\\b)`;
+// The little word in front of something removed goes with it, and only then ("is in;" stays).
+const LEAD_IN = new RegExp(`(?:[;,]\\s*)?\\bsee\\s+(?=${TECH_WORD})|\\b(?:in|on|to|for|from|of|at|into)\\s+(?=${TECH_WORD})`, 'gi');
+const PATH_RE = new RegExp(`${NOT_PATH}(?:\\\\\\\\\\?\\\\|~\\/|\\.{1,2}\\/)?(?:[\\w.@*-]+[\\\\/])+[\\w.@*-]*`, 'g');
+const CODEY = /::|\b[a-z]+_[a-z_]+\b|\b[a-z]+[A-Z]\w*\b|\w\(\)/;
+const DANGLING = /\b(?:in|on|to|for|from|of|at|into|with|and|or|the|a|an|see)$|[,;:'’(]$/i;
 const unpath = (s, codes) => {
-  let t = String(s || '').replace(CODES_IN_BRACKETS, '').replace(/`[^`]*`/g, '')
+  let t = String(s || '').replace(CODES_IN_BRACKETS, '').replace(LEAD_IN, '').replace(/`[^`]*`/g, '')
     .replace(/https?:\/\/\S+/g, '')
     .replace(/(['"])atelier [^'"]*\1|\batelier (?:verify|extend|audit|asks|request|msg|run|approve)\b[^.;,)]*/g, '')
     .replace(/[A-Za-z]:\\[^\s,;)"']*/g, '').replace(/\*\.\w+/g, '')
-    .replace(/(?:\\\\\?\\|~\/|\.{1,2}\/)?(?:[\w.@*-]+[\\/])+[\w.@*-]*/g, '')
-    .replace(/\b[\w-]+\.(?:mjs|js|ts|tsx|py|ps1|sh|md|json|jsonl|css|html|rs|toml|yaml|yml|wav|mp3|png|jpg|webm|log|txt|exe|dll)(?:::\w+)?\b/gi, '')
+    .replace(PATH_RE, '')
+    .replace(new RegExp(`\\b[\\w-]+\\.(?:${FILE_EXT})(?:::\\w+)?\\b`, 'gi'), '')
     .replace(/\b(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/g, '')
     .replace(/\s--[\w-]+/g, '')
     .replace(/\[[\w-]+\]\s*/g, '')
@@ -1639,13 +1663,11 @@ const scrub = s => {
   const cut = t.search(TECH_TAIL);
   return unpath(cut >= 0 ? t.slice(0, cut) : t, true);
 };
-// A title in plain words (F-18): also no file names or task ids ("(e8jp: pauses…)" → "(pauses…)"), and no preposition
-// left hanging where a file name was.
+// A title in plain words (F-18): also no file names or task ids ("(e8jp: pauses…)" → "(pauses…)").
 const ID = '(?=[0-9]*[a-z])(?=[a-z]*\\d)[a-z0-9]{4}';
 const titleWords = s => cap1(unpath(plainTitle(s).replace(/\((?=[a-z]*\d)[a-z0-9]{4}(?:[:,]\s*|\s+(?=\w))/g, '(')
   .replace(new RegExp(`\\btask ${ID}\\b`, 'g'), 'task').replace(new RegExp(`\\b(for|on|after|from|with|of) ${ID}\\b`, 'g'), '$1 the task')
-  .replace(new RegExp(`\\b([A-Za-z]+) ${ID}:`, 'g'), '$1 the task:'))
-  .replace(/\s+\b(?:in|on|to|for|from|of|at|into)\b(?=\s*(?:[(,.;:]|$))/g, '').replace(/\s{2,}/g, ' ').trim()) || plainTitle(s);
+  .replace(new RegExp(`\\b([A-Za-z]+) ${ID}:`, 'g'), '$1 the task:')).replace(/\s{2,}/g, ' ').trim()) || plainTitle(s);
 // An outcome's own words for its code, from its project (or any project when the event's isn't known).
 const critText = (alias, id) => {
   for (const p of (state?.projects || []).filter(p => !alias || p.alias === alias)) {
@@ -1664,9 +1686,14 @@ function eventWords(e, alias) {
   const m = String(e.msg || ''), task = (e.task !== undefined ? e.task : (state?.projects || []).flatMap(p => p.tasks || []).find(t => t.id === e.id)?.title) || '';
   // `task` is the event's task in plain words: Activity shows it under the line, a project's Recent after it
   const S = (w, text = '', raw = '') => ({ w, text: plainTitle(text), raw: raw && raw !== text ? raw : '', task: task ? titleWords(task) : '' });
-  const auto = (w, s = m) => { const t = scrub(s).replace(/\bby (?:the )?owner\b/g, 'by you'); return S(w, t, t !== s.trim() ? m : ''); };
+  // a line the event log cut off mid-sentence says so
+  const auto = (w, s = m) => { const t = scrub(s).replace(/\bby (?:the )?owner\b/g, 'by you'), cut = DANGLING.test(t) ? `${t}…` : t; return S(w, cut, t !== s.trim() ? m : ''); };
   const was = ph => /s$/.test(ph) ? 'were' : 'was';
-  const role = r => /^[a-z0-9]{4}$/.test(r) ? 'another agent' : `the ${r}`;
+  // a four-letter name is a task id unless it's a real role ("lead", or a role some task has)
+  const role = r => /^[a-z0-9]{4}$/.test(r) && r !== 'lead' && !(state?.projects || []).some(p => (p.tasks || []).some(t => t.role === r)) ? 'another agent' : `the ${r}`;
+  // Agent-to-agent text is written for agents: when stripping it would leave a broken sentence, or it holds code, say
+  // what happened in plain words and keep the original under Details.
+  const agentSay = (w, plain, s) => { const t = scrub(s); return t !== s.replace(/\s+/g, ' ').trim() || CODEY.test(s) || DANGLING.test(t) ? S(plain, '', m) : S(w, t); };
   let x;
   switch (e.type) {
     case 'ask-answered': {
@@ -1701,26 +1728,43 @@ function eventWords(e, alias) {
     case 'gate-request': x = m.match(/^(\w+):/); return S(x ? `The ${x[1]} ${was(x[1]) === 'were' ? 'are' : 'is'} ready for your OK` : 'Ready for your OK', '', m);
     case 'criteria-request': return S('The lead asks you to look at new outcomes', '', m);
     case 'audit-started': return S('An audit started', '', m);
-    case 'audit': return auto('Audit done:', m.replace(/\s*\([^)]*\)\s*$/, ''));
+    case 'audit':
+      if ((x = m.match(/^(\d+) finding\(s\)(?:, (\d+) high)?/))) return S(`Audit done: ${x[1]} problem${x[1] === '1' ? '' : 's'} found${x[2] ? `, ${x[2]} serious` : ''}`, '', m);
+      return auto('Audit done:', m.replace(/\s*\([^)]*\)\s*$/, ''));
     case 'screen-allowed': return S(cap1(m.replace(/^owner\b/, 'you')));
     case 'approved': return task ? S('You approved the plan') : (x = m.match(/^plan approved by owner:\s*([\s\S]*)$/)) ? auto('You approved the plan:', x[1]) : auto('Plan approved:');
-    case 'answered': return (x = m.match(/^Lead:\s*([\s\S]*)$/)) ? auto('The lead answered:', x[1]) : auto('You answered:');
+    // the event doesn't record who wrote the answer: only text that says so is the lead's, and none is called yours
+    case 'answered': return (x = m.match(/^Lead\b[:,]?\s*([\s\S]*)$/)) ? agentSay('The lead answered:', 'The lead sent it an answer', x[1]) : agentSay('An answer was sent:', 'An answer was sent', m);
     case 'iteration': x = m.match(/#(\d+)\s+\w+(?:.*?check (\w+))?/); return x ? S(`Try ${x[1]} ended${x[2] === 'pass' ? ': the check passed' : x[2] === 'fail' ? ': the check failed' : ''}`, '', m) : auto('Try ended');
     case 'needs-lead': return S('Used all its tries. The lead decides what happens next', '', m);
     case 'failed': return /cancelled by owner/.test(m) ? S('You cancelled it') : /cancelled by the lead/.test(m) ? S('The lead cancelled it') : S('It failed', '', m);
     case 'holdout': return S('Hidden tests were set', '', m);
     case 'test-touch': return S('It changed existing tests', '', m);
-    case 'evidence': return S('It showed its work', '', m);
+    case 'evidence': return /^no proof/.test(m) ? S(`It said it was done, but its proof was ${/older/.test(m) ? 'out of date' : 'missing'}`, '', m) : S('It showed its work', '', m);
     case 'ownership': x = m.match(/(\d+) file/); return S(`Atelier undid ${x ? `${x[1]} edit${x[1] === '1' ? '' : 's'}` : 'edits'} outside its own files`, '', m);
     case 'project': return S('Project created', '', m);
-    case 'message': return (x = m.match(/^\S+\s+\[\w+\]\s+(\S+)\s+→\s+(\S+):\s*([\s\S]*)$/)) ? auto(`The ${x[1]} told ${role(x[2])}:`, x[3].replace(/^[a-z0-9]{4}:\s*/, '')) : auto('Message:');
-    case 'requested': return (x = m.match(/^(?:\[[\w-]+\]\s*)?(\S+)\s+→\s+(\S+):\s*([\s\S]*)$/)) ? auto(`The ${x[1]} asked ${role(x[2])}:`, x[3].replace(/^[a-z0-9]{4}:\s*/, '')) : auto('Request:');
+    case 'message': {
+      if (!(x = m.match(/^\S+\s+\[([\w-]+)\]\s+(\S+)\s+→\s+(\S+):\s*([\s\S]*)$/))) return auto('Message:');
+      const from = cap1(role(x[2])), to = role(x[3]);
+      return agentSay(`${from} told ${to}:`, { discovery: `${from} shared a finding with ${to}`, question: `${from} asked ${to} a question`, 'contract-change': `${from} asked ${to} to change an agreement` }[x[1]] || `${from} sent ${to} a note`, x[4].replace(/^[a-z0-9]{4}:\s*/, ''));
+    }
+    case 'requested': {
+      if (!(x = m.match(/^(?:\[([\w-]+)\]\s*)?(\S+)\s+→\s+(\S+):\s*([\s\S]*)$/))) return auto('Request:');
+      const from = cap1(role(x[2])), to = role(x[3]), text = x[4].replace(/^[a-z0-9]{4}:\s*/, '');
+      return agentSay(`${from} asked ${to}:`, x[1] === 'spec-conflict' ? `${from} asked ${to} to settle a conflict in the written plan` : /\btests?\b|\btest_/i.test(text) ? `${from} asked ${to} about a test` : `${from} asked ${to} for help`, text);
+    }
     case 'push-failed': return S('Couldn’t reach GitHub, will retry', '', m);
     case 'pushed': x = m.match(/^(\d+) commit/); return S(x ? `Sent ${x[1]} change${x[1] === '1' ? '' : 's'} to GitHub` : 'Sent to GitHub', '', m);
     case 'queued': return S('What it was waiting for is done, so it is queued', '', m);
     case 'review': return S('Ready for review', '', m);
-    case 'suite': return /pass/.test(m) ? S('The full test suite passes') : S('The full test suite ran', '', m);
-    case 'criteria': x = m.match(/(\d+)\/(\d+)/); return x ? S(`Outcomes checked: ${x[1]} of ${x[2]} pass`) : auto('Outcomes checked:');
+    case 'suite': return /pass/.test(m) ? S('The full test suite passes') : /fail/i.test(m) ? S('The full test suite failed', '', m) : S('The full test suite ran', '', m);
+    case 'criteria': {
+      x = m.match(/(\d+)\/(\d+)/);
+      if (!x) return auto('Outcomes checked:');
+      const failed = /holdout FAIL/.test(m);
+      if (+x[2]) return S(`Outcomes checked: ${x[1]} of ${x[2]} pass${failed ? ', but the hidden tests failed' : ''}`);
+      return S(failed ? 'The hidden tests failed' : /holdout pass/.test(m) ? 'The hidden tests pass' : 'No outcomes to check yet');
+    }
     case 'reviewed': x = m.match(/round (\d+): (\w+)/); return x ? S(`Review round ${x[1]}: ${/approve/.test(x[2]) ? 'passed' : 'changes asked'}`) : auto(EVENT_WORD.reviewed);
     case 'review-started': x = m.match(/round (\d+)/); return S(`The reviewer started${x ? ` round ${x[1]}` : ''}`);
     case 'done': return task ? S('Finished', '', m) : auto('Done:');
@@ -1794,7 +1838,7 @@ const Activity = (() => {
   const summary = d => { const l = shown(d); return `${span(d)} · ${plural(l.length, 'event')}${f.only ? '' : ` · ${plural(l.filter(e => e.k === 'needs').length, 'past problem')}`}`; };
 
   function feed(d) {
-    waitingIds = new Set((state?.projects || []).flatMap(p => (p.tasks || []).filter(t => t.status === 'needs-you').map(t => t.id)));
+    waitingIds = new Set((state?.projects || []).flatMap(p => (p.tasks || []).filter(t => t.status === 'needs-you' && askOf(t.id).needs).map(t => t.id)));
     const list = shown(d);
     if (!list.length) {
       const where = f.p ? ` in ${esc(f.p)}` : '', when = span(d) === 'Last 3 days' ? 'in the last 3 days' : 'lately';
@@ -2352,7 +2396,7 @@ const Project = (() => {
     const v = { id: t.id, title: t.title, k: '', who: cap1(review ? 'reviewer' : t.role || 'builder'), stage: 1, step: '', prog: '', ago: '' };
     if (s === 'queued') Object.assign(v, { who: 'Next', stage: 0, step: reasonWords(t) || 'Starts when a teammate is free' });
     else if (s === 'done') Object.assign(v, { k: 'done', stage: 4, step: reasonWords(t) || 'Finished' });
-    else if (s === 'needs-you') v.step = 'It asked you something. Answer it on its page';
+    else if (s === 'needs-you') v.step = askOf(t.id).step;
     else if (s === 'stalled') v.step = 'Stalled. The lead decides what happens next';
     else if (x.state === 'paced') Object.assign(v, { stage: review ? 3 : 1, step: pacedWords(x), paced: true });
     else if (review) Object.assign(v, { k: x.state === 'reviewing' ? 'active' : '', stage: 3, step: x.quietMin ? `Quiet for ${x.quietMin} min, longer than usual` : x.step || 'The reviewer is checking it' });
@@ -2361,7 +2405,8 @@ const Project = (() => {
     v.ago = v.paced ? '' : x.lastAt ? longAgo(x.lastAt) : s === 'done' ? longAgo(t.updated) : '';
     // The runner's heartbeat touches a paced task's card every minute: its time is when it last did something.
     v.at = v.paced && x.lastAt ? x.lastAt : t.updated;
-    v.word = v.k === 'active' ? 'Working' : v.k === 'done' ? 'Done' : s === 'needs-you' ? 'Needs you' : v.paced ? 'Waiting' : v.who === 'Next' ? 'Next' : STATUS_WORD[s] || 'Waiting';
+    v.word = v.k === 'active' ? 'Working' : v.k === 'done' ? 'Done' : s === 'needs-you' ? (askOf(t.id).needs ? 'Needs you' : 'Waiting') : v.paced ? 'Waiting' : v.who === 'Next' ? 'Next' : STATUS_WORD[s] || 'Waiting';
+    if (screenAsk(t.title) && !(s === 'needs-you' && askOf(t.id).needs)) Object.assign(v, { k: '', word: 'Needs you', step: SCREEN_STEP });
     return v;
   }
   const stageTrack = st => `<span class="p-stages" role="img" aria-label="Stage: ${STAGES[st]}">${STAGES.map((n, i) => `<i class="${i < st ? 'past' : i === st ? 'now' : ''}"></i>`).join('')}</span>`;
@@ -2380,7 +2425,8 @@ const Project = (() => {
   };
 
   // ── Recent: the newest few events, in words ──
-  const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || / pass|approve/.test(e.msg || '');
+  // Good news, as the server's Activity marks it: a partial or failed check isn't.
+  const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || (/ pass|approve/.test(e.msg || '') && !/FAIL/.test(e.msg) && !/^(\d+)\/(?!\1\b)\d+ criteria/.test(e.msg));
   // One plain sentence an event, as on Activity (F-6, F-15): the event's own technical words wait under Details.
   const eventLine = (p, e) => { const s = eventSay({ ...e, task: p.tasks.find(x => x.id === e.id)?.title || null }, p.alias); return `${esc(sayLine(s))}${s.task ? ` · ${esc(s.task)}` : ''}${rawDetails(s)}`; };
   const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${eventLine(p, e)}</span></li>`).join('')}</ol>`;
@@ -2423,7 +2469,7 @@ const Project = (() => {
   // ── Tasks: grouped by status in today's order; an empty group is left out and the line under the heading says so ──
   // A task held for the plan window has its own group (the summary counts it as paced), so Working counts only work.
   const groupOf = (p, t) => p.team.agents.some(x => x.id === t.id && x.state === 'paced') ? 'paced' : taskStatus(t);
-  const GROUP = [['needs-you', 'Needs you', 'needs'], ['running', 'Working', 'active'], ['paced', 'Waiting for your plan window', ''], ['review', 'In review', 'active'], ['queued', 'Queued', ''], ['planned', 'Waiting for your OK', ''], ['requested', 'Requests', ''], ['stalled', 'Stalled', ''], ['paused', 'Paused', ''], ['done', 'Done', 'done'], ['failed', 'Failed', ''], ['cancelled', 'Cancelled', '']];
+  const GROUP = [['needs-you', 'Asked a question', ''], ['running', 'Working', 'active'], ['paced', 'Waiting for your plan window', ''], ['review', 'In review', 'active'], ['queued', 'Queued', ''], ['planned', 'Waiting for your OK', ''], ['requested', 'Requests', ''], ['stalled', 'Stalled', ''], ['paused', 'Paused', ''], ['done', 'Done', 'done'], ['failed', 'Failed', ''], ['cancelled', 'Cancelled', '']];
   function tasksTab(p, S) {
     if (!p.tasks.length) return empty('Tasks', 'No tasks yet', 'The lead plans tasks after you approve the spec. They appear here, grouped by status.');
     const by = S.tasks || {};
@@ -2433,7 +2479,9 @@ const Project = (() => {
         // A paced task stays in its status group (the summary counts it there) but reads as waiting: no ETA, not lit.
         const sub = v.paced ? `${v.who} · ${v.step}${v.prog ? ` · ${v.prog}` : ''}` : s === 'running' ? `${v.who} · ${STAGES[v.stage]}${v.prog ? ` · ${v.prog}` : ''}` : `${cap1(t.role || 'builder')}${reasonWords(t) ? ` · ${reasonWords(t)}` : ''}`;
         const eta = s === 'running' && t.eta && !v.paced ? `about ${t.eta.low}–${t.eta.high} min left` : '';
-        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${v.paced ? v.word : label}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(v.paced ? '' : k, v.paced ? v.word : label)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${esc(when(v.at))}</span></a>`;
+        // a question is red only when it's in the Inbox's "Needs you now" (F-14)
+        const asked = s === 'needs-you', rowWord = v.paced || asked ? v.word : label, rowK = v.paced ? '' : asked ? (v.word === 'Needs you' ? 'needs' : '') : k;
+        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${rowWord}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(rowK, rowWord)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${esc(when(v.at))}</span></a>`;
       }).join('');
       return `<section class="p-sec"><h3 class="p-h3">${label} <span class="n">${by[s]}</span></h3><div class="p-rows">${rows}</div></section>`;
     }).join('');
@@ -2766,13 +2814,9 @@ const Task = (() => {
       const x = m.match(/#(\d+)\s+(\w+)(?:.*?check (\w+))?/);
       if (x) return `Try ${x[1]} ended${x[3] === 'pass' ? ': the check passed' : x[3] === 'fail' ? ': the check failed' : ''}`;
     }
-    if (e.type === 'evidence') return 'Showed its work';
     if (e.type === 'paced') return 'Waiting for your plan window';
     if (e.type === 'reviewed') { const x = m.match(/round (\d+): (\w+)/); if (x) return `Review round ${x[1]}: ${/approve/.test(x[2]) ? 'passed' : 'changes asked'}`; }
     if (e.type === 'review-started') return `The reviewer started${m ? ` ${m}` : ''}`;
-    if (e.type === 'criteria') { const x = m.match(/(\d+)\/(\d+)/); if (x) return `Outcomes checked: ${x[1]} of ${x[2]} pass`; }
-    if (e.type === 'suite') return /pass/.test(m) ? 'The full test suite passes' : `Full test suite: ${m}`;
-    if (e.type === 'answered') return `You answered: ${m}`;
     if (e.type === 'approved') return 'You approved the plan';
     if (e.type === 'paused' && /owner/.test(m)) return 'You stopped it';
     // on its own task's page the task's title would only repeat the page's
@@ -2811,7 +2855,7 @@ const Task = (() => {
           ? { k: 'active', word: 'In review', stage: 3, step: ag.step || 'Checking the work against its outcomes', why: 'The reviewer checks the work against its outcomes, and looks at the proof, before it ships.' }
           : { k: 'active', word: 'Working', step: ag.step || 'Getting started', why: `It runs its check when this step is done. Once the check passes, the reviewer looks at the work.${T.eta ? ` Likely ${T.eta.low}–${T.eta.high} min left.` : ''}` });
         v.stop = 'Stop task…'; break;
-      case 'needs-you': Object.assign(v, { k: 'needs', step: 'Asked you a question', why: 'It stopped to ask before choosing. It carries on as soon as you answer; nothing it did is lost.', stop: 'Stop task…', dock: 'answer' }); break;
+      case 'needs-you': Object.assign(v, askOf(T.id).needs ? { k: 'needs', step: 'Asked you a question' } : { word: 'Waiting', step: askOf(T.id).step }, { why: 'It stopped to ask before choosing. It carries on as soon as you answer; nothing it did is lost.', stop: 'Stop task…', dock: 'answer' }); break;
       case 'planned': Object.assign(v, { stage: 0, step: 'Planned, and waits for your OK to start', why: `Up to ${of} tries${limit ? `, at most ${money(limit)}` : ''}.${m.files ? ` It owns ${m.files}.` : ''} Approve it here or in the Inbox.`, stop: 'Stop it', dock: 'plan' }); break;
       case 'queued': Object.assign(v, { stage: n || used ? 1 : 0, step: 'Queued, and starts when a teammate is free', why: reasonWords(T) ? `${reasonWords(T)}.` : 'Nothing to do: it starts by itself.', stop: 'Stop task…' }); break;
       case 'review': Object.assign(v, passed
@@ -2822,6 +2866,7 @@ const Task = (() => {
       case 'paused': Object.assign(v, { step: /owner/.test(reason) ? 'You stopped it' : 'Paused', why: 'This try’s work is kept as it is. The lead decides what happens next.' }); break;
       default: Object.assign(v, { step: v.word, why: reasonWords(T) ? `${reasonWords(T)}.` : '' });
     }
+    if (v.k !== 'needs' && screenAsk(m.title)) Object.assign(v, { k: 'needs', word: 'Needs you', step: SCREEN_STEP });
     v.label = v.k === 'done' ? `${role} · finished ${longAgo(T.updated)}` : (s === 'running' && !paced) || s === 'needs-you' ? `${role} · now` : `${role} · ${when(paced && ag.lastAt ? ag.lastAt : T.updated)}`; // a paced card's updated is the runner's heartbeat
     v.last = ag.lastAt || T.updated;
     // Building fills to tries used of those it is likely to need; other stages have no measure, so their bar is whole.
@@ -2871,7 +2916,7 @@ const Task = (() => {
   const ask = v => {
     if (v.dock !== 'answer') return v.dock === 'plan' ? `<div data-r="ask">${dock(v)}</div>` : '<div data-r="ask" hidden></div>';
     const q = v.t.ask || {}, words = [q.context, q.rest].filter(Boolean).join('\n\n');
-    return `<div data-r="ask"><section class="p-sec t-ask" aria-labelledby="ask-h"><h2 class="p-h" id="ask-h">${dot('needs', 'Needs you')}Its question</h2>
+    return `<div data-r="ask"><section class="p-sec t-ask" aria-labelledby="ask-h"><h2 class="p-h" id="ask-h">${askOf(v.id).needs ? dot('needs', 'Needs you') : ''}Its question</h2>
       <blockquote class="quote">${q.title ? `<p><b>${esc(q.title)}</b></p>` : ''}${words ? md(words) : ''}<footer>The ${esc(v.role.toLowerCase())}, try ${v.n || v.used || 1} of “${esc(v.title)}” · ${esc(longAgo(v.m.updated))}</footer></blockquote>
       ${q.options?.length ? `<fieldset class="choices"><legend class="section-label">Suggested answers</legend>${q.options.map((o, i) => `<label class="choice"><input type="radio" name="t-ans" value="${i}"> ${esc(o)}</label>`).join('')}</fieldset>` : ''}
       ${q.suggested ? `<p class="p-quiet">What it will do if you don’t mind: ${esc(q.suggested)}</p>` : ''}</section>${dock(v)}</div>`;
