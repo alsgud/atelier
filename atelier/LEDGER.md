@@ -7,6 +7,8 @@
 - M2 Office: the owner picked O1 Panorama (R-21). Design gate approved 2026-10-30. **mfyp** built O1 plus a Projects nav row on PC (3 it, ~$8.40, reviewer APPROVE). Lead checked 1440 and 390 Office and the Projects nav. Sent as A-14 ("Looks good"); merged into main via A-15 (owner-approved run, 2026-10-30). mfyp closed.
 - M2 audit done (18f8b91, $12.27): F-14..F-18 with the owner (Inbox); F-19..F-24 to the lead. **5r4a** running: frontend fixes F-19..F-24 (6 it, $18, brief briefs/audit-fixes-m2.md, base main), incl. ATELIER_NO_TICK=1 opt-out for test dashboards (F-21). Owner told in A-16. Today's spend $18.94 of $100; plan 7d 43%.
 
+- 2026-10-30: owner confirmed F-14 (high drift) → **trust back to strict, reporting everything** (new tasks start planned; owner approves). F-14..F-18 all confirmed (no notes). **ghjy** planned: frontend F-14..F-18 (8 it, $25, brief briefs/audit-fixes-m2-owner.md, `--after 5r4a`), waiting on the owner's plan approval in the Inbox. Mark F-14..F-24 fixed only after the owner merges.
+
 ## Next
 1. Owner answers F-14..F-18 → rulings for overrules → one frontend task `--after 5r4a` (same files). 5r4a done → check proof → A-ask merge with --run → mark F-19..F-24 fixed.
 2. If the owner finds the Office sluggish: stop the waiting desks' animation loops first (~40% gain; nf3m measured 21-25 ms/frame at 4x CPU throttle, 60 fps normal).
@@ -38,4 +40,5 @@
 - R-9: weekly plan is the only limit; spend with care.
 - An approved gate freezes its files: reopen it with the owner's quote before a task writes them.
 - Owner asks go through `atelier ask` (R-13), never chat only.
+- Task goals start with one plain sentence of what changes for the owner; file pointers after it (the Inbox shows the goal's start; F-18).
 - Permissions: single `git add`/`git commit`/`git status` and single `atelier ...` commands only; chained commands, `git rm` and other shell (Get-Content etc.) are denied. Use Read/Glob for files.
