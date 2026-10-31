@@ -52,7 +52,7 @@ Rough split (to be re-priced from real costs after the design task):
 | — | auditor | End-of-milestone audit | slice 3 | done 2026-10-27 |
 | — | auditor | M2 audit | mfyp merged | done 2026-10-30 ($12.27): F-14..F-18 owner, F-19..F-24 lead |
 | 5r4a | frontend | Fix M2 audit F-19..F-24 (6 it, $18), brief briefs/audit-fixes-m2.md, base main | M2 audit | merged A-17, closed, F-19..F-24 fixed |
-| ghjy | frontend | Fix owner-confirmed F-14..F-18 (8 it, $25), brief briefs/audit-fixes-m2-owner.md | 5r4a | approved, waits on 5r4a |
+| ghjy | frontend | Fix owner-confirmed F-14..F-18 (8 it, $25 → 18 it, $44), brief briefs/audit-fixes-m2-owner.md | 5r4a | merged 2026-11-01 (A-20), closed, F-14..F-18 fixed (~$37) |
 
 ## Ready-to-send briefs
 - **D4 (was D3; designer, `--base atelier/68h6`, ~8 it, $16, check `atelier verify design`)**: every other screen on the D2 system: Office (playful, clearer; R12), project page (R13-R16), task page (live progress, proof, history; R17-R20), new project (R21), settings (R22), Activity. Same process as D2 (ruling R-1): wireframe each first, only D2 tokens and components (extend the sheet if needed, logged), real content and images, 390/768/1440 light and dark, two critique rounds per screen group, a toast-up hit test on any screen with a dock. Cover every line of atelier/design/inventory.md (R1, AC-9) and mark where each lives. Numbers on every screen must match the one-summary rule (R2, AC-11). Hand-off: DESIGN.md complete for frontend, plus an "Endpoint needs" list for slice 1.
