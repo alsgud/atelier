@@ -556,11 +556,17 @@ const Inbox = (() => {
     const goal = (text.match(/^#+\s*Goal\b[^\n]*\n([\s\S]*?)(?=^#{1,2}\s|(?![\s\S]))/mi) || [])[1] || '';
     for (const part of [goal, text]) {
       const prose = part.split('\n').filter(l => l.trim() && !(lists ? /^\s*(#|>|\||```)/ : /^\s*(#|[-*+]\s|\d+[.)]\s|>|\||```)/).test(l))
-        .map(l => lists ? l.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '').replace(/([^.!?:])\s*$/, '$1.') : l).join(' ');
-      for (const s of prose.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]+(?=\s|$)/g) || []) {
-        const t = s.replace(/[*_]/g, '').trim();
+        .map(l => {
+          if (!lists) return l;
+          const item = l.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '').trimEnd();
+          return /[.!?:][*_]*$/.test(item) ? item : `${item}.`;
+        }).join(' ');
+      // A sentence ends only at punctuation followed by a space, so none starts inside a file name
+      for (const s of prose.replace(/\s+/g, ' ').trim().split(/(?<=[.!?][*_`"'’”)\]]*) /)) {
+        if (!/[.!?][*_`"'’”)\]]*$/.test(s)) continue;
+        if (unpath(s, true) !== s.trim() || CODEY.test(s) || /\w_\w/.test(s)) continue; // a path, file name, command, code or id, as written
+        const t = s.replace(/\*+/g, '').replace(/(^|\W)_+(?=\w)|(?<=\w)_+(?=\W|$)/g, '$1').trim(); // markdown emphasis only
         if (t.split(' ').length < 5 || /:$/.test(t) || /\b(read it first|binding)\b/i.test(t) || /^(npm|npx|node|git|cargo|pytest|python|pwsh|powershell|atelier)\b/i.test(t)) continue;
-        if (unpath(t, true) !== t) continue; // a path, file name, command, code or id
         return t.length > 220 ? `${t.slice(0, 217).replace(/\s+\S*$/, '')}…` : t;
       }
     }
