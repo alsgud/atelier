@@ -33,6 +33,10 @@ a.act-row:hover { background: var(--surface-hover); }
 /* dashboard: an event or a task title can be a whole paragraph; the row shows a few lines, the task page the rest */
 .act-l { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .act-s { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+/* F-15: an event's technical words (output, paths, hints) under a closed Details, in the text column below its row */
+.act-raw { border-top: 0; margin: calc(-1 * var(--space-3)) var(--space-3) var(--space-1) calc(48px + var(--size-dot) + 3 * var(--space-3)); }
+.act-raw summary { min-height: 28px; width: fit-content; font-size: var(--text-xs); color: var(--text-3); }
+.act-raw code { font-size: var(--text-xs); overflow-wrap: anywhere; }
 .act-none { display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-6) 0; }
 .act-none p { margin: 0; color: var(--text-2); font-size: var(--text-md); line-height: var(--leading-md); }
 .act-more { justify-self: start; }
@@ -46,6 +50,9 @@ a.act-row:hover { background: var(--surface-hover); }
   .act-select, .act-select select { width: 100%; min-width: 0; }
   .act-select select, .act-only, .act-more { min-height: var(--size-control-lg); height: var(--size-control-lg); }
   .act-row { grid-template-columns: 40px var(--size-dot) minmax(0, 1fr); min-height: 60px; }
+  .act-raw { margin-left: calc(40px + var(--size-dot) + 3 * var(--space-3)); }
+  .act-raw { margin-top: calc(-1 * var(--space-4)); }
+  .act-raw summary { min-height: 44px; }
   .acts .hf-head .hf-live[data-live] { display: none; }
   .acts .hf-head .back { order: 1; }
   .acts .hf-head h1 { order: 2; flex-basis: auto; }
