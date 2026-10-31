@@ -32,6 +32,7 @@
 - Stale "replay lead" remote session from xhen's settings test may show in the owner's Claude app.
 
 ## Lead rules learned
+- Every 30-min watch re-arm leaves an orphan `atelier watch` node behind (timeout kills only the wrapper; A-19 ended ~38 of mine, one per half hour). Arm the watch only while something is running; when only waiting on the owner, rely on the 2-hour check-in. Run atelier/scripts/clear-stray-atelier.ps1 via the owner if they pile up.
 - Arm the watch as `timeout 1750 node "C:/Users/oiyew/AppData/Roaming/npm/node_modules/atelier/bin/atelier.mjs" watch atelier-ui`. Keep a 2-hour `Check-in.` cron.
 - At every check-in run `atelier events --project atelier-ui --unseen --mark` AND `atelier asks atelier-ui` (ask answers can miss events; criterion verdicts can miss the watch).
 - `atelier answer` already requeues a needs-you task; don't also retry. `atelier close` on a task's request also requeues that task: stop it again right after if it must stay paused.
