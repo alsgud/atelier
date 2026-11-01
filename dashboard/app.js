@@ -1665,7 +1665,7 @@ const TECH_TAIL = /\s*(?:\bOutput:|\(full output\b|\(details:|\bExtend with:|\bT
 // free text. Task titles keep mid-sentence codes (plainTitle takes the leading and bracketed ones, F-18).
 const FILE_EXT = 'mjs|js|ts|tsx|py|ps1|sh|md|json|jsonl|css|html|rs|toml|yaml|yml|wav|mp3|png|jpg|webm|log|txt|exe|dll';
 // A path needs more than one slash-joined pair of words to be one: "A/B", "and/or" and "3/4" are plain words.
-const NOT_PATH = '(?!(?:A\\/B|Yes\\/No|and\\/or|\\d[\\d.]*\\/\\d[\\d.]*)(?![\\w\\/]))';
+const NOT_PATH = '(?<![\\w.@*-])(?!(?:A\\/B|Yes\\/No|and\\/or|\\d[\\d.]*\\/\\d[\\d.]*)(?![\\w\\/]))';
 const TECH_WORD = `(?:\`[^\`]*\`|[A-Za-z]:\\\\|${NOT_PATH}(?:\\\\\\\\\\?\\\\|~\\/|\\.{1,2}\\/)?(?:[\\w.@*-]+[\\\\/])+|[\\w-]+\\.(?:${FILE_EXT})\\b|(?=[0-9a-f]*\\d)[0-9a-f]{7,40}\\b)`;
 // The little word in front of something removed goes with it, and only then ("is in;" stays).
 const LEAD_IN = new RegExp(`(?:[;,]\\s*)?\\bsee\\s+(?=${TECH_WORD})|\\b(?:in|on|to|for|from|of|at|into)\\s+(?=${TECH_WORD})`, 'gi');
@@ -1732,7 +1732,7 @@ const ID_STEPS = [
 // The first id a sentence names is "the task"; a different one is "another task", never "merge the task into the task".
 let idFirst = '';
 const nameId = (w, det) => { const l = w.toLowerCase(); idFirst ||= l; return idFirst === l ? `${det || 'the '}task` : 'another task'; };
-const dropIds = text => { idFirst = ''; return cap1(ID_STEPS.reduce((t, [re, fn]) => t.replace(re, fn), String(text || '')).replace(/([.!?] )the task/g, '$1The task').replace(/\s{2,}/g, ' ').trim()); };
+const dropIds = text => { idFirst = ''; return cap1(ID_STEPS.reduce((t, [re, fn]) => t.replace(re, fn), String(text || '')).replace(/(?<!\b(?:e\.g|i\.e|eg|ie|vs|incl|approx|cf|esp|resp|etc))([.!?] )the task/gi, '$1The task').replace(/\s{2,}/g, ' ').trim()); };
 // An outcome's own words for its code, from its project (or any project when the event's isn't known).
 const critText = (alias, id) => {
   for (const p of (state?.projects || []).filter(p => !alias || p.alias === alias)) {
