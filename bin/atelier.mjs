@@ -8,7 +8,7 @@ import * as events from '../lib/events.mjs';
 import * as limits from '../lib/limits.mjs';
 import * as gitx from '../lib/git.mjs';
 import { tick } from '../lib/tick.mjs';
-import { run, killTree, alive, atelierEnv, spawnDetached, runCheck, runnerPid, stopRunner } from '../lib/runner.mjs';
+import { run, alive, atelierEnv, spawnDetached, runCheck, runnerPid, stopRunner } from '../lib/runner.mjs';
 import * as budget from '../lib/budget.mjs';
 import * as toolkit from '../lib/toolkit.mjs';
 import * as projenv from '../lib/projenv.mjs';
