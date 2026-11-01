@@ -8,7 +8,7 @@ import * as events from '../lib/events.mjs';
 import * as limits from '../lib/limits.mjs';
 import * as gitx from '../lib/git.mjs';
 import { tick } from '../lib/tick.mjs';
-import { run, killTree, alive, atelierEnv, spawnDetached, runCheck } from '../lib/runner.mjs';
+import { run, alive, atelierEnv, spawnDetached, runCheck, runnerPid, stopRunner } from '../lib/runner.mjs';
 import * as budget from '../lib/budget.mjs';
 import * as toolkit from '../lib/toolkit.mjs';
 import * as projenv from '../lib/projenv.mjs';
@@ -306,7 +306,7 @@ function extend(id) {
 
 function stop(id) {
   const m = cards.load(id).meta;
-  if (alive(m.pid)) killTree(m.pid);
+  stopRunner(m);
   const by = process.env.ATELIER_ROLE === 'lead' ? 'the lead' : 'owner';
   cards.update(id, { status: 'paused', reason: `stopped by ${by}`, pid: '' });
   events.emit(id, 'paused', `stopped by ${by}`);
@@ -315,7 +315,7 @@ function stop(id) {
 
 function requeue(id, verb) {
   const m = cards.load(id).meta;
-  if (m.status === 'running' && alive(m.pid)) return console.log(`${id} is already running`);
+  if (m.status === 'running' && (runnerPid(id) || alive(m.pid))) return console.log(`${id} is already running`);
   cards.update(id, { status: 'queued', reason: '' });
   events.emit(id, 'queued', verb);
   console.log(`${id} queued`);
@@ -324,7 +324,7 @@ function requeue(id, verb) {
 
 function cancel(id) {
   const m = cards.load(id).meta;
-  if (alive(m.pid)) killTree(m.pid);
+  stopRunner(m);
   const by = process.env.ATELIER_ROLE === 'lead' ? 'the lead' : 'owner';
   cards.update(id, { status: 'failed', reason: `cancelled by ${by}`, pid: '' });
   events.emit(id, 'failed', `cancelled by ${by}`);
@@ -337,7 +337,7 @@ function cancel(id) {
 function land(id) {
   const m = cards.load(id).meta;
   if (!m.branch) throw new Error(`${id} has no branch to land`);
-  if (alive(m.pid)) throw new Error(`${id} is still running; stop it first (atelier stop ${id}) or let it finish`);
+  if (runnerPid(id) || alive(m.pid)) throw new Error(`${id} is still running; stop it first (atelier stop ${id}) or let it finish`);
   const p = m.project ? project.tryLoad(m.project) : null;
   if ((p?.autonomy || 'pr') === 'pr') throw new Error(`${m.project} ships through pull requests; finished tasks open their own`);
   // Local-branch projects: only the owner brings work into the base branch (it may be live, as with Atelier's own dashboard).
