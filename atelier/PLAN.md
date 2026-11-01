@@ -52,6 +52,7 @@ Rough split (to be re-priced from real costs after the design task):
 | — | auditor | End-of-milestone audit | slice 3 | done 2026-10-27 |
 | — | auditor | M2 audit | mfyp merged | done 2026-10-30 ($12.27): F-14..F-18 owner, F-19..F-24 lead |
 | 5r4a | frontend | Fix M2 audit F-19..F-24 (6 it, $18), brief briefs/audit-fixes-m2.md, base main | M2 audit | merged A-17, closed, F-19..F-24 fixed |
+| 3knx | frontend | Polish after M2 (6 it, 4 h, $15), brief briefs/polish-m2.md | A-21 yes | planned, owner approves |
 | ghjy | frontend | Fix owner-confirmed F-14..F-18 (8 it, $25 → 18 it, $44), brief briefs/audit-fixes-m2-owner.md | 5r4a | merged 2026-11-01 (A-20), closed, F-14..F-18 fixed (~$37) |
 
 ## Ready-to-send briefs
