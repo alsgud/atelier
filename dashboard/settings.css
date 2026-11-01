@@ -62,5 +62,6 @@
   .sets .hf-head .hf-sum { order: 3; }
   .sets .hf-head .end { order: 4; }
   /* a link inside a section's help text is still a 44 px target on the phone (F-23) */
-  .s-sec .f-why .link { display: inline-flex; align-items: center; min-height: 44px; }
+  /* padding, not inline-flex: the link stays in the sentence's line at 360 */
+  .s-sec .f-why .link { padding-block: var(--space-3); }
 }
