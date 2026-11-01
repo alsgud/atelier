@@ -93,7 +93,10 @@ html:has(.p-tabs) { scroll-padding-top: calc(var(--size-topbar) + 44px + var(--s
   html { scroll-padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-3)); }
   .hf { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; padding-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom)); }
   .hf-rail { display: none; }
-  .hf-top { display: flex; }
+  /* Installed on an iPhone, the page runs under the status bar: the bar grows by that much, and everything sticky below follows it. */
+  :root { --size-topbar: calc(52px + env(safe-area-inset-top)); }
+  .hf-top { display: flex; padding-top: env(safe-area-inset-top); }
+  .hf-head { min-height: 52px; }
   .hf-tabs { display: grid; }
   .hf-head { padding: var(--space-2) var(--space-4); position: static; }
   .hf-head .back { min-height: var(--size-control-lg); }
