@@ -19,6 +19,7 @@ import * as owner from '../lib/owner.mjs';
 import * as auditor from '../lib/auditor.mjs';
 import * as messages from '../lib/messages.mjs';
 import * as asks from '../lib/asks.mjs';
+import * as checklist from '../lib/checklist.mjs';
 import * as metrics from '../lib/metrics.mjs';
 
 const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for Claude Code
@@ -47,6 +48,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
   atelier watch <alias>             stream owner decisions and task changes (the lead runs this under Monitor)
   atelier ask <alias> approval|question|feedback|update "<title>" [--body ..] [--attach f,..] [--task id]   the lead writes to the owner's Inbox
+  atelier checklist <alias> [propose|ready|add|withdraw]   the current round: what's on it and how far along
   atelier asks <alias> [--all]         the lead's threads with the owner and their answers
   atelier lead <alias>                 start the project's lead session with Remote Control
   atelier guard                        (PreToolUse hook: enforces role ownership and frozen docs)
@@ -97,6 +99,7 @@ async function main() {
     case 'msg': return msgCmd();
     case 'messages': return messagesCmd();
     case 'ask': return askCmd();
+    case 'checklist': return checklistCmd();
     case 'asks': return asksCmd();
     case 'audit': return auditCmd();
     case 'sync': return syncCmd();
@@ -189,6 +192,13 @@ function add() {
       if (bad.length) throw new Error(`${bad.join(', ')} ${bad.length > 1 ? "aren't" : "isn't"} an approved criterion (approved: ${known.filter(decisions.isApproved).map(c => c.id).join(', ') || 'none'}). Separate ids with commas or spaces.`);
     }
   }
+  // Build work has to be for an open line of the approved checklist; phase documents come before any checklist.
+  const forLines = checklist.forIds(flags.for);
+  const outside = typeof flags.outside === 'string' ? flags.outside.trim() : '';
+  if (p && !flags.phase) {
+    if (outside) { if (!(Number(flags.budget) > 0 && Number(flags.budget) <= checklist.OUTSIDE_MAX)) throw new Error(`work outside the checklist is for small fixes only: give it --budget of at most $${checklist.OUTSIDE_MAX}, or put it on the next checklist`); }
+    else checklist.checkFor(alias, forLines);
+  }
   if (typeof flags.tools === 'string' && toolkit.unknown(flags.tools).length) throw new Error(`unknown tools: ${toolkit.unknown(flags.tools).join(', ')} (see atelier tools)`);
   // At strict trust every task waits for the owner to approve its plan.
   const after = typeof flags.after === 'string' ? flags.after.split(/[\s,]+/).filter(Boolean) : [];
@@ -201,6 +211,7 @@ function add() {
       id, title, status: initial,
       project: p ? alias : '', role, phase: flags.phase || '',
       criteria: decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '').join(','),
+      ...(forLines.length ? { for: forLines.join(',') } : {}), ...(outside ? { outside } : {}),
       ...(typeof flags.tools === 'string' ? { tools: flags.tools } : {}), ...(flags.evidence === 'none' ? { evidence: 'none' } : {}), ...(after.length ? { waits_on: after.join(','), reason: `waiting for ${after.join(', ')} to be done` } : {}), ...(typeof flags.paid === 'string' ? { paid: flags.paid } : {}), ...(flags.budget !== undefined ? { budget: num(flags.budget, 0) } : {}), files: typeof flags.files === 'string' ? flags.files : '',
       repo: repoPath, base, where: flags.where || d.where, autonomy: flags.autonomy || p?.autonomy || d.autonomy,
       check: flags.check, iterations: num(flags.iterations, d.iterations), hours: num(flags.hours, d.hours),
@@ -209,7 +220,7 @@ function add() {
     },
     body: `## Goal\n\n${goal.trim()}\n`,
   });
-  events.emit(id, 'added', title);
+  events.emit(id, 'added', outside ? `${title} (outside the checklist: ${outside})` : title);
   console.log(`added ${id}: ${title} [${alias}${role ? ` · ${role}` : ''}]${initial === 'planned' ? ` — planned; start it with: atelier approve ${id}` : ''}`);
   if (initial === 'queued' && (flags.where || d.where) === 'local') tick();
 }
@@ -576,6 +587,10 @@ function approve(id) {
   if (m.status !== 'requested') throw new Error(`${id} is ${m.status}; only planned or requested tasks need approval`);
   if (m.role === 'lead') throw new Error(`${id} is a request for the lead: handle it yourself, then close it with: atelier close ${id} "<what you did>"`);
   const patch = { status: 'queued', reason: '' };
+  if (m.project && !m.phase) {
+    if (typeof flags.outside === 'string') { if (!(Number(flags.budget) > 0 && Number(flags.budget) <= checklist.OUTSIDE_MAX)) throw new Error(`work outside the checklist is for small fixes only: give it --budget of at most $${checklist.OUTSIDE_MAX}, or put it on the next checklist`); patch.outside = flags.outside; patch.budget = Number(flags.budget); }
+    else { const ids = checklist.forIds(flags.for); checklist.checkFor(m.project, ids); patch.for = ids.join(','); }
+  }
   if (typeof flags.check === 'string') patch.check = flags.check;
   if (typeof flags.criteria === 'string') patch.criteria = decisions.criteriaIds(flags.criteria).join(',');
   if (typeof flags.paid === 'string') patch.paid = flags.paid;
@@ -747,16 +762,43 @@ function messagesCmd() {
 // The lead's line to the owner: it lands in the dashboard's Inbox, and the owner's answer comes back on the watch.
 function askCmd() {
   const [alias, kind, ...words] = args;
-  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] [--options "A | B"] [--recommend "A"] [--attach f1,f2] [--task <id>] [--link url]\n       atelier ask <alias> approval "<title>" --run "<command>" [--cwd dir] [--shell powershell|cmd|bash]   (runs on the owner\'s PC when they approve)\n       atelier ask <alias> reply <A-n> "<text>" [--reopen] | withdraw <A-n>');
+  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] --do "<what you need from the owner>" [--options "A | B"] [--recommend "A"] [--attach "a.png=What it shows | b.png=..."] [--task <id>] [--link url]\n       atelier ask <alias> approval "<title>" --run "<command>" [--cwd dir] [--shell powershell|cmd|bash]   (runs on the owner\'s PC when they approve)\n       atelier ask <alias> reply <A-n> "<text>" [--reopen] | withdraw <A-n>');
   project.load(alias);
   if (kind === 'reply') { const a = asks.reply(alias, need(2, 'A-n'), args.slice(3).join(' ') || flags.text, { reopen: !!flags.reopen }); return console.log(`replied on ${a.id}${a.status === 'open' ? ' and reopened it for the owner' : ''}`); }
   if (kind === 'withdraw') return console.log(`withdrew ${asks.withdraw(alias, need(2, 'A-n')).id}`);
   const str = k => typeof flags[k] === 'string' ? flags[k] : '';
   const body = str('body-file') ? fs.readFileSync(str('body-file'), 'utf8') : str('body');
-  const a = asks.ask(alias, { kind, title: words.join(' ') || str('title'), body, options: str('options').split(/\s*\|\s*/), recommend: str('recommend'),
-    attach: str('attach').split(',').map(s => s.trim()).filter(Boolean), task: str('task'), links: str('link').split(',').map(s => s.trim()),
+  const a = asks.ask(alias, { kind, title: words.join(' ') || str('title'), body, todo: str('do'), options: str('options').split(/\s*\|\s*/), recommend: str('recommend'),
+    attach: asks.attachList(str('attach')), task: str('task'), links: str('link').split(',').map(s => s.trim()),
     run: str('run') ? { command: str('run'), cwd: str('cwd'), shell: str('shell') } : null });
   console.log(`sent ${a.id} to the owner's Inbox${a.files.length ? ` with ${a.files.length} attachment(s)` : ''}. ${a.run ? `When they approve, the dashboard runs it on their PC (${a.run.shell}, in ${a.run.cwd || 'their home folder'}) and the result arrives on your watch as ask-answered.` : kind === 'update' ? 'Nothing waits on it.' : 'Their answer arrives on your watch as ask-answered; keep working on what doesn\'t depend on it.'}`);
+}
+
+function checklistCmd() {
+  const [alias, verb, ...words] = args;
+  if (!alias) throw new Error('usage: atelier checklist <alias>   (what is on the current round)\n       atelier checklist <alias> propose "<goal>" --items "a | b | c" --by YYYY-MM-DD --finish YYYY-MM-DD --cost <dollars> [--why "..."]\n       atelier checklist <alias> ready <C-n> --how "<how the owner tries it>" [--attach "a.png=What it shows | ..."] [--task <id>] [--link url]\n       atelier checklist <alias> add "<line>" --owner "<their words>"\n       atelier checklist <alias> withdraw');
+  project.load(alias);
+  const str = k => typeof flags[k] === 'string' ? flags[k] : '';
+  if (verb === 'propose') {
+    const r = checklist.propose(alias, { goal: words.join(' ') || str('goal'), items: str('items').split('|'), by: str('by'), finish: str('finish'), cost: flags.cost, why: str('why') });
+    return console.log(`round ${r.n} sent to the owner's Inbox: ${r.items.map(i => i.id).join(', ')}. Nothing on it can start until they approve; their answer arrives on your watch.`);
+  }
+  if (verb === 'ready') {
+    const { item, left } = checklist.ready(alias, need(2, 'C-n'), { how: str('how'), attach: asks.attachList(str('attach')), task: str('task'), links: str('link').split(',').map(s => s.trim()) });
+    return console.log(left ? `${item.id} is ready. ${left} line(s) still to build before the owner reviews.` : 'every line is ready: the round is in the owner\'s Inbox to review.');
+  }
+  if (verb === 'add') { const it = checklist.addLine(alias, words.join(' '), str('owner')); return console.log(`added ${it.id}`); }
+  if (verb === 'withdraw') return console.log(`withdrew round ${checklist.withdraw(alias).n}`);
+  if (verb) throw new Error('propose, ready, add or withdraw');
+  const list = checklist.rounds(alias);
+  const r = checklist.current(alias) || list.at(-1);
+  if (!r) return console.log(`no checklist yet. Propose the first: atelier checklist ${alias} propose ...`);
+  console.log(`round ${r.n} (${r.status}): ${r.goal}\ntarget ${r.by} · about $${r.cost} · whole project by ${r.finish}`);
+  const mine = cards.all().map(c => c.meta).filter(m => m.project === alias);
+  for (const i of r.items) {
+    const t = mine.filter(m => String(m.for || '').split(',').includes(i.id));
+    console.log(`  ${i.id} ${i.status.padEnd(9)} ${i.text}${t.length ? `  [tasks: ${t.map(m => `${m.id} ${m.status}`).join(', ')}]` : ''}${i.feedback ? `\n       owner: ${i.feedback}` : ''}`);
+  }
 }
 
 function asksCmd() {
@@ -801,7 +843,7 @@ async function openCmd() {
 async function watchCmd() {
   const [alias] = args;
   project.load(alias);
-  const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted', 'ask-answered', 'owner-note']);
+  const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted', 'ask-answered', 'owner-note', 'checklist-approved', 'checklist-declined', 'checklist-judged']);
   const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed', 'needs-lead', 'budget-day', 'budget-warn', 'paced']);
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
@@ -1048,6 +1090,7 @@ function leadContext(alias) {
     (n => n ? `The auditor has ${n} item(s) for you to fix: \`atelier audit ${alias} findings --lead\`. Fix or delegate them, then \`atelier audit ${alias} fixed F-n --note "what changed"\`.` : '')(auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status)).length),
     (o => o.length ? `In the owner's Inbox from you, unanswered: ${o.map(x => `${x.id} ${x.title}`).join('; ')}. Their answers arrive on your watch as ask-answered.` : '')(asks.forOwner(alias).filter(x => x.status === 'open')),
     (n => n.length ? `The owner wrote to you and is waiting for a reply: ${n.map(x => `${x.id} "${x.body.slice(0, 200)}"`).join('; ')}. Reply with atelier ask ${alias} reply <A-n> "...".` : '')(asks.forLead(alias)),
+    (r => r ? `Current checklist: round ${r.n} (${r.status}), target ${r.by}: ${r.goal}. Lines: ${r.items.map(i => `${i.id} ${i.status}`).join(', ')} (atelier checklist ${alias}). Build only these; no new checklist until the owner has reviewed this one.` : `No checklist is open, so no new work can start. Propose the next small round now: atelier checklist ${alias} propose (see Small rounds in your instructions).`)(checklist.current(alias)),
     `Criteria: ${crit.length ? crit.map(c => `${c.id} ${c.status}`).join(', ') : 'none yet'} (atelier criteria ${alias} list)`,
     'Read now: atelier/CHARTER.md, atelier/RULINGS.md, atelier/PLAN.md, atelier/LEDGER.md. Then run `atelier digest` and `atelier board ' + alias + '`.',
   ].filter(Boolean);
@@ -1080,6 +1123,9 @@ async function leadStopHook(alias) {
   const fixes = auditor.loadFindings(alias).filter(f => ['confirmed', 'sent-to-lead'].includes(f.status));
   if (fixes.length) items.push([`fix:${fixes.map(f => f.id).join(',')}`, `${fixes.length} auditor item(s) to fix or delegate (atelier audit ${alias} findings --lead)`]);
   if (p.github?.problem) items.push([`gh:${p.github.problem}`, `work isn't reaching GitHub: ${p.github.problem}`]);
+  const round = checklist.current(alias);
+  if (!round && p.gates?.spec?.status === 'approved') items.push([`no-round:${checklist.rounds(alias).length}`, `no checklist is open, so the project isn't moving: propose the next small round (atelier checklist ${alias} propose ...)`]);
+  for (const i of round?.status === 'active' ? round.items.filter(i => i.status === 'sent-back') : []) items.push([`back:${i.id}:${i.judgedAt}`, `the owner sent back ${i.id} ("${i.text}"): ${i.feedback}`]);
   for (const n of asks.forLead(alias)) items.push([`note:${n.id}:${n.thread.length}`, `the owner wrote to you (${n.id}): "${n.body.slice(0, 160)}". Act on it, then answer with atelier ask ${alias} reply ${n.id} "..."`]);
   if (!items.length) return;
   const stateFile = path.join(project.dir(alias), 'lead-continue.json');

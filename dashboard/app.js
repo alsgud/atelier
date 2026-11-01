@@ -123,7 +123,7 @@ const sounds = (list, src) => list.length ? `<div class="sounds">${list.map((f, 
 function askMedia(a, { hero = true } = {}) {
   const url = f => a.viewPort && f.url ? `${location.protocol}//${location.hostname}:${a.viewPort}${f.url}` : '';
   const files = (a.files || []).filter(f => url(f));
-  const cap = f => f.name.replace(/\.\w+$/, '').replace(/^[a-z0-9]{4}-/, '').replace(/[-_]+/g, ' ');
+  const cap = f => a.captions?.[f.name] || f.name.replace(/\.\w+$/, '').replace(/^[a-z0-9]{4}-/, '').replace(/[-_]+/g, ' ');
   const pics = files.filter(f => f.image || f.video), heard = files.filter(f => f.audio), other = files.filter(f => !f.image && !f.video && !f.audio);
   const frame = f => `<a href="${esc(url(f))}" target="_blank" rel="noopener" class="frame${/(390|360|phone)/i.test(f.name) ? ' is-phone' : ''}" aria-label="${esc(cap(f))}, opens full size in a new tab">
       <span class="frame-img">${f.video ? `<video src="${esc(url(f))}" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video><span class="play">${I('play')}Recording</span>` : `<img src="${esc(url(f))}" alt="" decoding="async" loading="lazy">`}</span>
@@ -131,6 +131,32 @@ function askMedia(a, { hero = true } = {}) {
   const links = [...other.map(f => `<a href="${esc(url(f))}" target="_blank" rel="noopener">${I(f.page ? 'external' : 'log')}${f.page ? 'Open the page' : 'Open'}: ${esc(cap(f))}</a>`),
     ...(a.links || []).filter(l => /^https?:\/\//.test(l)).map(l => `<a href="${esc(l)}" target="_blank" rel="noopener">${I('external')}${esc(l.replace(/^https?:\/\//, ''))}</a>`)];
   return `${pics.length ? `<div class="frames${hero ? ' is-hero' : ''}">${pics.map(frame).join('')}</div>` : ''}${sounds(heard, url)}${links.length ? `<div class="links">${links.join('')}</div>` : ''}`;
+}
+// What an Inbox item is, said the same way everywhere: its type (icon, colour and word) and what the owner does with it.
+const ITEM_TYPE = {
+  decide: { word: 'Decision needed', icon: 'outcome', todo: 'Approve it, or say what to change.' },
+  answer: { word: 'Question for you', icon: 'question', todo: 'Choose an answer, or write your own.' },
+  review: { word: 'Review this', icon: 'design', todo: 'Look at it and say what you think.' },
+  problem: { word: 'Problem', icon: 'alert', todo: 'Read what’s wrong and what it needs.' },
+  fyi: { word: 'Just so you know', icon: 'log', todo: 'Nothing to decide. Read it when you like.' },
+};
+const typeOf = q => {
+  if (q.kind === 'ask') return { approval: 'decide', question: 'answer', feedback: 'review' }[q.ask?.kind] || 'fyi';
+  return { gate: 'decide', charter: 'decide', 'charter-tampered': 'problem', criterion: 'decide', criteria: 'decide', plan: 'decide', dial: 'decide', screen: 'decide', checklist: 'decide',
+    question: 'answer', 'owner-criterion': 'review', 'checklist-item': 'review', finding: 'problem', budget: 'problem', github: 'problem', 'screen-notice': 'fyi' }[q.kind] || 'fyi';
+};
+const shortDay = d => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const roundFacts = r => `<dl class="m-facts"><div><dt>Ready for you by</dt><dd>${esc(shortDay(r.by))}</dd></div><div><dt>Costs about</dt><dd class="num">$${esc(r.cost)}${r.spent ? ` · $${esc(r.spent)} so far` : ''}</dd></div><div><dt>Whole project done by</dt><dd>${esc(shortDay(r.finish))}</dd></div></dl>`;
+// The project's current round, at the top of its page: the one list the team is working from.
+const LINE_WORD = { open: 'To build', ready: 'Ready', accepted: 'Accepted', 'sent-back': 'Sent back' };
+function roundCard(p) {
+  const r = p.checklist;
+  if (!r) return `<section class="p-sec m-round"><h2 class="p-h">Checklist</h2><p class="p-quiet">No checklist yet. The lead proposes a small one for you to approve; new work can’t start until you have.</p></section>`;
+  const state = { proposed: 'Waiting for you to approve it', active: 'Being built', review: 'Ready for your review', done: 'Finished. The lead proposes the next one.' }[r.status] || r.status;
+  const done = r.items.filter(i => i.status === 'accepted').length;
+  return `<section class="p-sec m-round"><h2 class="p-h">Checklist · round ${r.n}</h2><p class="m-goal">${esc(r.goal)}</p><p class="p-quiet" style="margin:0">${esc(state)} · ${done} of ${r.items.length} accepted</p>${roundFacts(r)}
+    <ul class="m-check">${r.items.map(i => `<li class="is-${esc(i.status)}"><span class="m-state">${esc(LINE_WORD[i.status] || i.status)}</span><span>${esc(i.text)}${i.feedback ? `<small>You said: ${esc(i.feedback)}</small>` : ''}</span></li>`).join('')}</ul>
+    ${r.outside?.length ? `<p class="p-quiet">Outside this checklist: ${r.outside.map(o => `${esc(o.title)} ($${esc(o.cost.toFixed(2))}), because ${esc(o.why)}`).join('; ')}</p>` : ''}</section>`;
 }
 const ASK_KIND = { approval: 'Approval', question: 'Question', feedback: 'Feedback wanted', update: 'Update', note: 'You wrote' };
 // A command the lead wants run on this PC (atelier ask … --run): shown word for word before approving, its output after.
@@ -761,7 +787,7 @@ const Inbox = (() => {
         const send = (verdict, text) => ({ action: 'ask-answer', project: a, id: k.id, verdict, text });
         const words = `${k.body ? `<div class="doc">${md(k.body)}</div>` : ''}${askMedia(k)}`;
         const thread = (k.thread || []).length ? `<p class="faint" style="margin:0;font-size:var(--text-sm)"><a class="link" href="${M}">${k.thread.length} earlier ${k.thread.length === 1 ? 'reply' : 'replies'} in this thread</a></p>` : '';
-        const common = { ...base, glyph: { approval: 'outcome', question: 'question', feedback: 'design', update: 'log' }[k.kind] || 'log', kind: `${ASK_KIND[k.kind] || 'Message'} from the lead`, short: k.kind === 'update' ? 'update' : `lead ${k.kind}` };
+        const common = { ...base, todo: k.todo, glyph: { approval: 'outcome', question: 'question', feedback: 'design', update: 'log' }[k.kind] || 'log', kind: `${ASK_KIND[k.kind] || 'Message'} from the lead`, short: k.kind === 'update' ? 'update' : `lead ${k.kind}` };
         if (k.kind === 'approval') return { ...common, body: () => words + askRun(k) + thread,
           dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what to change, so the lead can rework it.', primary: 'Approve', secondary: 'Not yet', ghost: 'All messages', ghostHref: M,
             send: (w, note) => send(w === 'secondary' ? 'decline' : 'approve', note),
@@ -782,6 +808,24 @@ const Inbox = (() => {
           dock: { note: 'Reply to the lead (optional)', primary: 'Got it', ghost: 'All messages', ghostHref: M,
             send: (w, note) => send(note ? 'answer' : 'seen', note),
             done: 'Noted.', toast: 'Noted.', log: `Read: ${q.title}` } };
+      }
+      case 'checklist': {
+        const r = q.round;
+        return { ...base, glyph: 'plan', kind: `Next checklist · round ${r.n}`, short: 'next checklist', todo: 'Approve this checklist, or say what to change. Nothing on it starts until you do.',
+          body: () => `${r.why ? `<div class="doc">${md(r.why)}</div>` : ''}${roundFacts(r)}<ol class="m-lines">${r.items.map(i => `<li>${esc(i.text)}</li>`).join('')}</ol>`,
+          dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what to change, so the lead can rewrite it.', primary: 'Approve checklist', secondary: 'Not yet',
+            send: (w, note) => ({ action: 'round-decide', project: a, n: r.n, verdict: w === 'secondary' ? 'decline' : 'approve', note }),
+            done: 'Approved. The team starts on it.', toast: `Approved round ${r.n}.`, log: `Approved checklist: ${q.title}`,
+            alt: { done: 'Sent back with your note.', toast: 'Sent the checklist back.', log: `Not yet: ${q.title}` } } };
+      }
+      case 'checklist-item': {
+        const r = q.round, it = q.item, done = r.items.filter(i => i.status === 'accepted').length;
+        return { ...base, glyph: 'proof', kind: `Checklist review · round ${r.n}`, short: 'checklist review', todo: 'Try it, then accept it or send it back.',
+          body: () => `<p class="p-quiet" style="margin:0">Line ${r.items.indexOf(r.items.find(i => i.id === it.id)) + 1} of ${r.items.length} · ${done} accepted so far · ${esc(r.goal)}</p>${it.how ? `<section class="m-how"><h3 class="section-label">How to try it</h3><div class="doc">${md(it.how)}</div></section>` : ''}${askMedia(it)}`,
+          dock: { note: 'If you send it back, say what’s wrong', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what’s wrong so the team can fix it.', primary: 'Accept', secondary: 'Send back',
+            send: (w, note) => ({ action: 'line-judge', project: a, id: it.id, verdict: w === 'secondary' ? 'back' : 'accept', note }),
+            done: 'Accepted.', toast: 'Accepted that line.', log: `Accepted: ${q.title}`,
+            alt: { done: 'Sent back with your note.', toast: 'Sent it back to the team.', log: `Sent back: ${q.title}` } } };
       }
       default:
         return { ...base, glyph: 'log', kind: cap1(q.kind), short: q.kind, body: () => md(q.detail || ''), dock: { hint: 'Open the project to act on this.' } };
@@ -837,9 +881,9 @@ const Inbox = (() => {
   function qitem(x) {
     const cur = x.id === S.open, t = !cur && tname(x.id);
     return `<a href="#/inbox/${encodeURIComponent(x.id)}" class="qitem" data-id="${esc(x.id)}" ${cur ? 'aria-current="true"' : ''}${rowsMove() ? vt(`q-${cssId(x.id)}`, 'row') : ''} aria-label="${esc(x.title)}. ${esc(x.project)}, ${esc(x.short)}${x.ageLong ? `, ${esc(x.ageLong)}` : ''}${x.needs ? '. Needs you now' : ''}">
-      <span class="qitem-glyph">${I(x.glyph)}</span><span class="qitem-title"${t ? vt(t, 'title') : ''}>${esc(x.title)}</span>
+      <span class="qitem-glyph is-${typeOf(x.q)}">${I(ITEM_TYPE[typeOf(x.q)].icon)}</span><span class="qitem-title"${t ? vt(t, 'title') : ''}>${esc(x.title)}</span>
       <span class="qitem-side">${x.needs ? '<span class="dot dot-needs" role="img" aria-label="Needs you now"></span>' : ''}<span class="qitem-age">${esc(x.age)}</span></span>
-      <span class="qitem-meta">${esc(x.project)}<span class="sep"> · </span>${esc(x.short)}</span></a>`;
+      <span class="qitem-meta"><b class="qitem-type is-${typeOf(x.q)}">${esc(ITEM_TYPE[typeOf(x.q)].word)}</b><span class="sep"> · </span>${esc(x.project)}</span></a>`;
   }
   function agent(a, named) {
     const fig = a.of ? figure(a) : '';
@@ -907,7 +951,8 @@ const Inbox = (() => {
     return head() + `<div class="inbox">
       <section class="focus" aria-labelledby="ttl">
         <div class="focus-head"${vt('ih')}>
-          <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${I(x.glyph)}${esc(x.kind)}</span></span><span class="grp"><span class="sep">·</span><a class="proj" href="#/p/${encodeURIComponent(x.project)}/overview">${esc(x.project)}</a></span>${x.ageLong ? `<span class="grp"><span class="sep">·</span><span>${esc(x.ageLong)}</span></span>` : ''}</div>
+          ${(T => `<div class="typebar is-${typeOf(x.q)}"><span class="typebar-ic">${I(T.icon)}</span><div class="typebar-txt"><b class="typebar-word">${esc(T.word)}</b><span class="typebar-do">${esc(x.todo || T.todo)}</span></div></div>`)(ITEM_TYPE[typeOf(x.q)])}
+          <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${esc(x.kind)}</span></span><span class="grp"><span class="sep">·</span><a class="proj" href="#/p/${encodeURIComponent(x.project)}/overview">${esc(x.project)}</a></span>${x.ageLong ? `<span class="grp"><span class="sep">·</span><span>${esc(x.ageLong)}</span></span>` : ''}</div>
           <h2 class="title-display" id="ttl" tabindex="-1"${t ? vt(t, 'title') : ''}>${esc(x.title)}</h2>
         </div>
         <div class="focus-body"${vt('ib')}>${x.body()}</div>
@@ -2733,7 +2778,7 @@ const Project = (() => {
     const regions = [['head', head(p, S)], ['tabs', tabs(a, tab, S)]];
     let body;
     if (tab === 'overview') {
-      const r = [['now', now(p, S, own)], ['facts', facts(p, S, C)], ['needs', needs(S, own)], ['work', work(p, S)], ['recent', recent(p)]];
+      const r = [['now', roundCard(p) + now(p, S, own)], ['facts', facts(p, S, C)], ['needs', needs(S, own)], ['work', work(p, S)], ['recent', recent(p)]];
       regions.push(...r);
       body = `<div class="p-grid${failedAt ? ' is-stale' : ''}">${r[0][1]}${r[1][1]}<div class="p-col">${r[2][1]}${r[3][1]}${r[4][1]}</div></div>`;
     } else {

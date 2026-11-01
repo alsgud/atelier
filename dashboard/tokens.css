@@ -156,6 +156,13 @@
   --active-track: #352d56;    /* empty part of a progress bar */
   --needs: #ff8578;           /* red: needs you now, wrong, error */
   --needs-soft: #321c1d;
+  --type-decide: #e8b86a;     /* Inbox types: amber decision, blue question, rose review; a problem is --needs, news is --wait */
+  --type-decide-soft: #2e2615;
+  --type-answer: #7fb7f2;
+  --type-answer-soft: #17263a;
+  --type-review: #e79ad3;
+  --type-review-soft: #33192d;
+  --type-fyi-soft: #1e242b;
   --done: #5fd198;            /* green: done */
   --done-soft: #132820;
 
@@ -206,6 +213,13 @@
   --active-track: #d8cff3;
   --needs: #a8241a;
   --needs-soft: #f6e7e5;
+  --type-decide: #7d5200;
+  --type-decide-soft: #f6ecd8;
+  --type-answer: #1d5a9e;
+  --type-answer-soft: #e2edf8;
+  --type-review: #8e2d76;
+  --type-review-soft: #f5e5f1;
+  --type-fyi-soft: #e3e7eb;
   --done: #116a46;
   --done-soft: #dfede6;
 

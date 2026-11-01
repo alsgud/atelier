@@ -402,3 +402,34 @@ textarea.input { min-height: 64px; display: block; }
 }
 /* Full-page screenshots (?shot): bars that stick would land mid-image, so they sit in flow. */
 .is-full .shell-top, .is-full .shell-tabs, .is-full .focus .dock, .is-full .page-head, .is-full .queue { position: relative; top: auto; bottom: auto; }
+
+/* Inbox item types: never only colour, always the icon and the word too. */
+.is-decide { --t: var(--type-decide); --t-soft: var(--type-decide-soft); }
+.is-answer { --t: var(--type-answer); --t-soft: var(--type-answer-soft); }
+.is-review { --t: var(--type-review); --t-soft: var(--type-review-soft); }
+.is-problem { --t: var(--needs); --t-soft: var(--needs-soft); }
+.is-fyi { --t: var(--text-2); --t-soft: var(--type-fyi-soft); }
+.typebar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md, 8px); background: var(--t-soft); border-left: 3px solid var(--t); }
+.typebar-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--radius-sm); color: var(--t); background: color-mix(in srgb, var(--t) 14%, transparent); }
+.typebar-ic svg { width: 20px; height: 20px; }
+.typebar-txt { display: grid; gap: 2px; min-width: 0; }
+.typebar-word { color: var(--t); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.typebar-do { color: var(--text); font-size: var(--text-base, 15px); line-height: var(--leading-sm); }
+.qitem-glyph[class*="is-"] { color: var(--t); background: var(--t-soft); border-color: transparent; }
+.qitem .qitem-type { color: var(--t); font-weight: var(--weight-medium); }
+/* The checklist */
+.m-lines { margin: 0; padding-left: 1.4em; display: grid; gap: var(--space-2); max-width: var(--measure); }
+.m-facts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6, 24px); margin: 0; }
+.m-facts dt { font-size: var(--text-xs); color: var(--text-2); }
+.m-facts dd { margin: 0; font-weight: var(--weight-medium); }
+.m-how { display: grid; gap: var(--space-1); max-width: var(--measure); }
+.m-how h3 { margin: 0; }
+.m-goal { margin: 0; font-weight: var(--weight-medium); }
+.m-round { display: grid; gap: var(--space-2); }
+.m-check { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.m-check li { display: grid; grid-template-columns: 76px 1fr; gap: var(--space-2); font-size: var(--text-sm); }
+.m-check small { display: block; color: var(--text-2); }
+.m-state { color: var(--text-2); }
+.m-check .is-accepted .m-state { color: var(--done); }
+.m-check .is-ready .m-state { color: var(--type-review); }
+.m-check .is-sent-back .m-state { color: var(--needs); }
