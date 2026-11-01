@@ -812,7 +812,7 @@ const Inbox = (() => {
       case 'checklist': {
         const r = q.round;
         return { ...base, glyph: 'plan', kind: `Next checklist · round ${r.n}`, short: 'next checklist', todo: 'Approve this checklist, or say what to change. Nothing on it starts until you do.',
-          body: () => `${r.why ? `<div class="doc">${md(r.why)}</div>` : ''}${roundFacts(r)}<ol class="m-lines">${r.items.map(i => `<li>${esc(i.text)}</li>`).join('')}</ol>`,
+          body: () => `${r.why ? `<div class="doc">${md(r.why)}</div>` : ''}${roundFacts(r)}<ol class="m-lines">${r.items.map(i => `<li>${esc(i.text)}</li>`).join('')}</ol>${r.research ? `<section class="m-how"><h3 class="section-label">What the research found</h3><div class="doc">${md(r.research.recommendation)}</div>${r.research.best ? `<details class="details"><summary>The best that exists today</summary><div class="doc">${md(r.research.best)}</div></details>` : ''}<p class="p-quiet" style="margin:0">Full report with sources: ${esc(r.research.path)}</p></section>` : r.noResearch ? `<p class="p-quiet" style="margin:0">No research for this round: ${esc(r.noResearch)}</p>` : ''}`,
           dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what to change, so the lead can rewrite it.', primary: 'Approve checklist', secondary: 'Not yet',
             send: (w, note) => ({ action: 'round-decide', project: a, n: r.n, verdict: w === 'secondary' ? 'decline' : 'approve', note }),
             done: 'Approved. The team starts on it.', toast: `Approved round ${r.n}.`, log: `Approved checklist: ${q.title}`,

@@ -45,6 +45,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier close <id> "<note>"          mark a request for the lead handled (resumes tasks waiting on it)
   atelier request --to <role> "<what>" [--from <id>]   file a request card (agents: --from is automatic)
   atelier overrule <alias> "<proposal → what the owner wanted>"
+  atelier verify research <report.md>  done-check for a researcher's report
   atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
   atelier watch <alias>             stream owner decisions and task changes (the lead runs this under Monitor)
   atelier ask <alias> approval|question|feedback|update "<title>" [--body ..] [--attach f,..] [--task id]   the lead writes to the owner's Inbox
@@ -181,13 +182,16 @@ function add() {
   const p = project.tryLoad(alias);
   const role = flags.role || '';
   if (role) project.roleTemplate(role); // throws on an unknown role
+  // Research comes before planning, so it needs no gate or checklist; only a capped budget, set by the lead.
+  const researching = !!p && role === 'researcher';
+  if (researching && !(Number(flags.budget) > 0 && Number(flags.budget) <= checklist.RESEARCH_MAX)) throw new Error(`research needs --budget of at most $${checklist.RESEARCH_MAX}; ask one sharp question, and run another task for the next one`);
   if (p) {
-    const missing = project.missingGates(p, { phase: flags.phase, role });
+    const missing = researching ? [] : project.missingGates(p, { phase: flags.phase, role });
     if (missing.length) throw new Error(`${alias} needs these gates approved first: ${missing.join(', ')} (see atelier project status ${alias})`);
-    if (role && !p.roster.some(r => r.role === role) && role !== 'builder') throw new Error(`${role} isn't on ${alias}'s roster. Add it: atelier project role add ${alias} ${role}`);
+    if (role && !p.roster.some(r => r.role === role) && role !== 'builder' && role !== 'researcher') throw new Error(`${role} isn't on ${alias}'s roster. Add it: atelier project role add ${alias} ${role}`);
     // Once a project has criteria, every build task must cite the approved criteria it satisfies.
     const known = decisions.loadCriteria(alias).criteria;
-    if (known.length && !flags.phase) {
+    if (known.length && !flags.phase && !researching) {
       const ids = decisions.criteriaIds(typeof flags.criteria === 'string' ? flags.criteria : '');
       if (!ids.length) throw new Error(`cite the acceptance criteria this task satisfies: --criteria AC-1,AC-2 (see atelier criteria ${alias} list)`);
       const bad = ids.filter(i => !known.some(c => c.id === i && decisions.isApproved(c)));
@@ -197,7 +201,7 @@ function add() {
   // Build work has to be for an open line of the approved checklist; phase documents come before any checklist.
   const forLines = checklist.forIds(flags.for);
   const outside = typeof flags.outside === 'string' ? flags.outside.trim() : '';
-  if (p && !flags.phase) {
+  if (p && !flags.phase && !researching) {
     if (outside) { if (!(Number(flags.budget) > 0 && Number(flags.budget) <= checklist.OUTSIDE_MAX)) throw new Error(`work outside the checklist is for small fixes only: give it --budget of at most $${checklist.OUTSIDE_MAX}, or put it on the next checklist`); }
     else checklist.checkFor(alias, forLines);
   }
@@ -804,11 +808,11 @@ function askCmd() {
 
 function checklistCmd() {
   const [alias, verb, ...words] = args;
-  if (!alias) throw new Error('usage: atelier checklist <alias>   (what is on the current round)\n       atelier checklist <alias> propose "<goal>" --items "a | b | c" --by YYYY-MM-DD --finish YYYY-MM-DD --cost <dollars> [--why "..."]\n       atelier checklist <alias> ready <C-n> --how "<how the owner tries it>" [--attach "a.png=What it shows | ..."] [--task <id>] [--link url]\n       atelier checklist <alias> add "<line>" --owner "<their words>"\n       atelier checklist <alias> withdraw');
+  if (!alias) throw new Error('usage: atelier checklist <alias>   (what is on the current round)\n       atelier checklist <alias> propose "<goal>" --items "a | b | c" --by YYYY-MM-DD --finish YYYY-MM-DD --cost <dollars> --research atelier/research/x.md | --no-research "<why>" [--why "..."]\n       atelier checklist <alias> ready <C-n> --how "<how the owner tries it>" [--attach "a.png=What it shows | ..."] [--task <id>] [--link url]\n       atelier checklist <alias> add "<line>" --owner "<their words>"\n       atelier checklist <alias> withdraw');
   project.load(alias);
   const str = k => typeof flags[k] === 'string' ? flags[k] : '';
   if (verb === 'propose') {
-    const r = checklist.propose(alias, { goal: words.join(' ') || str('goal'), items: str('items').split('|'), by: str('by'), finish: str('finish'), cost: flags.cost, why: str('why') });
+    const r = checklist.propose(alias, { goal: words.join(' ') || str('goal'), items: str('items').split('|'), by: str('by'), finish: str('finish'), cost: flags.cost, why: str('why'), research: str('research'), noResearch: str('no-research') });
     return console.log(`round ${r.n} sent to the owner's Inbox: ${r.items.map(i => i.id).join(', ')}. Nothing on it can start until they approve; their answer arrives on your watch.`);
   }
   if (verb === 'ready') {
@@ -1033,7 +1037,13 @@ function verify(kind) {
   } else if (kind === 'contracts') {
     if (!fs.existsSync(path.join(root, 'atelier', 'contracts', 'README.md'))) problems.push('atelier/contracts/README.md (the index) is missing');
     if (listFiles(path.join(root, 'atelier', 'contracts')).length < 2) problems.push('atelier/contracts/ needs at least one contract file besides README.md');
-  } else throw new Error('usage: atelier verify design|contracts');
+  } else if (kind === 'research') {
+    const rel = args[1];
+    if (!rel) throw new Error('usage: atelier verify research <report.md>');
+    const file = path.resolve(root, rel);
+    if (!fs.existsSync(file)) problems.push(`${rel} is missing`);
+    else problems.push(...checklist.researchProblems(fs.readFileSync(file, 'utf8')));
+  } else throw new Error('usage: atelier verify design|contracts|research <report.md>');
   if (problems.length) { console.log(problems.map(p => `✗ ${p}`).join('\n')); process.exit(1); }
   console.log(`✓ ${kind} looks complete`);
 }
