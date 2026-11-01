@@ -551,6 +551,23 @@ const Inbox = (() => {
   // A plan's plain lede (F-18): the first plain sentence of its brief's goal (else of the brief), skipping headings,
   // list fragments and any sentence that points at a file, a path or a command. `lists` also reads list items (proof
   // notes are often all bullets).
+  // A sentence ends at punctuation and a space, never after an abbreviation ("e.g.") or inside quotes or brackets.
+  const ABBR = /(?:^|[\s(\[“"'‘])(?:e\.g|eg|i\.e|ie|incl|vs|approx|cf|esp|resp|etc)\.[*_]*$/i;
+  const count = (s, re) => (s.match(re) || []).length;
+  const closed = s => count(s, /"/g) % 2 === 0 && count(s, /“/g) <= count(s, /”/g) && count(s, /‘/g) <= count(s, /’/g) && count(s, /\(/g) <= count(s, /\)/g)
+    && count(s, /(?:^|[\s(\[])'(?=\S)/g) <= count(s, /(?<=\S)'(?=[\s.,;:!?)\]]|$)/g);
+  const sentences = text => {
+    const out = [];
+    let from = 0;
+    for (const m of text.matchAll(/(?<=[.!?][*_`"'’”)\]]*) /g)) {
+      const s = text.slice(from, m.index);
+      if (ABBR.test(s) || !closed(s)) continue;
+      out.push(s);
+      from = m.index + 1;
+    }
+    out.push(text.slice(from));
+    return out;
+  };
   const planLede = (brief, lists = false) => {
     const text = String(brief || '').replace(/\r/g, '').replace(/<!--[\s\S]*?-->/g, '');
     const goal = (text.match(/^#+\s*Goal\b[^\n]*\n([\s\S]*?)(?=^#{1,2}\s|(?![\s\S]))/mi) || [])[1] || '';
@@ -562,10 +579,13 @@ const Inbox = (() => {
           return /[.!?:][*_]*$/.test(item) ? item : `${item}.`;
         }).join(' ');
       // A sentence ends only at punctuation followed by a space, so none starts inside a file name
-      for (const s of prose.replace(/\s+/g, ' ').trim().split(/(?<=[.!?][*_`"'’”)\]]*) /)) {
+      for (const s of sentences(prose.replace(/\s+/g, ' ').trim())) {
         if (!/[.!?][*_`"'’”)\]]*$/.test(s)) continue;
         if (unpath(s, true) !== s.trim() || CODEY.test(s) || /\w_\w/.test(s)) continue; // a path, file name, command, code or id, as written
-        const t = s.replace(/\*+/g, '').replace(/(^|\W)_+(?=\w)|(?<=\w)_+(?=\W|$)/g, '$1').trim(); // markdown emphasis only
+        // markdown emphasis only (also after the full stop: "scroll._"), and no leading task id
+        const t = dropIds(s.replace(/\*+/g, '').replace(/(^|[^\w])_+(?=[^\s_])|(?<=[^\s_])_+(?=[^\w]|$)/g, '$1').trim().replace(/^(\S{4})[:,]\s+/, (all, w) => isTaskId(w) ? '' : all));
+        const first = s.replace(/^[*_]+/, '').match(/^(\w{4})(?![\w:,])/);
+        if (first && isTaskId(first[1])) continue;
         if (t.split(' ').length < 5 || /:$/.test(t) || /\b(read it first|binding)\b/i.test(t) || /^(npm|npx|node|git|cargo|pytest|python|pwsh|powershell|atelier)\b/i.test(t)) continue;
         return t.length > 220 ? `${t.slice(0, 217).replace(/\s+\S*$/, '')}…` : t;
       }
@@ -609,7 +629,7 @@ const Inbox = (() => {
       }
       case 'budget': {
         const sp = q.split || {};
-        const rows = [...(sp.tasks || []).map(t => [t.title, t.spent]), ['The lead', sp.lead], ['Audits', sp.audits]].filter(([, v]) => v > 0);
+        const rows = [...(sp.tasks || []).map(t => [titleWords(t.title), t.spent]), ['The lead', sp.lead], ['Audits', sp.audits]].filter(([, v]) => v > 0);
         const plan = state?.summary?.plan?.fiveHour;
         return { ...base, glyph: 'budget', kind: 'Budget', short: 'budget',
           title: `${a} used today’s ${money(q.limit)}, so new work is paused`,
@@ -624,7 +644,7 @@ const Inbox = (() => {
       case 'question': {
         const words = [q.context, q.rest].filter(Boolean).join('\n\n') || q.detail;
         return { ...base, glyph: 'question', kind: `Question from the ${q.role || 'team'}`, short: 'question',
-          body: () => `${quote(md(words.replace(/\n\n\*From the .*\*$/, '')), `The ${esc(q.role || 'builder')}, working on: ${esc(q.taskTitle || '')}`)}
+          body: () => `${quote(md(words.replace(/\n\n\*From the .*\*$/, '')), `The ${esc(q.role || 'builder')}, working on: ${esc(titleWords(q.taskTitle))}`)}
             ${q.options?.length ? `<fieldset class="choices" style="max-width:var(--measure)"><legend class="section-label" style="margin-bottom:var(--space-2)">Suggested answers</legend>${q.options.map((o, i) => `<label class="choice"><input type="radio" name="ans" value="${i}"${S.choice === String(i) ? ' checked' : ''}> ${esc(o)}</label>`).join('')}</fieldset>` : ''}
             ${q.suggested ? `<p class="faint" style="margin:0;font-size:var(--text-sm)">What it will do if you don’t mind: ${esc(q.suggested)}</p>` : ''}`,
           dock: { note: q.options?.length ? 'Or write your own answer' : 'Your answer', required: 'Pick an answer or write your own. It goes to the agent.', needsAnswer: true,
@@ -693,7 +713,7 @@ const Inbox = (() => {
           dock: { primary: 'Got it', send: () => ({ action: 'screen-seen', project: a, id: q.id }), done: 'Noted.', toast: 'Noted.', log: `Noted: ${q.title}` } };
       case 'screen':
         return { ...base, glyph: 'screen', kind: 'Screen use', short: 'screen use', title: `The ${q.role} asks to open a window on your screen`,
-          body: () => `${quote(esc(q.why || ''), `The ${esc(q.role)}, working on: ${esc(q.taskTitle || '')}`)}
+          body: () => `${quote(esc(q.why || ''), `The ${esc(q.role)}, working on: ${esc(titleWords(q.taskTitle))}`)}
             <p class="lede">For about ${esc(q.minutes)} minute${q.minutes === 1 ? '' : 's'}. Nothing opens until you allow it, and Atelier closes the window when the time is up, whatever the agent is doing.</p>`,
           dock: { primary: `Allow for ${q.minutes} min`, secondary: 'Not now',
             send: w => ({ action: 'screen', project: a, id: q.id, verdict: w === 'secondary' ? 'decline' : 'allow' }),
@@ -1357,7 +1377,7 @@ const Office = (() => {
   // News: a desk whose words get a line under the room. Everyone else is told by the picture and one shared line.
   const news = d => d.k === 'active' || d.k === 'needs' || d.k === 'done' || d.held === 'Paused' || !!d.task;
   const label = d => `${d.role}, ${d.word}. ${d.what}. ${d.step ? `${d.step}. ` : ''}${meta(d)}`.trim();
-  const attrs = d => `data-key="${esc(d.key)}" data-k="${d.k}"${d.held ? ` data-held="${d.held.toLowerCase()}"` : ''}${d.quiet ? ' data-quiet' : ''}`;
+  const attrs = d => `data-key="${esc(d.key)}" data-k="${d.k}"${d.lit ? ' data-lit' : ''}${d.held ? ` data-held="${d.held.toLowerCase()}"` : ''}${d.quiet ? ' data-quiet' : ''}`;
   // the dot inside a desk is decoration: the link's label says the state, and a news line shouldn't add a pulse loop
   const st = d => `<span class="of-st"><span class="dot${d.k && d.k !== 'off' ? ` dot-${d.k}` : ''}" aria-hidden="true"></span><span class="w">${esc(d.word)}</span></span>`;
   const cap = d => `<b>${esc(d.role)}</b>${st(d)}`;
@@ -1400,7 +1420,8 @@ const Office = (() => {
     }
     const lead = desks.find(d => d.key === 'lead');
     const n = Math.min(own.length, s.needsNow ?? own.length);
-    if (lead && n) Object.assign(lead, { k: 'needs', word: WORD.needs, href: '#/inbox', what: n === 1 ? titleWords(own[0].title) : `${n} decisions need you now`, step: n === 1 ? 'It’s in your Inbox' : 'They’re in your Inbox' });
+    // A lead at work with a decision waiting is both: its window stays lit, with the flag up, so the floor never looks idle.
+    if (lead && n) { const lit = lead.k === 'active'; Object.assign(lead, { k: 'needs', lit, word: WORD.needs, href: '#/inbox', what: n === 1 ? titleWords(own[0].title) : `${n} decisions need you now`, step: `${n === 1 ? 'It’s in your Inbox' : 'They’re in your Inbox'}${lit ? '. The lead keeps working meanwhile' : ''}` }); }
   }
 
   // One project's desks, the same on the Office, the project page's Team list and the Projects strip.
@@ -1644,7 +1665,7 @@ const TECH_TAIL = /\s*(?:\bOutput:|\(full output\b|\(details:|\bExtend with:|\bT
 // free text. Task titles keep mid-sentence codes (plainTitle takes the leading and bracketed ones, F-18).
 const FILE_EXT = 'mjs|js|ts|tsx|py|ps1|sh|md|json|jsonl|css|html|rs|toml|yaml|yml|wav|mp3|png|jpg|webm|log|txt|exe|dll';
 // A path needs more than one slash-joined pair of words to be one: "A/B", "and/or" and "3/4" are plain words.
-const NOT_PATH = '(?!(?:A\\/B|and\\/or|\\d[\\d.]*\\/\\d[\\d.]*)(?![\\w\\/]))';
+const NOT_PATH = '(?<![\\w.@*-])(?!(?:A\\/B|Yes\\/No|and\\/or|\\d[\\d.]*\\/\\d[\\d.]*)(?![\\w\\/]))';
 const TECH_WORD = `(?:\`[^\`]*\`|[A-Za-z]:\\\\|${NOT_PATH}(?:\\\\\\\\\\?\\\\|~\\/|\\.{1,2}\\/)?(?:[\\w.@*-]+[\\\\/])+|[\\w-]+\\.(?:${FILE_EXT})\\b|(?=[0-9a-f]*\\d)[0-9a-f]{7,40}\\b)`;
 // The little word in front of something removed goes with it, and only then ("is in;" stays).
 const LEAD_IN = new RegExp(`(?:[;,]\\s*)?\\bsee\\s+(?=${TECH_WORD})|\\b(?:in|on|to|for|from|of|at|into)\\s+(?=${TECH_WORD})`, 'gi');
@@ -1657,7 +1678,7 @@ const unpath = (s, codes) => {
     .replace(/(['"])atelier [^'"]*\1|\batelier (?:verify|extend|audit|asks|request|msg|run|approve)\b[^.;,)]*/g, '')
     .replace(/[A-Za-z]:\\[^\s,;)"']*/g, '').replace(/\*\.\w+/g, '')
     .replace(PATH_RE, '')
-    .replace(new RegExp(`\\b[\\w-]+\\.(?:${FILE_EXT})(?:::\\w+)?\\b`, 'gi'), '')
+    .replace(new RegExp(`\\b[\\w-]+\\.(?:${FILE_EXT})(?:::\\w+|:\\d+)?\\b`, 'gi'), '')
     .replace(/\b(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/g, '')
     .replace(/\s--[\w-]+/g, '')
     .replace(/\[[\w-]+\]\s*/g, '')
@@ -1673,9 +1694,45 @@ const scrub = s => {
 };
 // A title in plain words (F-18): also no file names or task ids ("(e8jp: pauses…)" → "(pauses…)").
 const ID = '(?=[0-9]*[a-z])(?=[a-z]*\\d)[a-z0-9]{4}';
-const titleWords = s => cap1(unpath(plainTitle(s).replace(/\((?=[a-z]*\d)[a-z0-9]{4}(?:[:,]\s*|\s+(?=\w))/g, '(')
+const titleWords = s => dropIds(cap1(unpath(plainTitle(s).replace(/\((?=[a-z]*\d)[a-z0-9]{4}(?:[:,]\s*|\s+(?=\w))/g, '(')
   .replace(new RegExp(`\\btask ${ID}\\b`, 'g'), 'task').replace(new RegExp(`\\b(for|on|after|from|with|of) ${ID}\\b`, 'g'), '$1 the task')
-  .replace(new RegExp(`\\b([A-Za-z]+) ${ID}:`, 'g'), '$1 the task:')).replace(/\s{2,}/g, ' ').trim()) || plainTitle(s);
+  .replace(new RegExp(`\\b([A-Za-z]+) ${ID}:`, 'g'), '$1 the task:')).replace(/\s{2,}/g, ' ').trim())) || plainTitle(s);
+// Task ids out of a sentence: any four characters mixing letters and digits, or an all-letter id this dashboard knows.
+// Words of that shape that aren't ids (40px, a11y, h264) stay.
+const NOT_ID = /^(?:a11y|i18n|l10n|utf8|sha1|sha2|md5s|ipv4|ipv6|gpt3|gpt4|h264|h265|x264|x265|av01|vp09|mp3s|mp4s|win7|win8|py38|py39|\d+(?:px|ms|am|pm|gb|mb|kb|th|st|nd|rd|k|m|s|x|h|d|p))$/;
+let idMemo = { of: null, ids: new Set() };
+const isTaskId = w => {
+  const l = w.toLowerCase();
+  if (w !== l && w !== cap1(l)) return false;
+  if (idMemo.of !== state?.projects) idMemo = { of: state?.projects, ids: new Set((state?.projects || []).flatMap(p => (p.tasks || []).map(t => t.id))) };
+  return idMemo.ids.has(l) || (!NOT_ID.test(l) && ID_ONLY.test(l));
+};
+const ID_ONLY = new RegExp(`^${ID}$`);
+const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+const countOf = n => NUM[n] || String(n);
+const [ID_W, ID_B, ID_E] = ['[A-Za-z0-9]{4}', '(?<![\\w./\\\\-])', '(?![\\w/\\\\-]|\\.\\w)'];
+const ID_STEPS = [
+  // "request 8ut8" → "a request", "requests 8ut8, jpz4" → "two requests", "task ab12" → "the task"
+  [new RegExp(`${ID_B}(the |this |that )?(requests?|tasks?) (${ID_W}(?:(?:,\\s*|\\s+and\\s+)${ID_W})*)${ID_E}`, 'gi'), (all, det, word, list) => {
+    const ids = list.split(/,\s*|\s+and\s+/), base = word.toLowerCase().replace(/s$/, '');
+    if (!ids.every(isTaskId)) return all;
+    return ids.length > 1 ? `${countOf(ids.length)} ${base}s` : `${det || (base === 'request' ? 'a ' : 'the ')}${base}`;
+  }],
+  // "(ab12)" says nothing once it's gone
+  [new RegExp(`\\s*\\((${ID_W})\\)${ID_E}`, 'g'), (all, w) => isTaskId(w) ? '' : all],
+  // "7dj9 and c8pn" → "two tasks"
+  [new RegExp(`${ID_B}${ID_W}(?:(?:, ${ID_W})*,? and ${ID_W}|(?:, ${ID_W})+)${ID_E}`, 'g'), list => { const ids = list.split(/,? and |, /); return ids.every(isTaskId) ? `${countOf(ids.length)} tasks` : list; }],
+  // "every xfpa runner" → "every runner", unless the next word is a verb or joins ("the xfpa is…" falls through to "the task is…")
+  [new RegExp(`\\b(the|this|that|every|each|all|a|an) (${ID_W})(?:['’]s)?(?= (?!is\\b|was\\b|has\\b|had\\b|are\\b|were\\b|can\\b|will\\b|needs?\\b|and\\b|or\\b|to\\b|in\\b|on\\b|at\\b)[a-z])`, 'g'), (all, det, w) => isTaskId(w) ? det : all],
+  [new RegExp(`${ID_B}(${ID_W})['’]s\\b`, 'g'), (all, w) => isTaskId(w) ? `${nameId(w)}’s` : all],
+  [new RegExp(`^(${ID_W})[:,]\\s+`), (all, w) => isTaskId(w) ? '' : all],
+  [new RegExp(`^(${ID_W})${ID_E}`), (all, w) => isTaskId(w) ? nameId(w, 'this ') : all],
+  [new RegExp(`${ID_B}(the |this |that )?(${ID_W})${ID_E}`, 'g'), (all, det, w) => isTaskId(w) ? nameId(w, det) : all],
+];
+// The first id a sentence names is "the task"; a different one is "another task", never "merge the task into the task".
+let idFirst = '';
+const nameId = (w, det) => { const l = w.toLowerCase(); idFirst ||= l; return idFirst === l ? `${det || 'the '}task` : 'another task'; };
+const dropIds = text => { idFirst = ''; return cap1(ID_STEPS.reduce((t, [re, fn]) => t.replace(re, fn), String(text || '')).replace(/(?<!\b(?:e\.g|i\.e|eg|ie|vs|incl|approx|cf|esp|resp|etc))([.!?] )the task/gi, '$1The task').replace(/\s{2,}/g, ' ').trim()); };
 // An outcome's own words for its code, from its project (or any project when the event's isn't known).
 const critText = (alias, id) => {
   for (const p of (state?.projects || []).filter(p => !alias || p.alias === alias)) {
@@ -1688,7 +1745,7 @@ const critText = (alias, id) => {
 // isn't a column of Details controls.
 const NO_DETAILS = new Set(['iteration', 'pushed', 'gate', 'gate-request', 'criteria-request', 'audit-started', 'ownership', 'queued', 'review', 'paused', 'paced',
   'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-draft', 'criterion-team', 'criterion-retire', 'owner-review', 'finding-confirmed', 'finding-dismissed', 'finding-to-lead']);
-const eventSay = (e, alias = e.project) => { const s = eventWords(e, alias); return NO_DETAILS.has(e.type) ? { ...s, raw: '' } : s; };
+const eventSay = (e, alias = e.project) => { const s = eventWords(e, alias), plain = { ...s, w: dropIds(s.w), text: s.text && dropIds(s.text), task: s.task && dropIds(s.task) }; return NO_DETAILS.has(e.type) ? { ...plain, raw: '' } : plain; };
 function eventWords(e, alias) {
   // Activity events carry their task's title (null for none); a project's or task's own events are looked up
   const m = String(e.msg || ''), task = (e.task !== undefined ? e.task : (state?.projects || []).flatMap(p => p.tasks || []).find(t => t.id === e.id)?.title) || '';
@@ -1702,7 +1759,7 @@ function eventWords(e, alias) {
   const role = r => /^[a-z0-9]{4}$/.test(r) && r !== 'lead' && !(state?.projects || []).some(p => (p.tasks || []).some(t => t.role === r)) ? 'another agent' : `the ${r}`;
   // Agent-to-agent text is written for agents: when stripping it would leave a broken sentence, or it holds code, say
   // what happened in plain words and keep the original under Details.
-  const agentSay = (w, plain, s) => { const t = scrub(s); return t !== s.replace(/\s+/g, ' ').trim() || CODEY.test(s) || DANGLING.test(t) ? S(plain, '', m) : S(w, t); };
+  const agentSay = (w, plain, s) => { const t = scrub(s); return t !== s.replace(/\s+/g, ' ').trim() || CODEY.test(s) || /\biter\d+\b|\b\d{4,}\b/.test(s) || DANGLING.test(t) ? S(plain, '', m) : S(w, t); };
   let x;
   switch (e.type) {
     case 'ask-answered': {
@@ -1730,7 +1787,7 @@ function eventWords(e, alias) {
       const head = m.replace(/^[A-Z]+-\d+:?\s*/, '').replace(/^owner (?:wants this fixed|says this is fine):\s*/, '').replace(/\s*\([^()]*(?:\([^()]*\)[^()]*)*\)\s*$/, '');
       return S(w, scrub(head) || 'a problem the auditor found', m);
     }
-    case 'ruling': return auto('New ruling:', m.replace(/^[A-Z]+-\d+:\s*/, ''));
+    case 'ruling': return auto('New ruling:', m.replace(/^[A-Z]+-\d+:\s*/, '').replace(/^Correction to [A-Z]+-\d+:\s*/, 'Correction: '));
     case 'gate':
       if ((x = m.match(/^(\w+) (approved|skipped|reopened)( by owner| by the lead)?/))) return S(`The ${x[1]} ${was(x[1])} ${x[2]}${x[3] === ' by owner' ? ' by you' : x[3] ? ' by the lead' : ''}`, '', m);
       return auto(EVENT_WORD.gate);
@@ -1741,7 +1798,7 @@ function eventWords(e, alias) {
       if ((x = m.match(/^(\d+) finding\(s\)(?:, (\d+) high)?/))) return S(`Audit done: ${x[1]} problem${x[1] === '1' ? '' : 's'} found${x[2] ? `, ${x[2]} serious` : ''}`, '', m);
       return auto('Audit done:', m.replace(/\s*\([^)]*\)\s*$/, ''));
     case 'screen-allowed': return S(cap1(m.replace(/^owner\b/, 'you')));
-    case 'approved': return task ? S('You approved the plan') : (x = m.match(/^plan approved by owner:\s*([\s\S]*)$/)) ? auto('You approved the plan:', x[1]) : auto('Plan approved:');
+    case 'approved': return /^request approved by lead/.test(m) ? S('The lead approved a request', '', m) : task ? S('You approved the plan') : (x = m.match(/^plan approved by owner:\s*([\s\S]*)$/)) ? auto('You approved the plan:', x[1]) : auto('Plan approved:');
     // the event doesn't record who wrote the answer: only text that says so is the lead's, and none is called yours
     case 'answered': return (x = m.match(/^Lead\b[:,]?\s*([\s\S]*)$/)) ? agentSay('The lead answered:', 'The lead sent it an answer', x[1]) : agentSay('An answer was sent:', 'An answer was sent', m);
     case 'iteration': x = m.match(/#(\d+)\s+\w+(?:.*?check (\w+))?/); return x ? S(`Try ${x[1]} ended${x[2] === 'pass' ? ': the check passed' : x[2] === 'fail' ? ': the check failed' : ''}`, '', m) : auto('Try ended');
@@ -1779,7 +1836,14 @@ function eventWords(e, alias) {
     case 'review-started': x = m.match(/round (\d+)/); return S(`The reviewer started${x ? ` round ${x[1]}` : ''}`);
     case 'done': return task ? S('Finished', '', m) : auto('Done:');
     case 'added': case 'started': return task ? S(EVENT_WORD[e.type]) : auto(`${EVENT_WORD[e.type]}:`);
-    case 'paused': return stoppedByYou(m) ? S('You stopped it') : /^for the lead/.test(m) ? S('Paused for the lead to decide', '', m) : /lead/.test(m) ? S('The lead paused it') : auto('Paused:');
+    case 'needs-you':
+      if ((x = m.match(/^Already with the owner as [A-Z]+-\d+:?\s*([\s\S]*)$/))) return auto('Waiting on your answer:', x[1]);
+      if (/^used all\b/i.test(m)) return auto('Needs you:', m.replace(/iterations?/g, 'tries').replace(/check still pass\b/, 'its check still passes'));
+      break;
+    case 'paused':
+      if ((x = m.match(/^waiting on requests? (.+)$/))) { const n = x[1].split(/,\s*/).length; return S(`Paused: waiting on ${n === 1 ? 'a request' : `${countOf(n)} requests`} from the team`); }
+      if (/^daily budget\b/.test(m)) return S('Paused: today’s budget is used up. It resumes tomorrow, or when you raise the limit');
+      return stoppedByYou(m) ? S('You stopped it') : /^for the lead/.test(m) ? S('Paused for the lead to decide', '', m) : /lead/.test(m) ? S('The lead paused it') : auto('Paused:');
     case 'paced': return S(/nearly full/.test(m) ? 'Waiting: your plan is nearly used up for now' : /plan limit/.test(m) ? 'Waiting: your plan limit was reached' : 'Waiting for your plan to have room', '', m);
     case 'window-closed': return S('Atelier closed a window opened on your screen without your OK', '', m);
     case 'window-shown': return S('A window opened on your screen, as you allowed', '', m);
@@ -2358,6 +2422,9 @@ const Project = (() => {
     if (PH[p.phase]) return [PH[p.phase], 'It comes to your Inbox for your OK when it is ready.', null];
     const queued = S.tasks?.queued || 0;
     const paced = S.paced ? `${S.paced} waiting for your plan window` : '';
+    // A reviewing task still counts as running, so review alone is asked of the agents: nobody else busy, nothing is being built.
+    const busy = (p.team?.agents || []).filter(x => isBusy(x.state));
+    if (busy.length && busy.every(x => x.state === 'reviewing' || x.kind === 'reviewer')) return [busy.length === 1 ? 'A task is being reviewed.' : `${busy.length} tasks are being reviewed.`, `${[paced, queued && `${queued} queued`].filter(Boolean).map((s, i) => i ? s : cap1(s)).join(', ')}${paced || queued ? '. ' : ''}Nothing needs you right now.`, null];
     // "Building" only while a task of this project runs; a busy lead or auditor alone says what it is doing (F-19).
     if (S.tasks?.running) return ['The team is building.', `${S.working} working${paced ? `, ${paced}` : ''}${queued ? `, ${queued} queued` : ''}. Nothing needs you right now.`, null];
     if (S.working) {
@@ -2395,7 +2462,7 @@ const Project = (() => {
 
   // ── Needs you here: the project's Inbox items, each opening the Inbox at that item ──
   const needs = (S, own) => !own.length ? '<div data-r="needs" hidden></div>' : `<section class="p-sec" aria-labelledby="needs-h" data-r="needs">
-      <h2 class="p-h" id="needs-h">Needs you here <span class="n${S.needsNow ? ' is-needs' : ''}">${S.waiting}</span></h2>
+      <h2 class="p-h" id="needs-h">${S.needsNow ? 'Needs you now' : 'When you have a minute'} <span class="n${S.needsNow ? ' is-needs' : ''}">${S.waiting}</span></h2>
       <div class="p-rows">${own.map(q => { const d = Inbox.describe(q), w = q.needs ? 'Needs you now' : 'Waiting';
         return `<a class="p-row" href="#/inbox/${encodeURIComponent(q.key)}" aria-label="${esc(`${d.title}. ${w}, ${d.kind}${q.at ? `, ${longAgo(q.at)}` : ''}`)}">${dot(q.needs ? 'needs' : '', w)}<span class="t"><b>${esc(d.title)}</b><span class="s">${esc(d.kind)}</span></span><span class="m num">${esc(longAgo(q.at))}</span></a>`; }).join('')}</div></section>`;
 
@@ -2403,7 +2470,7 @@ const Project = (() => {
   function taskView(p, t) {
     const x = p.team.agents.find(a => a.id === t.id) || {};
     const s = taskStatus(t), review = s === 'review' || x.kind === 'reviewer';
-    const v = { id: t.id, title: t.title, k: '', who: cap1(review ? 'reviewer' : t.role || 'builder'), stage: 1, step: '', prog: '', ago: '' };
+    const v = { id: t.id, title: titleWords(t.title), k: '', who: cap1(review ? 'reviewer' : t.role || 'builder'), stage: 1, step: '', prog: '', ago: '' };
     if (s === 'queued') Object.assign(v, { who: 'Next', stage: 0, step: reasonWords(t) || 'Starts when a teammate is free' });
     else if (s === 'done') Object.assign(v, { k: 'done', stage: 4, step: reasonWords(t) || 'Finished' });
     else if (s === 'needs-you') v.step = askOf(t.id).step;
@@ -2435,11 +2502,10 @@ const Project = (() => {
   };
 
   // ── Recent: the newest few events, in words ──
-  // Good news, as the server's Activity marks it: a partial or failed check isn't, and stopped work never is ("check pass" in its message or not).
-  const GOOD = e => /^(done|approved|criterion-accept|finding-confirmed|finding-fixed)$/.test(e.type) || (!/^(needs-lead|paused)$/.test(e.type) && / pass|approve/.test(e.msg || '') && !/FAIL/.test(e.msg) && !/^(\d+)\/(?!\1\b)\d+ criteria/.test(e.msg));
   // One plain sentence an event, as on Activity (F-6, F-15): the event's own technical words wait under Details.
   const eventLine = (p, e) => { const s = eventSay({ ...e, task: p.tasks.find(x => x.id === e.id)?.title || null }, p.alias); return `${esc(sayLine(s))}${s.task ? ` · ${esc(s.task)}` : ''}${rawDetails(s)}`; };
-  const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${GOOD(e) ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${eventLine(p, e)}</span></li>`).join('')}</ol>`;
+  // Good news is the server's call (eventTone), the same as on Activity.
+  const feed = (p, list) => `<ol class="p-feed">${list.map(e => `<li${e.k === 'done' ? ' data-k="done"' : ''}><time class="num" datetime="${esc(e.ts)}">${esc(when(e.ts))}</time><span>${eventLine(p, e)}</span></li>`).join('')}</ol>`;
   const recent = p => `<section class="p-sec" aria-labelledby="rec-h" data-r="recent"><h2 class="p-h" id="rec-h">Recent</h2>
       ${p.events.length ? feed(p, p.events.slice(0, 4)) : '<p class="p-quiet">Nothing has happened here yet.</p>'}
       <a class="link p-more" href="#/activity?p=${encodeURIComponent(p.alias)}">All activity for ${esc(p.alias)}</a></section>`;
@@ -2491,7 +2557,7 @@ const Project = (() => {
         const eta = s === 'running' && t.eta && !v.paced ? `about ${t.eta.low}–${t.eta.high} min left` : '';
         // a question is red only when it's in the Inbox's "Needs you now" (F-14)
         const asked = s === 'needs-you', rowWord = v.paced || asked ? v.word : label, rowK = v.paced ? '' : asked ? (v.word === 'Needs you' ? 'needs' : '') : k;
-        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${t.title}. ${rowWord}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(rowK, rowWord)}<span class="t"><b>${esc(t.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${esc(when(v.at))}</span></a>`;
+        return `<a class="p-row p-trow" href="#/t/${encodeURIComponent(t.id)}" aria-label="${esc(`${v.title}. ${rowWord}. ${sub}${eta ? `, ${eta}` : ''}, ${longAgo(v.at)}`)}">${dot(rowK, rowWord)}<span class="t"><b>${esc(v.title)}</b><span class="s">${esc(sub)}${eta ? ` · <span class="p-eta">${eta}</span>` : ''}</span></span><span class="m num">${esc(when(v.at))}</span></a>`;
       }).join('');
       return `<section class="p-sec"><h3 class="p-h3">${label} <span class="n">${by[s]}</span></h3><div class="p-rows">${rows}</div></section>`;
     }).join('');
@@ -2512,7 +2578,7 @@ const Project = (() => {
       if (met(c)) return `Met ${when(last(c).at)}${c.status === 'accepted' ? ' · you accepted it' : ' · its check passed'}`;
       if (c.status === 'awaiting-owner') return 'Waiting for your judgement in the Inbox';
       const t = building(c);
-      if (t) return `${t.status === 'queued' ? 'Next' : 'Being built'}: ${t.title}`;
+      if (t) return `${t.status === 'queued' ? 'Next' : 'Being built'}: ${titleWords(t.title)}`;
       return c.status === 'fail' ? 'Not yet: its check is failing' : 'Not started';
     };
     const ring = (c, yes, no) => met(c) ? `<span class="p-ok" role="img" aria-label="${yes}">${I('check')}</span>` : `<span class="p-ok" role="img" aria-label="${no}"></span>`;
@@ -2853,7 +2919,7 @@ const Task = (() => {
     const limit = Number(row.budget || t.spend?.limit || 0);
     const passed = /verdict:\s*\**\s*approve/i.test(t.review || '');
     const role = cap1(reviewing ? 'reviewer' : m.role || 'builder');
-    const v = { id: m.id, title: m.title, a, role, k: '', word: STATUS_WORD[s] || cap1(s), stage: 1, step: '', why: '', stop: '', dock: '',
+    const v = { id: m.id, title: titleWords(m.title), a, role, k: '', word: STATUS_WORD[s] || cap1(s), stage: 1, step: '', why: '', stop: '', dock: '',
       tries, used, of, n, outs, spent, limit, reason, eta: s === 'running' && !reviewing && !paced ? T.eta : null, t, m, ag, s, last: '', quiet: paced ? 0 : ag.quietMin || 0 };
     const merge = m.pr ? 'its pull request is ready for you to merge' : m.where === 'local' || T.autonomy === 'branch' ? `it waits on ${m.branch || 'its branch'} for you to merge` : 'it lands by itself';
     switch (s) {
@@ -2946,7 +3012,8 @@ const Task = (() => {
     // It leads with a plain sentence of what is shown (F-6); the agent's own notes are folded under it.
     const nOf = (n, one) => n ? `${n} ${one}${n === 1 ? '' : 's'}` : '';
     const shownList = [nOf(list.filter(x => x.kind !== 'rec').length, 'screenshot'), nOf(list.filter(x => x.kind === 'rec').length, 'recording'), nOf(heard.length, 'sound')].filter(Boolean);
-    const note = shownList.length ? `The ${v.role.toLowerCase()} showed ${shownList.length > 1 ? `${shownList.slice(0, -1).join(', ')} and ${shownList.at(-1)}` : shownList[0]}.` : ev?.notes ? `The ${v.role.toLowerCase()} wrote notes on what it did.` : '';
+    // The builder made these, whoever holds the task now.
+    const note = shownList.length ? `${shownList.length > 1 ? `${shownList.slice(0, -1).join(', ')} and ${shownList.at(-1)}` : shownList[0]} of the work.` : ev?.notes ? `The ${(v.m.role || 'builder').toLowerCase()} wrote notes on what it did.` : '';
     const lines = (v.t.lastCheck || '').trim().split('\n').filter(l => l.trim()).slice(-4);
     const frame = (x, i) => `<button class="frame${x.kind === 'phone' ? ' is-phone' : ''}" type="button" data-ta="shot" data-i="${i}" aria-label="${esc(x.cap)}${x.kind === 'rec' ? ', recording' : ''}. Open large">
         <span class="frame-img">${x.kind === 'rec' ? `<video src="${esc(x.src)}" preload="metadata" muted playsinline data-len></video><span class="play">${I('play')}<span>Recording</span></span>` : `<img src="${esc(x.src)}" alt="" decoding="async" loading="lazy">`}</span>
@@ -3384,7 +3451,7 @@ const Keys = (() => {
       out.push({ g: 1, t: `${a} · Activity`, href: `#/activity?p=${encodeURIComponent(a)}`, ic: 'activity', find: 'events' });
       for (const t of p.tasks || []) {
         const s = taskStatus(t);
-        out.push({ g: 2, t: t.title || t.id, href: `#/t/${encodeURIComponent(t.id)}`, ic: s === 'needs-you' ? 'question' : s === 'done' ? 'check' : 'plan', sub: `${t.id} · ${a} · ${STATUS_WORD[s] || s}`, id: t.id, find: '', top: LIVE.includes(s) });
+        out.push({ g: 2, t: titleWords(t.title) || t.id, href: `#/t/${encodeURIComponent(t.id)}`, ic: s === 'needs-you' ? 'question' : s === 'done' ? 'check' : 'plan', sub: `${t.id} · ${a} · ${STATUS_WORD[s] || s}`, id: t.id, find: '', top: LIVE.includes(s) });
       }
       for (const [k, t] of DOCS) out.push({ g: 3, t, href: `${h}/docs/${k}`, ic: 'log', sub: a, find: 'document' });
       for (const [k, t, w] of SETS_ONE) out.push({ g: 4, t, href: `#/settings?p=${encodeURIComponent(a)}`, sec: k, ic: 'settings', sub: `${a} settings`, find: w });

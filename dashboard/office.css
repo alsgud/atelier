@@ -187,6 +187,14 @@
 .dk[data-k="needs"] .dk-glow { opacity: .2; }
 .dk[data-k="needs"] .dk-rim { opacity: .5; }
 .dk[data-k="needs"] .dk-wave { opacity: 1; }
+/* a lead still at work with a decision waiting: the working window, with the flag up */
+.dk[data-k="needs"][data-lit] .dk-pane { opacity: 1; }
+.dk[data-k="needs"][data-lit] .dk-glow { opacity: .75; animation: dk-breathe 4.8s ease-in-out var(--lag) infinite alternate; }
+.dk[data-k="needs"][data-lit] .dk-patch { opacity: .3; }
+.dk[data-k="needs"][data-lit] .dk-rim { opacity: .9; }
+.dk[data-k="needs"][data-lit] .dk-steam { opacity: 1; }
+.dk[data-k="needs"][data-lit] .dk-steam path { animation: dk-steam 2.6s ease-out var(--lag) infinite; }
+.dk[data-k="needs"][data-lit] .dk-steam path + path { animation-delay: calc(var(--lag) - 1.3s); }
 /* Waiting: lights off, things still there, tea in hand, the cat asleep on the sill */
 .dk[data-k=""]:not([data-held="paused"]) .dk-sip, .dk[data-k=""]:not([data-held="paused"]) .dk-cat { opacity: 1; }
 .dk[data-k=""]:not([data-held="paused"]) .dk-mug { opacity: 0; }
