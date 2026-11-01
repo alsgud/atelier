@@ -1248,9 +1248,9 @@ function renderLogin() {
   document.body.innerHTML = `<main class="l-wrap" id="main"><form class="l-card" method="post" action="/login" novalidate>
     <span class="l-mark">${markN1(40)}</span>
     <h1>Sign in to Atelier</h1>
-    <p class="l-lede">Paste the access token that <code>atelier open</code> prints on your PC. You do this once on each device.</p>
+    <p class="l-lede">On your PC, open Settings and choose <b>Add a device</b> to get a 6-digit code. You do this once on each device.</p>
     <div class="field">
-      <label class="field-label" for="token">Access token</label>
+      <label class="field-label" for="token">Code or access token</label>
       <input class="input" id="token" name="token" type="password" autocomplete="current-password" spellcheck="false" required aria-describedby="t-help" autofocus>
       <span class="field-help" id="t-help">It stays signed in on this device until you clear its data.</span>
     </div>
@@ -2111,6 +2111,18 @@ const Activity = (() => {
 // only stopping the lead confirms. Same actions as before (dial, pace, lead-*); the theme stays in the browser.
 // A refresh replaces only sections whose words changed, never one being typed in or saving.
 // =====================================================================================================
+// Adding a phone: the address and a short code, shown only after the owner asks.
+let pairShown = null;
+const pairHtml = () => !pairShown || Date.now() > pairShown.until ? '' : `<ol class="m-lines"><li>On your phone, open Safari and go to ${pairShown.phoneUrl ? `<b>${esc(pairShown.phoneUrl)}</b>` : 'this PC’s Tailscale address (Tailscale isn’t connected on this PC right now)'}</li><li>Enter this code: <b class="s-code num">${esc(pairShown.code)}</b> It works once, for 10 minutes.</li><li>Tap Share, then <b>Add to Home Screen</b>.</li></ol>`;
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-pair]');
+  if (!b) return;
+  b.disabled = true;
+  try { pairShown = await post({ action: 'pair-new' }); const out = document.getElementById('s-pair'); if (out) out.innerHTML = pairHtml(); }
+  catch (x) { const out = document.getElementById('s-pair'); if (out) out.textContent = x.message; }
+  finally { b.disabled = false; }
+});
+
 const Settings = (() => {
   let mounted = '', parts = new Map(), io = null, pin = '', pinAt = 0;
   const TRUST = { strict: 'Strict', standard: 'Standard', loose: 'Loose' };
@@ -2178,7 +2190,7 @@ const Settings = (() => {
         'Shared by every project, and by your own chats and Claude Code sessions. Atelier paces itself so the plan lasts.'],
       ['look', 'Appearance', `<fieldset class="f-sec"><legend class="sr-only">Theme</legend><div class="f-row3">${Object.entries(THEME).map(([k, v]) => radio('theme', k, v, '', themePick())).join('')}</div></fieldset>`,
         'Kept in this browser only.'],
-      ['device', 'This device', `<p class="s-p">Signed in on this browser. To use Atelier on your phone, open it there, paste your access token once, and add it to the home screen.</p>`],
+      ['device', 'This device', `<p class="s-p">Signed in on this browser. To add your phone, turn on Tailscale there, then get a code here.</p><div class="s-pair" id="s-pair">${pairHtml()}</div><p class="f-actions"><button class="btn btn-secondary" type="button" data-pair>Add a device</button></p>`],
       ['projects', 'Each project', rows ? `<div class="p-rows">${rows}</div>` : `<p class="s-p">No projects yet. <a class="link" href="#/new">Start one</a>.</p>`,
         'Approvals, gating, money, shipping and the team are set per project.'],
       ['about', 'About', `<p class="s-p">${installed()}The dashboard reloads itself when a new version is installed.</p>`],

@@ -48,6 +48,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
   atelier watch <alias>             stream owner decisions and task changes (the lead runs this under Monitor)
   atelier ask <alias> approval|question|feedback|update "<title>" [--body ..] [--attach f,..] [--task id]   the lead writes to the owner's Inbox
+  atelier app [install|remove]         Atelier as its own app on this PC (Start menu and desktop)
   atelier checklist <alias> [propose|ready|add|withdraw]   the current round: what's on it and how far along
   atelier asks <alias> [--all]         the lead's threads with the owner and their answers
   atelier lead <alias>                 start the project's lead session with Remote Control
@@ -106,6 +107,7 @@ async function main() {
     case 'tools': return console.log(toolkit.describe());
     case 'costs': return costsCmd(args[0]);
     case 'service': return serviceCmd(args[0] || 'status');
+    case 'app': return appCmd(args[0] || 'install');
     case 'screen': return screenCmd();
     case 'criteria': return criteriaCmd();
     case 'ruling': return rulingCmd();
@@ -627,6 +629,32 @@ async function screenCmd() {
 // Atelier as a background service: a Windows scheduled task starts the dashboard (which is also the
 // scheduler, GitHub sync, screen watcher and lead supervisor) at logon and every 5 minutes if it isn't
 // running. Nothing then depends on the Claude app or a terminal staying open.
+// Atelier as its own window on this PC: a Start menu and desktop shortcut that opens the dashboard as an app.
+// Nothing opens until the owner clicks it.
+function appCmd(action) {
+  if (process.platform !== 'win32') throw new Error('the PC app is Windows-only for now');
+  const ps = cmd => spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', cmd], { encoding: 'utf8', windowsHide: true });
+  const places = "[Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop')";
+  if (action === 'remove') {
+    ps(`foreach ($d in ${places}) { Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $d 'Atelier.lnk') }`);
+    return console.log('removed the Atelier shortcuts');
+  }
+  if (action !== 'install') throw new Error('usage: atelier app [install|remove]');
+  const browser = [path.join(process.env['ProgramFiles(x86)'] || '', 'Microsoft/Edge/Application/msedge.exe'), path.join(process.env.ProgramFiles || '', 'Google/Chrome/Application/chrome.exe')].find(f => fs.existsSync(f));
+  if (!browser) throw new Error('needs Microsoft Edge or Google Chrome');
+  // A .ico may simply wrap a PNG.
+  const png = fs.readFileSync(path.join(PKG, 'dashboard', 'icon-192.png'));
+  const head = Buffer.alloc(22);
+  head.writeUInt16LE(1, 2); head.writeUInt16LE(1, 4); head[6] = 192; head[7] = 192; head.writeUInt16LE(1, 10); head.writeUInt16LE(32, 12); head.writeUInt32LE(png.length, 14); head.writeUInt32LE(22, 18);
+  const dir = path.join(HOME, 'service');
+  fs.mkdirSync(dir, { recursive: true });
+  const ico = path.join(dir, 'atelier.ico');
+  fs.writeFileSync(ico, Buffer.concat([head, png]));
+  const r = ps(`$w = New-Object -ComObject WScript.Shell; foreach ($d in ${places}) { $l = $w.CreateShortcut((Join-Path $d 'Atelier.lnk')); $l.TargetPath = '${browser}'; $l.Arguments = '--app=http://localhost:4747/#/inbox'; $l.IconLocation = '${ico}'; $l.Description = 'Atelier'; $l.Save() }`);
+  if (r.status !== 0) throw new Error(r.stderr.trim() || 'could not create the shortcuts');
+  console.log('Atelier is in your Start menu and on your desktop. It opens in its own window when you click it.');
+}
+
 function serviceCmd(action) {
   if (process.platform !== 'win32') throw new Error('the background service is Windows-only for now; run atelier dashboard under your init system');
   const dir = path.join(HOME, 'service');

@@ -65,3 +65,7 @@
   /* padding, not inline-flex: the link stays in the sentence's line at 360 */
   .s-sec .f-why .link { padding-block: var(--space-4); }
 }
+
+.s-pair:empty { display: none; }
+.s-pair { margin-top: var(--space-3); font-size: var(--text-sm); }
+.s-code { font-size: var(--text-lg, 18px); letter-spacing: 0.08em; margin-right: var(--space-1); }
