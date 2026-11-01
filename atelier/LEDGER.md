@@ -3,7 +3,7 @@
 <!-- One page of current state. Settled history: atelier/LEDGER-archive.md. -->
 
 ## State (2026-11-01 03:00)
-- **M2 complete.** ghjy (F-14..F-18) merged via A-20, closed, all five marked fixed. All M2 findings F-14..F-24 fixed. Nothing running. Trust strict, reporting everything. ghjy history: see git log of this file before 2026-11-01.
+- **M2 complete.** ghjy (F-14..F-18) merged via A-20, closed, all five marked fixed. All M2 findings F-14..F-24 fixed. Nothing running. Trust standard (owner, 2026-11-01 17:28), reporting everything. Lead restarted 20:46: no go in the asks, still paused. ghjy history: see git log of this file before 2026-11-01.
 - Owner kept the Inbox number as the waiting total (no note on A-20).
 
 ## Old state (2026-10-30)
