@@ -342,6 +342,8 @@ function renderChrome() {
   const aria = c => (cur === c ? ' aria-current="page"' : '');
   const inboxLabel = k ? `Inbox, ${now.waiting} waiting${now.needs ? `, ${now.needs} need${now.needs === 1 ? 's' : ''} you now` : ''}` : 'Inbox';
   const pw = a => C?.projects[a]?.waiting || 0;
+  // Next to each project: agents working there, the same figure as the Office's, so the rows add up to it.
+  const pk = a => C?.projects[a]?.working || 0;
   const plan = C?.plan?.fiveHour, pw4 = planWords(C?.plan, state?.pace);
   const atLimit = C?.atLimit || [];
   const limitLine = !P.length ? 'No projects yet' : atLimit.length ? `${atLimit.join(', ')} ${atLimit.length === 1 ? 'is' : 'are'} at ${atLimit.length === 1 ? 'its' : 'their'} daily limit` : 'Every project within its budget';
@@ -355,7 +357,7 @@ function renderChrome() {
     </nav>
     <nav class="nav" aria-label="Projects">
       <a class="nav-item" href="#/projects"${aria('projects')}>${I('projects')}Projects</a>
-      ${P.map(p => `<a class="nav-item" href="#/p/${esc(p.alias)}/overview"${aria(p.alias)} aria-label="${esc(p.alias)}${n(pw(p.alias)) && `, ${pw(p.alias)} waiting`}, lead ${p.lead?.running ? 'on' : 'off'}"><span class="dot${p.lead?.running ? ' dot-active' : ''}" role="img" aria-label="${p.lead?.running ? 'Lead on' : 'Lead off'}"></span>${esc(p.alias)}<span class="count">${n(pw(p.alias))}</span></a>`).join('')}
+      ${P.map(p => `<a class="nav-item" href="#/p/${esc(p.alias)}/overview"${aria(p.alias)} aria-label="${esc(p.alias)}${n(pk(p.alias)) && `, ${pk(p.alias)} working`}${n(pw(p.alias)) && `, ${pw(p.alias)} waiting in the Inbox`}, lead ${p.lead?.running ? 'on' : 'off'}"><span class="dot${p.lead?.running ? ' dot-active' : ''}" role="img" aria-label="${p.lead?.running ? 'Lead on' : 'Lead off'}"></span>${esc(p.alias)}<span class="count is-active">${n(pk(p.alias)) && `${pk(p.alias)} working`}</span></a>`).join('')}
       <a class="nav-item" href="#/new"${aria('new')}>${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
