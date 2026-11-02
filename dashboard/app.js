@@ -218,7 +218,10 @@ function st(status, title = status) {
     default: return svg(`<circle cx="7" cy="7" r="5.5" fill="none" stroke="${c.muted}" stroke-width="1.5"/>`);
   }
 }
-const taskStatus = t => t.status === 'failed' && /cancelled/.test(t.reason || '') ? 'cancelled' : t.status;
+// A task closed because it was cancelled, replaced or a duplicate is cancelled, never a green "Done" (C-2; the server's
+// NOT_DONE in lib/dashboard.mjs is the same rule).
+const NOT_DONE = /\b(?:cancelled|superseded|duplicate of|folded into)\b/i;
+const taskStatus = t => /^(?:failed|done)$/.test(t.status) && NOT_DONE.test(t.reason || '') ? 'cancelled' : t.status;
 // A running task the runner holds for the plan window (the server's 'paced' state): waiting, not working, never quiet.
 const pacedWords = x => `Waiting for your plan window${x?.resumesAt ? `, carries on at ${x.resumesAt}` : ''}`;
 // The server writes a real stop as exactly this; an agent's or the runner's text can merely mention the owner.
@@ -231,7 +234,7 @@ function reasonWords(t) {
   if (/^paced:/.test(r)) return 'Waiting for your plan window';
   if (/cancelled by (the )?owner/i.test(r)) return 'You cancelled it';
   if (/cancelled/i.test(r)) return 'The lead cancelled it';
-  if (/superseded/i.test(r)) return 'Replaced by later work';
+  if (/superseded|duplicate of|folded into/i.test(r)) return 'Replaced by later work';
   if (/^(merged|landed|in main)\b/i.test(r)) { const b = r.match(/\b(?:into|on|in) (main|v\d+)\b/i)?.[1]; return b ? `Merged into ${b}` : 'Merged'; }
   if (/^ready on (local )?branch/i.test(r)) return 'Ready on its branch for you to merge';
   if (/^(waiting on request|request:)/i.test(r)) return 'Waiting on another teammate';
@@ -239,7 +242,7 @@ function reasonWords(t) {
   if (t.status === 'paused' && stoppedByYou(r)) return 'You stopped it';
   // Anything else: keep it only if it already reads as a short plain sentence.
   const s = r.replace(/^for the lead:\s*/i, '').replace(/^[a-z-]+:\s*/i, '').replace(/\s*\([0-9a-f]{7,40}\)/g, '').trim();
-  return s.length <= 70 && !/[`/\\#{}<>=]|\b[0-9a-f]{7,40}\b|\b[a-z]+\/[a-z0-9-]+\b|\.(md|mjs|js|json)\b/i.test(s) ? cap1(s) : '';
+  return s.length <= 70 && !/[`/\\#{}<>=]|\b[0-9a-f]{7,40}\b|\b[a-z]+\/[a-z0-9-]+\b|\.(md|mjs|js|json)\b/i.test(s) ? titleWords(s) : '';
 }
 const STATUS_WORD = { 'needs-you': 'Needs you', running: 'Working', queued: 'Queued', planned: 'Waiting for your OK', requested: 'Request', review: 'In review', done: 'Done', stalled: 'Stalled', failed: 'Failed', cancelled: 'Cancelled', paused: 'Paused' };
 
@@ -1739,9 +1742,24 @@ const scrub = s => {
 };
 // A title in plain words (F-18): also no file names or task ids ("(e8jp: pauses…)" → "(pauses…)").
 const ID = '(?=[0-9]*[a-z])(?=[a-z]*\\d)[a-z0-9]{4}';
-const titleWords = s => dropIds(cap1(unpath(plainTitle(s).replace(/\((?=[a-z]*\d)[a-z0-9]{4}(?:[:,]\s*|\s+(?=\w))/g, '(')
+const titleWords = s => /^Request:[\s\S]*…$/.test(String(s || '')) ? requestWords(s) : dropIds(cap1(unpath(plainTitle(s).replace(/\((?=[a-z]*\d)[a-z0-9]{4}(?:[:,]\s*|\s+(?=\w))/g, '(')
   .replace(new RegExp(`\\btask ${ID}\\b`, 'g'), 'task').replace(new RegExp(`\\b(for|on|after|from|with|of) ${ID}\\b`, 'g'), '$1 the task')
   .replace(new RegExp(`\\b([A-Za-z]+) ${ID}:`, 'g'), '$1 the task:')).replace(/\s{2,}/g, ' ').trim())) || plainTitle(s);
+// A request's title is the first 80 or so characters of an agent's message, cut mid-word (C-1). Keep the whole words
+// before the cut, and before any path, code or bracket or quote the cut left open; too little left says what it is.
+const TECH_AT = new RegExp(TECH_WORD);
+const requestWords = s => {
+  let t = String(s).replace(/^Request:\s*/, '').replace(/\s*\S*…$/, '');
+  const at = t.search(TECH_AT);
+  if (at >= 0) t = t.slice(0, at);
+  for (const [o, c] of [['(', ')'], ['[', ']'], ['“', '”'], ['‘', '’']]) if (t.lastIndexOf(o) > t.lastIndexOf(c)) t = t.slice(0, t.lastIndexOf(o));
+  if ((t.match(/"/g) || []).length % 2) t = t.slice(0, t.lastIndexOf('"'));
+  const opens = [...t.matchAll(/(?<!\w)'/g)].length, shut = [...t.matchAll(/'(?!\w)/g)].length;
+  if (opens > shut) t = t.slice(0, t.search(/(?<!\w)'[^']*$/));
+  t = titleWords(t);
+  for (let before = ''; before !== t;) { before = t; t = t.replace(/[\s,;:'’(=·–—\/-]+$/, '').replace(/\s*\b(?:in|on|to|for|from|of|at|into|with|and|or|the|a|an|see|by|is|are|was|but|so|because|under|than)$/i, ''); }
+  return (t.match(/[A-Za-z]{2,}/g) || []).length < 3 ? 'A request from the team' : `Request: ${t}${/[.!?]$/.test(t) ? '' : '…'}`;
+};
 // Task ids out of a sentence: any four characters mixing letters and digits, or an all-letter id this dashboard knows.
 // Words of that shape that aren't ids (40px, a11y, h264) stay.
 const NOT_ID = /^(?:a11y|i18n|l10n|utf8|sha1|sha2|md5s|ipv4|ipv6|gpt3|gpt4|h264|h265|x264|x265|av01|vp09|mp3s|mp4s|win7|win8|py38|py39|\d+(?:px|ms|am|pm|gb|mb|kb|th|st|nd|rd|k|m|s|x|h|d|p))$/;
@@ -2978,7 +2996,7 @@ const Task = (() => {
     const role = cap1(reviewing ? 'reviewer' : m.role || 'builder');
     const v = { id: m.id, title: titleWords(m.title), a, role, k: '', word: STATUS_WORD[s] || cap1(s), stage: 1, step: '', why: '', stop: '', dock: '',
       tries, used, of, n, outs, spent, limit, reason, eta: s === 'running' && !reviewing && !paced ? T.eta : null, t, m, ag, s, last: '', quiet: paced ? 0 : ag.quietMin || 0 };
-    const merge = m.pr ? 'its pull request is ready for you to merge' : m.where === 'local' || T.autonomy === 'branch' ? `it waits on ${m.branch || 'its branch'} for you to merge` : 'it lands by itself';
+    const merge = m.pr ? 'its pull request is ready for you to merge' : m.where === 'local' || T.autonomy === 'branch' ? 'it waits on its branch for you to merge' : 'it lands by itself';
     switch (s) {
       case 'running':
         Object.assign(v, paced
@@ -3193,7 +3211,7 @@ const Task = (() => {
   function loading(id) {
     const row = (state?.projects || []).flatMap(p => p.tasks).find(x => x.id === id) || {};
     const sk = (w, h, more = '') => `<span class="skeleton" style="width:${w};height:${h}px${more}"></span>`;
-    $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back(row.project)}<h1>${esc(row.title || '')}</h1><span class="end">${liveLine()}</span></header>
+    $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back(row.project)}<h1>${esc(titleWords(row.title || ''))}</h1><span class="end">${liveLine()}</span></header>
       <div class="hf-body"><div class="p-grid t-grid" aria-busy="true" aria-label="Loading the task">
         <section class="p-now">${sk('96px', 12)}${sk('80%', 28)}${sk('95%', 16)}${sk('100%', 28, ';margin-top:8px')}</section>
         <aside class="p-facts"><div class="p-facts-in p-skel">${sk('100%', 96)}${sk('100%', 120)}</div></aside>
@@ -3202,7 +3220,7 @@ const Task = (() => {
   }
   function error(id) {
     const row = (state?.projects || []).flatMap(p => p.tasks).find(x => x.id === id) || {};
-    $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back(row.project)}<h1>${esc(row.title || id)}</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('This task')}</div></div>`;
+    $('view').innerHTML = `<div class="project task" data-id=""><header class="hf-head">${back(row.project)}<h1>${esc(row.title ? titleWords(row.title) : id)}</h1><span class="end">${liveLine()}</span></header><div class="hf-body">${loadError('This task')}</div></div>`;
     pageId = '';
   }
   // The server doesn't know this task (404): say so with a way back, and don't retry (Settings' unknown project).
