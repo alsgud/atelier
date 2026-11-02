@@ -70,7 +70,8 @@ const planWords = (plan, pace) => {
     return { used, rest, line: `${name}: ${used}. ${rest}` };
   };
   const five = one('5‑hour', plan?.fiveHour, Number(pace?.fiveHour) || 0, resetSoon), week = one('Week', plan?.sevenDay, Number(pace?.sevenDay) || 0, resetAt);
-  const short = [week && `week ${week.used}`, five && `5‑hour ${five.used}`].filter(Boolean).join(', ');
+  // the top bar's short form says "used" once, so at 360 it stays one line: "Plan used: week 3%, 5‑hour 31%"
+  const short = [week && `week ${plan.sevenDay.used}%`, five && `5‑hour ${plan.fiveHour.used}%`].filter(Boolean);
   return { five, week, short, lines: [week, five].filter(Boolean).map(x => x.line) };
 };
 
@@ -378,7 +379,7 @@ function renderChrome() {
     <a class="push" href="#/settings" aria-label="Settings${k && plan ? `, plan ${plan.used}% used` : ''}${k ? `, ${spent} spent today` : ''}"${aria('settings')}>${I('settings')}</a>`;
   $('top').innerHTML = `
     <a class="brand" href="#/inbox" aria-label="Atelier, Inbox">${lockup(20)}</a>
-    <a class="spend" href="#/settings" aria-label="Spent today on all projects ${k ? spent : 'not known yet'}.${k && pw4.lines.length ? ` Claude plan: ${pw4.lines.join(' ')}` : ''} Plan settings"><span class="spend-l">Today, all projects<b class="num">${spent}</b></span>${k && pw4.short ? `<span class="spend-p num">Plan: ${esc(pw4.short)}</span>` : ''}</a>
+    <a class="spend" href="#/settings" aria-label="Spent today on all projects ${k ? spent : 'not known yet'}.${k && pw4.lines.length ? ` Claude plan: ${pw4.lines.join(' ')}` : ''} Plan settings"><span class="spend-l">Today, all projects<b class="num">${spent}</b></span>${k && pw4.short.length ? `<span class="spend-p num">Plan used: ${pw4.short.map(x => `<span class="nw">${esc(x)}</span>`).join(', ')}</span>` : ''}</a>
     <a class="gear" href="#/settings" aria-label="Settings">${I('settings')}</a>`;
   const tabIs = t => ((t === 'projects' ? ['projects', 'new', 't', ...P.map(p => p.alias)] : [t]).includes(cur) ? ' aria-current="page"' : '');
   $('tabs').innerHTML = `
