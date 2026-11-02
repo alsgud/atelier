@@ -15,6 +15,7 @@
 
 ## Next
 1. **Round 1 approved 2026-11-03** (C-1 plain lines, C-2 honest green, C-3 phone layout, C-4 picture tour of AC-1..AC-7; $40, by 11-06, finish 11-07). Owner note: "top of the header area is blurry" → added as C-5. No backdrop-filter on the header in CSS; the cause is unknown and left to the frontend task.
+   - A-23 owner: the blurry header is a bug they don't like. Lead replied yes, it's a bug fixed in this round, and asked whether it shows on the phone, the PC or both. Suspects not in the brief: the Office panorama's top fade mask (office.css ~:91) and the iPhone safe-area top bar (shell.css ~:97).
    - **8qn5** frontend C-1/2/3/5 (8 it, $25, brief briefs/round1-polish.md): step 0 re-checks 3knx (the unreviewed polish) on real data, instead of a separate reviewer task. Running.
    - **ctf4** frontend sonnet C-4 tour (4 it, $12, --after 8qn5): screenshots per goal → send as one feedback ask so the owner judges AC-1..AC-7.
    - Under branch autonomy the owner merges 8qn5 (ask --run) before ctf4 shows main.
