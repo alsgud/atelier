@@ -1756,9 +1756,22 @@ const requestWords = s => {
   if ((t.match(/"/g) || []).length % 2) t = t.slice(0, t.lastIndexOf('"'));
   const opens = [...t.matchAll(/(?<!\w)'/g)].length, shut = [...t.matchAll(/'(?!\w)/g)].length;
   if (opens > shut) t = t.slice(0, t.search(/(?<!\w)'[^']*$/));
-  t = titleWords(t);
-  for (let before = ''; before !== t;) { before = t; t = t.replace(/[\s,;:'’(=·–—\/-]+$/, '').replace(/\s*\b(?:in|on|to|for|from|of|at|into|with|and|or|the|a|an|see|by|is|are|was|but|so|because|under|than)$/i, ''); }
+  t = trimTail(titleWords(t));
   return (t.match(/[A-Za-z]{2,}/g) || []).length < 3 ? 'A request from the team' : `Request: ${t}${/[.!?]$/.test(t) ? '' : '…'}`;
+};
+// No loose word or mark at the end of a cut line ("…from the", "…under (").
+const trimTail = t => {
+  for (let before = ''; before !== t;) { before = t; t = t.replace(/[\s,;:'’(=·–—\/-]+$/, '').replace(/\s*\b(?:in|on|to|for|from|of|at|into|with|and|or|the|a|an|see|by|is|are|was|but|so|because|under|than)$/i, ''); }
+  return t;
+};
+// Some event writers keep only the first N characters of what was said (lib/asks.mjs, messages.mjs, bin/atelier.mjs):
+// a line that long was cut, so it ends at its last whole sentence, or else on a whole word and "…" (C-1).
+const EVENT_CAP = { ask: 120, answered: 120, message: 100, requested: 100, gate: 160, 'gate-request': 160, 'ask-answered': 300, 'owner-note': 300, 'checklist-judged': 300 };
+const wholeCut = (s, cap) => {
+  const r = String(s || '').trim();
+  if (!cap || r.length < cap - 8 ||/[.!?…"”)]$/.test(r)) return r;
+  const t = r.replace(/\s*\S*$/, ''), end = Math.max(t.lastIndexOf('. '), t.lastIndexOf('! '), t.lastIndexOf('? '));
+  return end > t.length / 2 ? t.slice(0, end + 1) : `${trimTail(t)}…`;
 };
 // Task ids out of a sentence: any four characters mixing letters and digits, or an all-letter id this dashboard knows.
 // Words of that shape that aren't ids (40px, a11y, h264) stay.
@@ -1816,13 +1829,13 @@ function eventWords(e, alias) {
   // a request's title is the first words of an agent's message, cut off: it gets a plain name instead
   const S = (w, text = '', raw = '') => ({ w, text: plainTitle(text), raw: raw && raw !== text ? raw : '', task: !task ? '' : /^Request\b.*…$/s.test(task) ? 'A request from the team' : titleWords(task) });
   // a line the event log cut off mid-sentence says so
-  const auto = (w, s = m) => { const t = scrub(s).replace(/\bby (?:the )?owner\b/g, 'by you'), cut = DANGLING.test(t) ? `${t}…` : t; return S(w, cut, t !== s.trim() ? m : ''); };
+  const auto = (w, s = m) => { const t = scrub(s === m ? s : wholeCut(s, EVENT_CAP[e.type])).replace(/\bby (?:the )?owner\b/g, 'by you'), cut = DANGLING.test(t) ? `${t}…` : t; return S(w, cut, t !== s.trim() ? m : ''); };
   const was = ph => /s$/.test(ph) ? 'were' : 'was';
   // a four-letter name is a task id unless it's a real role ("lead", or a role some task has)
   const role = r => /^[a-z0-9]{4}$/.test(r) && r !== 'lead' && !(state?.projects || []).some(p => (p.tasks || []).some(t => t.role === r)) ? 'another agent' : `the ${r}`;
   // Agent-to-agent text is written for agents: when stripping it would leave a broken sentence, or it holds code, say
   // what happened in plain words and keep the original under Details.
-  const agentSay = (w, plain, s) => { const t = scrub(s); return t !== s.replace(/\s+/g, ' ').trim() || CODEY.test(s) || /\biter\d+\b|\b\d{4,}\b/.test(s) || DANGLING.test(t) ? S(plain, '', m) : S(w, t); };
+  const agentSay = (w, plain, s) => { s = wholeCut(s, EVENT_CAP[e.type]); const t = scrub(s); return t !== s.replace(/\s+/g, ' ').trim() || CODEY.test(s) || /\biter\d+\b|\b\d{4,}\b/.test(s) || DANGLING.test(t) ? S(plain, '', m) : S(w, t); };
   let x;
   switch (e.type) {
     case 'ask-answered': {
