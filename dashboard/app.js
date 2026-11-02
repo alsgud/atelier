@@ -357,7 +357,7 @@ function renderChrome() {
     </nav>
     <nav class="nav" aria-label="Projects">
       <a class="nav-item" href="#/projects"${aria('projects')}>${I('projects')}Projects</a>
-      ${P.map(p => `<a class="nav-item" href="#/p/${esc(p.alias)}/overview"${aria(p.alias)} aria-label="${esc(p.alias)}${n(pk(p.alias)) && `, ${pk(p.alias)} working`}${n(pw(p.alias)) && `, ${pw(p.alias)} waiting in the Inbox`}, lead ${p.lead?.running ? 'on' : 'off'}"><span class="dot${p.lead?.running ? ' dot-active' : ''}" role="img" aria-label="${p.lead?.running ? 'Lead on' : 'Lead off'}"></span>${esc(p.alias)}<span class="count is-active">${n(pk(p.alias)) && `${pk(p.alias)} working`}</span></a>`).join('')}
+      ${P.map(p => `<a class="nav-item" href="#/p/${esc(p.alias)}/overview"${aria(p.alias)} aria-label="${esc(p.alias)}${n(pk(p.alias)) && `, ${pk(p.alias)} working`}${n(pw(p.alias)) && `, ${pw(p.alias)} waiting in the Inbox`}, lead ${p.lead?.running ? 'on' : 'off'}"><span class="dot${p.lead?.running ? ' dot-active' : ''}" role="img" aria-label="${p.lead?.running ? 'Lead on' : 'Lead off'}"></span>${esc(p.alias)}<span class="count is-active">${n(pk(p.alias))}</span></a>`).join('')}
       <a class="nav-item" href="#/new"${aria('new')}>${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
