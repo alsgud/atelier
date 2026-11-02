@@ -17,6 +17,7 @@
 1. **Round 1 approved 2026-11-03** (C-1 plain lines, C-2 honest green, C-3 phone layout, C-4 picture tour of AC-1..AC-7; $40, by 11-06, finish 11-07). Owner note: "top of the header area is blurry" → added as C-5. No backdrop-filter on the header in CSS; the cause is unknown and left to the frontend task.
    - A-23 owner: the blurry header is a bug they don't like. Lead replied yes, it's a bug fixed in this round, and asked whether it shows on the phone, the PC or both. Suspects not in the brief: the Office panorama's top fade mask (office.css ~:91) and the iPhone safe-area top bar (shell.css ~:97).
    - **8qn5** frontend C-1/2/3/5 (8 it, $25, brief briefs/round1-polish.md): step 0 re-checks 3knx (the unreviewed polish) on real data, instead of a separate reviewer task. Running.
+   - 8qn5 reached review at step 3 of 8 (branch atelier/8qn5; 4 files). C-5 cause: the 1 px bottom border put the logo on half pixels, so it was swapped for an inset shadow. It waits on the automatic review verdict. On approval the lead checks the proof shots, then sends the owner an ask --run merge.
    - **ctf4** frontend sonnet C-4 tour (4 it, $12, --after 8qn5): screenshots per goal → send as one feedback ask so the owner judges AC-1..AC-7.
    - Under branch autonomy the owner merges 8qn5 (ask --run) before ctf4 shows main.
    - Polish round **3knx** (1 it, $4.42) merged via A-22 and closed 2026-11-01. It never finished review, so it's on main unreviewed: have a reviewer look at it first thing in the next round (lead hasn't checked its proof either).
