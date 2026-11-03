@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script>
+    // iOS 27 home-screen apps: the system blur over the top goes away without viewport-fit=cover (WebKit bug 325807). Installed app only.
+    if (navigator.standalone || matchMedia('(display-mode: standalone)').matches)
+      document.querySelector('meta[name="viewport"]').content = 'width=device-width, initial-scale=1';
+  </script>
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0b0e12">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,7 +16,6 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
   <meta name="apple-mobile-web-app-title" content="Atelier">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="components.css">
