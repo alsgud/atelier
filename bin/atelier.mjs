@@ -1166,6 +1166,8 @@ async function leadStopHook(alias) {
   let input = {};
   try { input = JSON.parse(raw); } catch { /* still decide */ }
   if (input.session_id) budget.recordLead(alias, input.session_id, input.transcript_path);
+  // The tick's wake-up reads this to tell an idle lead from a busy one (lib/tick.mjs wakeIdleLeads).
+  if (input.transcript_path) fs.writeFileSync(path.join(project.dir(alias), 'lead-transcript.txt'), input.transcript_path);
   const day = budget.today(alias);
   if (day.over || limits.waitUntil()) return;
   const asked = !input.stop_hook_active && chatAsk(alias, input);
