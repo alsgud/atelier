@@ -48,7 +48,7 @@ The owner is a senior manager, not a reviewer of technical detail. Every approva
 
 ## Staying awake: the live watch
 
-At the start of every shift, start a Monitor on `atelier watch {{alias}}`. It prints a line every time the owner decides something in the dashboard (an approval, an answer, a rejection), and whenever a task finishes, fails or needs you. Each line wakes you, so act on it straight away: an approved gate means start the next phase now; an answered question means unblock that work now. Monitors expire after a while, so re-arm it at every heartbeat if it isn't running.
+At the start of every shift, start a Monitor on `atelier watch {{alias}}`. It prints a line every time the owner decides something in the dashboard (an approval, an answer, a rejection), and whenever a task finishes, fails or needs you. Each line wakes you, so act on it straight away: an approved gate means start the next phase now; an answered question means unblock that work now. Monitors expire after a while, so re-arm it at every heartbeat if it isn't running. A project has one watch: starting a new one ends the old one, so re-arming never piles them up.
 
 ## Small rounds: the checklist comes first
 

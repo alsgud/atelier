@@ -880,10 +880,19 @@ async function watchCmd() {
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
   let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
   console.log(`watching ${alias}: owner decisions and task changes will appear here`);
+  // One watch per project, and the newest wins. A re-arm ends only the shell around the old copy, so that copy
+  // can't tell it's orphaned and nobody reads its output: it must not be able to keep the new one out.
+  const lock = path.join(project.dir(alias), 'watch.lock');
+  fs.writeFileSync(lock, String(process.pid));
+  const lockHolder = () => { try { return Number(fs.readFileSync(lock, 'utf8').trim()) || 0; } catch { return 0; } };
+  process.on('exit', () => { if (lockHolder() === process.pid) fs.rmSync(lock, { force: true }); });
+  process.stdout.on('error', () => process.exit(0));
+  endOlderWatches(alias);
   const leadPidFile = path.join(project.dir(alias), 'lead.pid');
   const myLead = fs.existsSync(leadPidFile) ? fs.readFileSync(leadPidFile, 'utf8').trim() : '';
   for (let n = 0; ; n++) {
     await new Promise(r => setTimeout(r, 2000));
+    if (![0, process.pid].includes(lockHolder())) process.exit(0);
     if (myLead && n % 15 === 0) {
       const now = fs.existsSync(leadPidFile) ? fs.readFileSync(leadPidFile, 'utf8').trim() : '';
       if (now !== myLead || !alive(Number(myLead))) { console.log('the lead session this watch belongs to has ended; stopping'); process.exit(0); }
@@ -905,6 +914,19 @@ async function watchCmd() {
       else if (TEAM.has(e.type)) console.log(`TEAM · ${e.type} · ${e.id} · ${e.msg}`);
     }
   }
+}
+
+// Copies from before the lock never look at it, so they're ended from here. Only older ones: two copies starting
+// together can't end each other. The match is on node's whole command line, so a shell or prompt that merely
+// mentions the watch is left alone.
+function endOlderWatches(alias) {
+  if (process.platform !== 'win32') return;
+  const script = `$a = [regex]::Escape($env:ATELIER_WATCH_ALIAS); $cut = [datetime]$env:ATELIER_WATCH_STARTED;
+    Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+      Where-Object { $_.ProcessId -ne ${process.pid} -and $_.CreationDate -lt $cut -and $_.CommandLine -match ('^"?[^"]*node(\\.exe)?"?\\s+"?[^"]*atelier\\.mjs"?\\s+watch\\s+' + $a + '\\s*$') } |
+      ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+  const env = { ...process.env, ATELIER_WATCH_ALIAS: alias, ATELIER_WATCH_STARTED: new Date(Date.now() - process.uptime() * 1000).toISOString() };
+  spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { env, stdio: 'ignore', windowsHide: true }).on('error', () => {});
 }
 
 function charterCmd() {
