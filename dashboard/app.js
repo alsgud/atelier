@@ -957,7 +957,7 @@ const Inbox = (() => {
     return head() + `<div class="inbox">
       <section class="focus" aria-labelledby="ttl">
         <div class="focus-head"${vt('ih')}>
-          ${(T => `<div class="typebar is-${typeOf(x.q)}"><span class="typebar-ic">${I(T.icon)}</span><div class="typebar-txt"><b class="typebar-word">${esc(T.word)}</b><span class="typebar-do">${esc(x.todo || T.todo)}</span></div></div>`)(ITEM_TYPE[typeOf(x.q)])}
+          ${(T => `<p class="typebar is-${typeOf(x.q)}"><b class="typebar-word">${esc(T.word)}</b><span class="typebar-do">${esc(x.todo || T.todo)}</span></p>`)(ITEM_TYPE[typeOf(x.q)])}
           <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${esc(x.kind)}</span></span><span class="grp"><span class="sep">·</span><a class="proj" href="#/p/${encodeURIComponent(x.project)}/overview">${esc(x.project)}</a></span>${x.ageLong ? `<span class="grp"><span class="sep">·</span><span>${esc(x.ageLong)}</span></span>` : ''}</div>
           <h2 class="title-display" id="ttl" tabindex="-1"${t ? vt(t, 'title') : ''}>${esc(x.title)}</h2>
         </div>
@@ -972,7 +972,6 @@ const Inbox = (() => {
   function render(force) {
     const html = draw();
     if (force || html !== S.last || !$('view').querySelector('.page-head')) { $('view').innerHTML = html; S.last = html; }
-    placeToast();
   }
 
   // ── transitions (Flow): only the titles that travel are named, and only at ≥ 1024 ──
@@ -1033,7 +1032,6 @@ const Inbox = (() => {
     t.className = `toast ${error ? 'toast-error' : 'toast-success'}`; t.setAttribute('role', 'status');
     t.innerHTML = `<span class="tick">${I(error ? 'alert' : 'check')}</span><span class="toast-text">${esc(text)}</span>${undo ? '<button class="toast-action" data-act="toast-undo">Undo<span class="kbd">Z</span></button>' : ''}${retry ? '<button class="toast-action" data-act="toast-retry">Try again</button>' : ''}<span class="toast-life" aria-hidden="true"></span>`;
     const box = $('toasts'); box.innerHTML = ''; box.append(t);
-    placeToast();
     // The 6 s window waits while the pointer is on the toast or focus is in it (WCAG 2.2.1), then resumes.
     let left = 6000, started = Date.now();
     const life = t.querySelector('.toast-life');
@@ -1050,28 +1048,10 @@ const Inbox = (() => {
     clearTimeout(toastTimer);
     commit();
     if (!t) return;
-    if (now || RM) { box.innerHTML = ''; placeToast(); return; }
+    if (now || RM) { box.innerHTML = ''; return; }
     t.classList.add('is-leaving');
-    setTimeout(() => { if (t.parentNode) { t.remove(); placeToast(); } }, tok('--dur-base') || 200);
+    setTimeout(() => { if (t.parentNode) t.remove(); }, tok('--dur-base') || 200);
   }
-  // The toast anchors to the dock (centred, as wide, --space-2 above it, or below when there's no room) and never
-  // covers a dock button or a tab. No dock: the CSS default.
-  function placeToast() {
-    const box = $('toasts'), dk = document.querySelector('.focus .dock, .task .t-dock');
-    if (!box) return; // the sign in screen has no shell
-    if (!box.firstChild || !dk) { box.removeAttribute('data-anchor'); ['--toast-x', '--toast-w', '--toast-top'].forEach(v => box.style.removeProperty(v)); return; }
-    const gap = tok('--space-2'), r = dk.getBoundingClientRect();
-    box.style.setProperty('--toast-x', `${r.left + r.width / 2}px`); box.style.setProperty('--toast-w', `${r.width}px`);
-    const bar = s => { const e = document.querySelector(s); if (!e) return null; const cs = getComputedStyle(e); return cs.display === 'none' || !['sticky', 'fixed'].includes(cs.position) ? null : e.getBoundingClientRect(); };
-    const topLimit = Math.max(0, ...['.hf-top', '.page-head'].map(bar).filter(Boolean).map(b => b.bottom));
-    const tabs = bar('.hf-tabs'), bottomLimit = tabs ? tabs.top : innerHeight;
-    const h = box.offsetHeight, above = r.top - gap - h, below = r.bottom + gap;
-    const top = above >= topLimit + gap ? above : below + h <= bottomLimit - gap ? below : topLimit + gap;
-    box.style.setProperty('--toast-top', `${Math.round(top)}px`); box.setAttribute('data-anchor', '');
-  }
-  addEventListener('scroll', placeToast, { passive: true });
-  addEventListener('resize', placeToast);
-  document.addEventListener('input', placeToast);
 
   // ── deciding: press → shown done in place (the hold) → the item goes, the next arrives (one transition) →
   // the toast with Undo. The action is sent when the toast closes (or you decide the next one, or leave). ──
@@ -1116,7 +1096,7 @@ const Inbox = (() => {
   function undo() {
     if (!last || !S.hidden.has(last) || S.hidden.get(last).committed) return;
     const h = S.hidden.get(last); last = null;
-    clearTimeout(toastTimer); $('toasts').innerHTML = ''; placeToast();
+    clearTimeout(toastTimer); $('toasts').innerHTML = '';
     transition('undo', () => {
       S.hidden.delete(h.x.id);
       S.items.splice(Math.min(h.i, S.items.length), 0, h.x);
@@ -1221,7 +1201,7 @@ const Inbox = (() => {
   }
   const pending = () => [...S.hidden.values()].some(h => !h.committed);
   return {
-    show, leave, pending, placeToast,
+    show, leave, pending,
     // An outcome split out of a batch is part of one decision: the batch leaves the counts once all of it has gone (F-20).
     hiddenItems: () => {
       const seen = new Set();
@@ -2327,10 +2307,9 @@ const Settings = (() => {
   function toastUndo(text, undo) {
     const box = $('toasts');
     box.innerHTML = `<div class="toast toast-success" role="status"><span class="tick">${I('check')}</span><span class="toast-text">${esc(text)}</span>${undo ? '<button class="toast-action" type="button" data-sa="undo">Undo</button>' : ''}<span class="toast-life" aria-hidden="true"></span></div>`;
-    Inbox.placeToast();
     const t = box.firstChild;
     let left = 6000, started = Date.now(), timer;
-    const close = () => { if (t.isConnected) { t.remove(); Inbox.placeToast(); } };
+    const close = () => { if (t.isConnected) t.remove(); };
     const run = () => { started = Date.now(); clearTimeout(timer); timer = setTimeout(close, left); };
     const pause = () => { clearTimeout(timer); left = Math.max(1500, left - (Date.now() - started)); };
     t.addEventListener('pointerenter', pause); t.addEventListener('focusin', pause);
@@ -3290,7 +3269,6 @@ const Task = (() => {
   function toastUndo(text) {
     const box = $('toasts');
     box.innerHTML = `<div class="toast toast-success" role="status"><span class="tick">${I('check')}</span><span class="toast-text">${esc(text)}</span><button class="toast-action" type="button" data-ta="undo">Undo</button><span class="toast-life" aria-hidden="true"></span></div>`;
-    Inbox.placeToast();
     const t = box.firstChild;
     let left = 6000, started = Date.now();
     const run = () => { started = Date.now(); clearTimeout(pend?.timer); if (pend) pend.timer = setTimeout(close, left); };
@@ -3300,7 +3278,7 @@ const Task = (() => {
     t.addEventListener('focusout', e => { if (!t.contains(e.relatedTarget) && !t.matches(':hover')) run(); });
     run();
   }
-  function close() { commit(); const box = $('toasts'); box.innerHTML = ''; Inbox.placeToast(); }
+  function close() { commit(); const box = $('toasts'); box.innerHTML = ''; }
   document.addEventListener('submit', e => {
     const form = e.target.closest('.task [data-dock]');
     if (!form) return;
@@ -3356,7 +3334,7 @@ const Task = (() => {
         if (!pend) return;
         clearTimeout(pend.timer);
         const f = pend.form; pend = null;
-        $('toasts').innerHTML = ''; Inbox.placeToast();
+        $('toasts').innerHTML = '';
         if (f?.isConnected) reset(f);
         break;
       }

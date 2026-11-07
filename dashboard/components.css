@@ -290,8 +290,9 @@ textarea.input { min-height: 64px; display: block; }
    centred on it, as wide as it (max 440), --space-2 above its top edge, or below it when there is no room above
    (the screen sets --toast-x, --toast-w and --toast-top from the dock's live position). With no dock (inbox zero),
    it sits --space-6 above the bottom, and on the phone above the tab bar. Escape or acting on the next item closes it. */
-.toasts { position: fixed; z-index: 50; left: var(--toast-x, 50%); top: var(--toast-top, auto); bottom: var(--toast-bottom, var(--space-6)); transform: translateX(-50%); display: grid; gap: var(--space-2); width: min(440px, var(--toast-w, calc(100% - var(--space-8)))); }
-.toasts[data-anchor] { bottom: auto; }
+/* The toast stays out of the content: bottom-left over the sidebar on a computer, under the top bar on a phone.
+   It used to sit right above the dock, over the next item's text. */
+.toasts { position: fixed; z-index: 50; left: var(--space-4); bottom: var(--space-4); display: grid; gap: var(--space-2); width: min(360px, calc(100% - var(--space-8))); }
 .toast { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-radius: var(--radius-md); background: var(--surface-inverse); color: var(--text-inverse); box-shadow: var(--shadow-3); font-size: var(--text-base); animation: toast-in var(--dur-base) var(--ease-out); }
 .toast .icon { color: inherit; }
 .toast-success .icon { color: var(--toast-done); }
@@ -390,7 +391,7 @@ textarea.input { min-height: 64px; display: block; }
   .dock .btn-ghost { flex: 0 0 auto; }
   .dock textarea.input { min-height: var(--size-control-lg); }
   .dock-hint { display: none; }
-  .toasts { --toast-bottom: calc(var(--size-tabbar) + env(safe-area-inset-bottom) + var(--space-2)); }
+  .toasts { left: var(--space-2); right: var(--space-2); bottom: auto; top: calc(var(--size-topbar) + var(--space-2)); width: auto; }
   .toast-action { height: var(--size-control-lg); }
   .queue { padding: var(--space-5) var(--space-2) var(--space-8); }
   .qitem, .agent, .ledger-row { min-height: var(--size-control-lg); }
@@ -409,12 +410,11 @@ textarea.input { min-height: 64px; display: block; }
 .is-review { --t: var(--type-review); --t-soft: var(--type-review-soft); }
 .is-problem { --t: var(--needs); --t-soft: var(--needs-soft); }
 .is-fyi { --t: var(--text-2); --t-soft: var(--type-fyi-soft); }
-.typebar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md, 8px); background: var(--t-soft); border-left: 3px solid var(--t); }
-.typebar-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--radius-sm); color: var(--t); background: color-mix(in srgb, var(--t) 14%, transparent); }
-.typebar-ic svg { width: 20px; height: 20px; }
-.typebar-txt { display: grid; gap: 2px; min-width: 0; }
-.typebar-word { color: var(--t); font-size: var(--text-sm); font-weight: var(--weight-medium); }
-.typebar-do { color: var(--text); font-size: var(--text-base, 15px); line-height: var(--leading-sm); }
+/* What kind of item this is and what to do, as one line of type: a dot and the kind in its colour, then the ask.
+   It was a tinted card with an icon tile and a side stripe, which read as generated filler. */
+.typebar { margin: 0; max-width: var(--measure); font-size: var(--text-base, 15px); line-height: var(--leading-sm); color: var(--text); }
+.typebar-word { display: inline-flex; align-items: center; gap: var(--space-1-5); margin-right: var(--space-2); color: var(--t); font-weight: var(--weight-semibold); }
+.typebar-word::before { content: ""; width: 7px; height: 7px; border-radius: var(--radius-full); background: currentColor; }
 .qitem-glyph[class*="is-"] { color: var(--t); background: var(--t-soft); border-color: transparent; }
 .qitem .qitem-type { color: var(--t); font-weight: var(--weight-medium); }
 /* The checklist */
