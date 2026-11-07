@@ -338,10 +338,15 @@ function place() {
   return kind || 'inbox';
 }
 
+// The owner's order for projects everywhere they're listed: lead on first, then the most recently active (its newest
+// event or task change), so what's live sits at the top and long-idle projects sink.
+const lastAt = p => Math.max(0, ...[p.events?.[0]?.ts, ...(p.tasks || []).map(t => t.updated)].map(t => Date.parse(t) || 0));
+const byRecent = list => [...list].sort((a, b) => (+!!b.lead?.running - +!!a.lead?.running) || (lastAt(b) - lastAt(a)));
+
 function renderChrome() {
   const cur = place();
   const C = counts(), k = !!C;
-  const P = (state?.projects || []).filter(p => !p.error);
+  const P = byRecent((state?.projects || []).filter(p => !p.error));
   const n = v => (k && v ? v : '');
   const now = C ? { waiting: C.waiting, needs: C.needsNow, working: C.working } : {};
   const aria = c => (cur === c ? ' aria-current="page"' : '');
@@ -1478,7 +1483,9 @@ const Office = (() => {
       return { a: p.alias, s, desks, quiet };
     });
     floors.sort((x, y) => (+x.quiet - +y.quiet) || (y.s.working - x.s.working) || ((y.s.needsNow || 0) - (x.s.needsNow || 0)) || (+y.s.lead - +x.s.lead));
-    return { C, floors };
+    // A project with its lead off and no one working gets no room, only its name in the line under the rooms.
+    const off = byRecent(state.projects.filter(p => floors.some(f => f.quiet && f.a === p.alias))).map(p => p.alias);
+    return { C, floors: floors.filter(f => !f.quiet), off };
   }
 
   const head = C => `<h1>Office</h1>${C ? `<span class="hf-sum num"><span data-count="working">${C.working}</span> working · ${C.paced ? `${C.paced} waiting for your plan window · ` : ''}<span${C.needsNow ? ' class="is-needs"' : ''}>${C.needsNow} need${C.needsNow === 1 ? 's' : ''} you</span> · ${C.onDuty} on duty</span>` : ''}<span class="end">${liveLine()}</span>`;
@@ -1489,11 +1496,15 @@ const Office = (() => {
   const floorHTML = f => `<header class="floor-head"><h2 id="fl-${esc(f.a)}"><a href="#/p/${esc(f.a)}/overview">${esc(f.a)}</a></h2><span class="floor-sum num" data-floor-sum>${floorSum(f)}</span></header>
       <div class="o1-body"><div class="o1-room" style="--dc:${bal(f.desks.length, 12)};--pc:${bal(f.desks.length, 5)}">${f.desks.map(bay).join('')}</div>
       <div class="o1-lines" data-lines>${linesOf(f)}</div></div>`;
-  const board = floors => `<div class="board of-board${failedAt ? ' is-stale' : ''}">
+  const offLine = off => off.length ? `<p class="of-off">Lead off: ${off.map(a => `<a class="link" href="#/p/${esc(a)}/overview">${esc(a)}</a>`).join(', ')}</p>` : '';
+  const board = (floors, off) => `<div class="board of-board${failedAt ? ' is-stale' : ''}">
     ${floors.map(f => `<section class="floor of-floor" aria-labelledby="fl-${esc(f.a)}" data-floor="${esc(f.a)}">${floorHTML(f)}</section>`).join('')}
+    ${offLine(off)}
     <ul class="of-legend" aria-label="How to read a desk">${LEGEND.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
 
   const empty = () => `<div class="hf-empty office-empty"><span class="of-empty-art dk" data-k="off" aria-hidden="true"><span class="dk-scene">${scene('lead', 'wide')}</span></span><h2>No one is in yet.</h2><p>Start a project and its team moves in here: a room for the project, a desk for each agent.</p><a class="btn btn-primary" href="#/new">${I('plus')}New project</a></div>`;
+
+  const idle = off => `<div class="hf-empty office-empty"><h2>No one is in right now.</h2><p>Every lead is off. Start one from its project page and its team moves in here.</p>${offLine(off)}</div>`;
 
   // PC (t652): how many whole bays fit across; a team that doesn't fit wraps into rows of equal length, and a room
   // that fits one row sits beside its words when they still get 400 px. Every room is the board's width, so this reads
@@ -1532,13 +1543,13 @@ const Office = (() => {
 
   function show() {
     const view = $('view');
-    const { C, floors } = model();
-    const next = floors.map(f => `${f.a}${f.quiet ? '~' : ''}:${f.desks.map(d => d.key).join(',')}`).join('|');
+    const { C, floors, off } = model();
+    const next = floors.map(f => `${f.a}:${f.desks.map(d => d.key).join(',')}`).join('|') + `#${off.join(',')}`;
     const body = view.querySelector(':scope > .hf-body.office');
     if (body && next === sig && floors.length) patch(view, C, floors);
     else {
       sig = next;
-      view.innerHTML = `<header class="hf-head" data-office-head>${head(C)}</header><div class="hf-body office">${defs}${floors.length ? board(floors) : empty()}</div>`;
+      view.innerHTML = `<header class="hf-head" data-office-head>${head(C)}</header><div class="hf-body office">${defs}${floors.length ? board(floors, off) : off.length ? idle(off) : empty()}</div>`;
       shown = new Map(floors.flatMap(f => f.desks.map(d => [`${f.a}/${d.key}`, JSON.stringify({ ...d, i: 0 })])));
       lines = new Map(floors.map(f => [f.a, linesOf(f)]));
       watch(view);
@@ -1661,7 +1672,7 @@ const Projects = (() => {
 
   function show() {
     const C = counts(), view = $('view');
-    const list = state.projects.map(p => card(p, C));
+    const list = byRecent(state.projects).map(p => card(p, C));
     const ids = list.map(x => x.id).join('|');
     const root = view.querySelector(':scope > .pjs');
     const box = root?.querySelector('.pj-list:not([aria-busy])');
