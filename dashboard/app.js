@@ -1633,11 +1633,11 @@ const Projects = (() => {
   const inner = m => {
     const { p, S, now, ph } = m;
     return `<span class="pj-top">
-        <span class="pj-name"><b>${esc(p.alias)}</b><span class="p-lead${S.lead ? '' : ' is-off'}"><span class="dot${S.lead ? ' dot-active' : ''}" aria-hidden="true"></span>${S.lead ? 'Lead on' : 'Lead off'}</span></span>
-        <span class="strip" aria-hidden="true">${m.desks.map(k => `<i data-k="${k}"></i>`).join('')}</span>
-        <span class="pj-wait num">${waitHTML(S)}</span>
+        <span class="pj-name${S.lead ? '' : ' is-off'}"><b>${esc(p.alias)}</b><span class="p-lead${S.lead ? '' : ' is-off'}"><span class="dot${S.lead ? ' dot-active' : ''}" aria-hidden="true"></span>${S.lead ? 'Lead on' : 'Lead off'}</span></span>
+        ${S.lead ? `<span class="strip" aria-hidden="true">${m.desks.map(k => `<i data-k="${k}"></i>`).join('')}</span>` : ''}
+        ${S.waiting ? `<span class="pj-wait num">${waitHTML(S)}</span>` : ''}
       </span>
-      <span class="pj-now">${esc(now)}</span>
+      ${S.lead || S.waiting ? `<span class="pj-now">${esc(now)}</span>` : ''}
       <span class="pj-foot num">
         <span class="pj-ph"><span class="pj-phase" aria-hidden="true">${PHASES.map((n, i) => `<i class="${i < ph ? 'past' : i === ph ? 'now' : ''}"></i>`).join('')}</span><span><b>${cap1(PHASES[ph])}</b>${S.outcomes?.of ? ` · ${S.outcomes.met} of ${S.outcomes.of} outcomes met` : ''}</span></span>
         <span>${tasksLine(S)}</span>
