@@ -60,14 +60,15 @@ const resetSoon = sec => `${resetAt(sec)}${resetIn(sec) === 'now' ? '' : `, ${re
 // The Claude plan in words, the same on every screen (F-4, F-16): each window always says "used", where Atelier stops
 // (Settings › pause at), so how much at least stays the owner's, and when it resets:
 // "Week: 44% used. Atelier stops at 90%, so at least 10% stays yours. Resets Tue 3 Nov, 02:00."
-// `rest` is that line after "Week: 44% used." for a meter that already shows the figure.
+// `rest` is that line after "Week: 44% used." for a meter that already shows the figure; `brief` is the sidebar's
+// one line, "Week 44% · resets Tue 3 Nov, 02:00", with the full sentence on hover (owner's call, replacing F-16 there).
 const planWords = (plan, pace) => {
   const one = (name, x, stop, when) => {
     if (!x) return null;
     const used = `${x.used}% used`;
     const mid = !stop ? '' : x.used < stop ? `Atelier stops at ${stop}%, so at least ${100 - stop}% stays yours. ` : `Atelier has stopped at ${stop}%, so the rest is yours. `;
     const rest = `${mid}Resets ${when(x.resetsAt)}.`;
-    return { used, rest, line: `${name}: ${used}. ${rest}` };
+    return { used, rest, line: `${name}: ${used}. ${rest}`, brief: `${name} ${x.used}% · resets ${when(x.resetsAt)}` };
   };
   const five = one('5‑hour', plan?.fiveHour, Number(pace?.fiveHour) || 0, resetSoon), week = one('Week', plan?.sevenDay, Number(pace?.sevenDay) || 0, resetAt);
   // the top bar's short form says "used" once, so at 360 it stays one line: "Plan used: week 3%, 5‑hour 31%"
@@ -365,7 +366,7 @@ function renderChrome() {
       <a class="nav-item" href="#/new"${aria('new')}>${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
-      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${k && plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${k && plan ? Math.min(100, plan.used) : 0}%"></i></div>${k && pw4.lines.length ? [pw4.five, pw4.week].filter(Boolean).map(x => `<span class="meter-foot">${esc(x.line)}</span>`).join('') : '<span class="meter-foot">Shows after the first run</span>'}</div>
+      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${k && plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${k && plan ? Math.min(100, plan.used) : 0}%"></i></div>${k && pw4.lines.length ? [pw4.five, pw4.week].filter(Boolean).map(x => `<span class="meter-foot" title="${esc(x.line)}">${esc(x.brief)}</span>`).join('') : '<span class="meter-foot">Shows after the first run</span>'}</div>
       <div class="meter"><div class="meter-head"><span>Spent today</span><b class="num">${spent}</b></div><span class="meter-foot">${esc(limitLine)}</span></div>
       <a class="nav-item" href="#/settings"${aria('settings')} style="margin:0 calc(-1 * var(--space-2))">${I('settings')}Settings</a>
     </div>`;
