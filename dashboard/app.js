@@ -130,10 +130,34 @@ function askMedia(a, { hero = true } = {}) {
   const frame = f => `<a href="${esc(url(f))}" target="_blank" rel="noopener" class="frame${/(390|360|phone)/i.test(f.name) ? ' is-phone' : ''}" aria-label="${esc(cap(f))}, opens full size in a new tab">
       <span class="frame-img">${f.video ? `<video src="${esc(url(f))}" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video><span class="play">${I('play')}Recording</span>` : `<img src="${esc(url(f))}" alt="" decoding="async" loading="lazy">`}</span>
       <span class="frame-cap"><b>${esc(cap(f))}</b><span>Open ${I('external')}</span></span></a>`;
-  const links = [...other.map(f => `<a href="${esc(url(f))}" target="_blank" rel="noopener">${I(f.page ? 'external' : 'log')}${f.page ? 'Open the page' : 'Open'}: ${esc(cap(f))}</a>`),
-    ...(a.links || []).filter(l => /^https?:\/\//.test(l)).map(l => `<a href="${esc(l)}" target="_blank" rel="noopener">${I('external')}${esc(l.replace(/^https?:\/\//, ''))}</a>`)];
-  return `${pics.length ? `<div class="frames${hero ? ' is-hero' : ''}">${pics.map(frame).join('')}</div>` : ''}${sounds(heard, url)}${links.length ? `<div class="links">${links.join('')}</div>` : ''}`;
+  // Pages, and the team's servers on this PC, open inside the item: trying something never needs a new browser tab.
+  // A server an approval starts shows once it has run (its address from --link, or from what the run printed).
+  const live = !a.run || a.run.state === 'done';
+  const printed = a.run?.state === 'done' ? (a.run.output || '').match(/https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?[^\s'"<>)]*/gi) || [] : [];
+  const web = [...new Set([...(a.links || []).filter(l => /^https?:\/\//.test(l)), ...printed])];
+  const local = web.filter(l => LOCAL.test(l)), away = web.filter(l => !LOCAL.test(l));
+  const tries = [...other.filter(f => f.page).map(f => tryFrame(url(f), cap(f))), ...(live ? local.map((l, i) => tryFrame(here(l), local.length > 1 ? `Try it · ${i + 1}` : 'Try it')) : [])];
+  const links = [...other.filter(f => !f.page).map(f => `<a href="${esc(url(f))}" target="_blank" rel="noopener">${I('log')}Open: ${esc(cap(f))}</a>`),
+    ...away.map(l => `<a href="${esc(l)}" target="_blank" rel="noopener">${I('external')}${esc(l.replace(/^https?:\/\//, ''))}</a>`)];
+  return `${pics.length ? `<div class="frames${hero ? ' is-hero' : ''}">${pics.map(frame).join('')}</div>` : ''}${sounds(heard, url)}${tries.join('')}${!live && local.length ? `<p class="faint" style="margin:0;font-size:var(--text-sm)">Approve it and the page shows here, ready to try.</p>` : ''}${links.length ? `<div class="links">${links.join('')}</div>` : ''}`;
 }
+const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(:\d+)?(\/|$)/i;
+// On the phone (over Tailscale) "localhost" is the phone itself: point at this PC instead.
+const here = u => ['localhost', '127.0.0.1'].includes(location.hostname) ? u : u.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)/i, `$1${location.hostname}`);
+const tryFrame = (src, label) => `<figure class="tryframe" data-w="wide"><figcaption class="tryframe-bar"><b>${esc(label)}</b>
+    <span class="tryframe-w" role="group" aria-label="Width"><button type="button" class="btn btn-ghost btn-sm" data-frame-w="wide" aria-pressed="true">Desktop</button><button type="button" class="btn btn-ghost btn-sm" data-frame-w="phone" aria-pressed="false">Phone</button></span>
+    <a class="link" href="${esc(src)}" target="_blank" rel="noopener">Full screen${I('external')}</a></figcaption>
+    <div class="tryframe-box"><iframe src="${esc(src)}" title="${esc(label)}" loading="lazy" allow="microphone; camera; autoplay; clipboard-write; fullscreen"></iframe></div></figure>`;
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-frame-w]');
+  if (!b) return;
+  const f = b.closest('.tryframe');
+  f.dataset.w = b.dataset.frameW;
+  f.querySelectorAll('[data-frame-w]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+});
+// Each project's own colour on its Inbox items, so where an item comes from reads at a glance (a hue from its name).
+const hueOf = a => [...String(a)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+const pchip = (a, cls = '') => `<span class="pchip${cls}" style="--ph:${hueOf(a)}">${esc(a)}</span>`;
 // What an Inbox item is, said the same way everywhere: its type (icon, colour and word) and what the owner does with it.
 const ITEM_TYPE = {
   decide: { word: 'Decision needed', icon: 'outcome', todo: 'Approve it, or say what to change.' },
@@ -143,7 +167,7 @@ const ITEM_TYPE = {
   fyi: { word: 'Just so you know', icon: 'log', todo: 'Nothing to decide. Read it when you like.' },
 };
 const typeOf = q => {
-  if (q.kind === 'ask') return { approval: 'decide', question: 'answer', feedback: 'review' }[q.ask?.kind] || 'fyi';
+  if (q.kind === 'ask') return q.ask?.reply ? (q.ask.run?.state === 'done' ? 'review' : 'fyi') : { approval: 'decide', question: 'answer', feedback: 'review' }[q.ask?.kind] || 'fyi';
   return { gate: 'decide', charter: 'decide', 'charter-tampered': 'problem', criterion: 'decide', criteria: 'decide', plan: 'decide', dial: 'decide', screen: 'decide', checklist: 'decide',
     question: 'answer', 'owner-criterion': 'review', 'checklist-item': 'review', finding: 'problem', budget: 'problem', github: 'problem', 'screen-notice': 'fyi' }[q.kind] || 'fyi';
 };
@@ -342,6 +366,34 @@ function place() {
 // event or task change), so what's live sits at the top and long-idle projects sink.
 const lastAt = p => Math.max(0, ...[p.events?.[0]?.ts, ...(p.tasks || []).map(t => t.updated)].map(t => Date.parse(t) || 0));
 const byRecent = list => [...list].sort((a, b) => (+!!b.lead?.running - +!!a.lead?.running) || (lastAt(b) - lastAt(a)));
+
+// Writing to a lead without leaving Atelier (the Inbox's "Write to a lead"): it reaches the lead as an owner note,
+// wakes it, and its reply comes back to the Inbox. The dialog sits outside #view, so a live refresh never clears it.
+function writeLead(to) {
+  const P = byRecent((state?.projects || []).filter(p => !p.error));
+  if (!P.length) return;
+  let d = $('writeLead');
+  if (!d) { document.body.insertAdjacentHTML('beforeend', '<dialog id="writeLead" class="wl" aria-labelledby="wl-h"></dialog>'); d = $('writeLead'); }
+  const pick = P.some(p => p.alias === to) ? to : P[0].alias;
+  d.innerHTML = `<form method="dialog" class="wl-form"><h2 id="wl-h">Write to a lead</h2>
+    <div class="field"><label class="field-label" for="wl-to">To</label><select class="input" id="wl-to">${P.map(p => `<option value="${esc(p.alias)}"${p.alias === pick ? ' selected' : ''}>${esc(p.alias)}${p.lead?.running ? '' : ' (lead off: reads it when it starts)'}</option>`).join('')}</select></div>
+    <div class="field"><label class="field-label" for="wl-text">Message</label><textarea class="input" id="wl-text" rows="5" placeholder="An instruction, a correction, or a question"></textarea><span class="field-error" id="wl-err" hidden>${I('alert')}Write something first.</span></div>
+    <p class="wl-hint">The lead is woken straight away, and its reply comes to your Inbox.</p>
+    <div class="dock-row"><button class="btn btn-primary" value="send">Send</button><button class="btn btn-ghost" value="cancel">Cancel</button></div></form>`;
+  d.querySelector('form').addEventListener('submit', async e => {
+    if (e.submitter?.value !== 'send') return;
+    e.preventDefault();
+    const text = $('wl-text').value.trim(), project = $('wl-to').value;
+    if (!text) { $('wl-err').hidden = false; return $('wl-text').focus(); }
+    e.submitter.disabled = true;
+    try { await post({ action: 'lead-note', project, text }); d.close(); toast(`Sent to the ${project} lead`); refresh(); }
+    catch (err) { toast(/fetch|network/i.test(err.message) ? 'Couldn’t reach Atelier. Nothing was sent.' : err.message, { error: true }); }
+    e.submitter.disabled = false;
+  });
+  d.showModal();
+  $('wl-text').focus();
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-write-lead]'); if (b) { e.preventDefault(); writeLead(b.dataset.writeLead); } });
 
 function renderChrome() {
   const cur = place();
@@ -800,6 +852,24 @@ const Inbox = (() => {
         const words = `${k.body ? `<div class="doc">${md(k.body)}</div>` : ''}${askMedia(k)}`;
         const thread = (k.thread || []).length ? `<p class="faint" style="margin:0;font-size:var(--text-sm)"><a class="link" href="${M}">${k.thread.length} earlier ${k.thread.length === 1 ? 'reply' : 'replies'} in this thread</a></p>` : '';
         const common = { ...base, todo: k.todo, glyph: { approval: 'outcome', question: 'question', feedback: 'design', update: 'log' }[k.kind] || 'log', kind: `${ASK_KIND[k.kind] || 'Message'} from the lead`, short: k.kind === 'update' ? 'update' : `lead ${k.kind}` };
+        // The lead answering in a thread (a note the owner wrote, or a follow-up): its reply first, what the owner said under it.
+        // An approval that started something to try: it comes back with the page inside, ready.
+        if (k.reply && k.run?.state === 'done') return { ...common, kind: 'Ready to try', short: 'ready to try', title: `Ready to try: ${base.title}`, todo: 'Try it here, then tell the lead what you found.',
+          body: () => words,
+          dock: { note: 'What you found (it goes to the lead)', primary: 'Done', ghost: 'All messages', ghostHref: M,
+            send: (w, note) => send(note ? 'answer' : 'seen', note),
+            done: 'Sent to the lead.', toast: 'Done.', log: `Tried: ${q.title}` } };
+        if (k.reply) {
+          const T = k.thread || [], mine = T.map(t => t.from).lastIndexOf('owner');
+          const said = T.slice(mine + 1).filter(t => t.from === 'lead').map(t => t.text).join('\n\n');
+          const you = mine >= 0 ? T[mine] : { text: k.body };
+          const youWords = you.text ? md(you.text) : `<p>${esc({ approve: 'You approved it.', decline: 'You said not yet.', seen: 'You marked it read.', answer: 'You answered.' }[you.verdict] || '')}</p>`;
+          return { ...common, kind: 'Reply from the lead', short: 'lead reply', title: `Reply: ${base.title}`, todo: 'Read the lead’s reply, and write back if you want to.',
+            body: () => `<div class="doc">${md(said)}</div><blockquote class="m-you"><span class="section-label">You wrote</span>${youWords}</blockquote>${askMedia(k)}`,
+            dock: { note: 'Write back to the lead (optional)', primary: 'Got it', ghost: 'All messages', ghostHref: M,
+              send: (w, note) => send(note ? 'answer' : 'seen', note),
+              done: 'Noted.', toast: 'Noted.', log: `Read the reply: ${q.title}` } };
+        }
         if (k.kind === 'approval') return { ...common, body: () => words + askRun(k) + thread,
           dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what to change, so the lead can rework it.', primary: 'Approve', secondary: 'Not yet', ghost: 'All messages', ghostHref: M,
             send: (w, note) => send(w === 'secondary' ? 'decline' : 'approve', note),
@@ -895,7 +965,7 @@ const Inbox = (() => {
     return `<a href="#/inbox/${encodeURIComponent(x.id)}" class="qitem" data-id="${esc(x.id)}" ${cur ? 'aria-current="true"' : ''}${rowsMove() ? vt(`q-${cssId(x.id)}`, 'row') : ''} aria-label="${esc(x.title)}. ${esc(x.project)}, ${esc(x.short)}${x.ageLong ? `, ${esc(x.ageLong)}` : ''}${x.needs ? '. Needs you now' : ''}">
       <span class="qitem-glyph is-${typeOf(x.q)}">${I(ITEM_TYPE[typeOf(x.q)].icon)}</span><span class="qitem-title"${t ? vt(t, 'title') : ''}>${esc(x.title)}</span>
       <span class="qitem-side">${x.needs ? '<span class="dot dot-needs" role="img" aria-label="Needs you now"></span>' : ''}<span class="qitem-age">${esc(x.age)}</span></span>
-      <span class="qitem-meta"><b class="qitem-type is-${typeOf(x.q)}">${esc(ITEM_TYPE[typeOf(x.q)].word)}</b><span class="sep"> · </span>${esc(x.project)}</span></a>`;
+      <span class="qitem-meta">${pchip(x.project, ' is-sm')}<b class="qitem-type is-${typeOf(x.q)}">${esc(ITEM_TYPE[typeOf(x.q)].word)}</b></span></a>`;
   }
   function agent(a, named) {
     const fig = a.of ? figure(a) : '';
@@ -942,7 +1012,8 @@ const Inbox = (() => {
       <button class="btn btn-ghost btn-icon btn-sm" data-go="1" aria-label="Next item">${I('chevron-right')}</button>
       <span class="hint"><span class="kbd">J</span><span class="kbd">K</span> to move</span></div>` : '';
     const summary = !state ? '' : n ? `${n} waiting${u ? ` · <span class="is-needs">${u} need${u === 1 ? 's' : ''} you now</span>` : ''}` : 'Nothing waiting';
-    return `<header class="page-head"${vt('head')}><h1>Inbox</h1><span class="summary num">${summary}</span>${pager}${liveLine()}</header>`;
+    const to = L.find(x => x.id === S.open)?.project || '';
+    return `<header class="page-head"${vt('head')}><h1>Inbox</h1><span class="summary num">${summary}</span>${pager}${liveLine()}<button type="button" class="btn btn-secondary btn-sm wl-open" data-write-lead="${esc(to)}">${I('plus')}Write to a lead</button></header>`;
   }
   function draw() {
     if (!state) { return `<header class="page-head"><h1>Inbox</h1>${liveLine()}</header><div class="hf-body">${loadError('The Inbox')}<aside class="faint" style="font-size:var(--text-sm)">The list comes back when the Inbox loads.</aside></div>`; }
@@ -963,8 +1034,9 @@ const Inbox = (() => {
     return head() + `<div class="inbox">
       <section class="focus" aria-labelledby="ttl">
         <div class="focus-head"${vt('ih')}>
+          <a class="pchip" href="#/p/${encodeURIComponent(x.project)}/overview" style="--ph:${hueOf(x.project)}" aria-label="From ${esc(x.project)}">${esc(x.project)}</a>
           ${(T => `<p class="typebar is-${typeOf(x.q)}"><b class="typebar-word">${esc(T.word)}</b><span class="typebar-do">${esc(x.todo || T.todo)}</span></p>`)(ITEM_TYPE[typeOf(x.q)])}
-          <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${esc(x.kind)}</span></span><span class="grp"><span class="sep">·</span><a class="proj" href="#/p/${encodeURIComponent(x.project)}/overview">${esc(x.project)}</a></span>${x.ageLong ? `<span class="grp"><span class="sep">·</span><span>${esc(x.ageLong)}</span></span>` : ''}</div>
+          <div class="eyebrow">${x.needs ? `<span class="is-needs"><span class="dot dot-needs"></span>Needs you now</span>` : ''}<span class="grp">${x.needs ? '<span class="sep">·</span>' : ''}<span class="kind">${esc(x.kind)}</span></span>${x.ageLong ? `<span class="grp"><span class="sep">·</span><span>${esc(x.ageLong)}</span></span>` : ''}</div>
           <h2 class="title-display" id="ttl" tabindex="-1"${t ? vt(t, 'title') : ''}>${esc(x.title)}</h2>
         </div>
         <div class="focus-body"${vt('ib')}>${x.body()}</div>
