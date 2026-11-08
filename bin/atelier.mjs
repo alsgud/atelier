@@ -1140,8 +1140,7 @@ function leadContext(alias) {
   if (!process.stdin.isTTY) try {
     const input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}');
     if (input.transcript_path) fs.writeFileSync(path.join(project.dir(alias), 'lead-transcript.txt'), input.transcript_path);
-  } catch (e) { process.stderr.write(`DBG ${e.code} ${e.message}
-`); /* still give the context */ }
+  } catch { /* still give the context */ }
   const repo = resolveRepo(alias);
   const p = project.load(alias);
   const crit = decisions.loadCriteria(alias).criteria;
