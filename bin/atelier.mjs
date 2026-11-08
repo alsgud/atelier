@@ -1135,6 +1135,13 @@ function lead(alias) {
 
 // SessionStart hook for the lead: hands it the decision layer and ledger as fresh context.
 function leadContext(alias) {
+  // Record this session's transcript from its start, not only once it finishes a turn: a lead whose first turn
+  // dies on an API error never reaches its Stop hook (lib/tick.mjs restartErroredLeads reads this).
+  if (!process.stdin.isTTY) try {
+    const input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}');
+    if (input.transcript_path) fs.writeFileSync(path.join(project.dir(alias), 'lead-transcript.txt'), input.transcript_path);
+  } catch (e) { process.stderr.write(`DBG ${e.code} ${e.message}
+`); /* still give the context */ }
   const repo = resolveRepo(alias);
   const p = project.load(alias);
   const crit = decisions.loadCriteria(alias).criteria;
