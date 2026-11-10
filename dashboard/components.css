@@ -468,3 +468,9 @@ a.pchip:hover { background: color-mix(in srgb, var(--pc) 22%, transparent); }
 .wl-form .field { display: grid; gap: var(--space-1-5); }
 .wl-form .input { width: 100%; }
 .wl-hint { margin: 0; color: var(--text-2); font-size: var(--text-sm); }
+
+/* The sidebar's plan meter: one bar per window (5-hour, week), each under its own line, with a tick where Atelier stops. */
+.meter-win { display: grid; gap: var(--space-1); }
+.meter-win .meter-track { position: relative; overflow: visible; }
+.meter-win .meter-track i { overflow: hidden; }
+.meter-stop { position: absolute; top: -2px; bottom: -2px; left: var(--at); width: 2px; border-radius: 1px; background: var(--text-3); }

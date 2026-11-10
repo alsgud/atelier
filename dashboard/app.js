@@ -365,12 +365,13 @@ function place() {
 // The owner's order for projects everywhere they're listed: lead on first, then the most recently active (its newest
 // event or task change), so what's live sits at the top and long-idle projects sink.
 const lastAt = p => Math.max(0, ...[p.events?.[0]?.ts, ...(p.tasks || []).map(t => t.updated)].map(t => Date.parse(t) || 0));
-const byRecent = list => [...list].sort((a, b) => (+!!b.lead?.running - +!!a.lead?.running) || (lastAt(b) - lastAt(a)));
+// Closed projects go last, wherever they still show.
+const byRecent = list => [...list].sort((a, b) => (+!!a.closed - +!!b.closed) || (+!!b.lead?.running - +!!a.lead?.running) || (lastAt(b) - lastAt(a)));
 
 // Writing to a lead without leaving Atelier (the Inbox's "Write to a lead"): it reaches the lead as an owner note,
 // wakes it, and its reply comes back to the Inbox. The dialog sits outside #view, so a live refresh never clears it.
 function writeLead(to) {
-  const P = byRecent((state?.projects || []).filter(p => !p.error));
+  const P = byRecent((state?.projects || []).filter(p => !p.error && !p.closed));
   if (!P.length) return;
   let d = $('writeLead');
   if (!d) { document.body.insertAdjacentHTML('beforeend', '<dialog id="writeLead" class="wl" aria-labelledby="wl-h"></dialog>'); d = $('writeLead'); }
@@ -398,7 +399,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-writ
 function renderChrome() {
   const cur = place();
   const C = counts(), k = !!C;
-  const P = byRecent((state?.projects || []).filter(p => !p.error));
+  const P = byRecent((state?.projects || []).filter(p => !p.error && !p.closed));
   const n = v => (k && v ? v : '');
   const now = C ? { waiting: C.waiting, needs: C.needsNow, working: C.working } : {};
   const aria = c => (cur === c ? ' aria-current="page"' : '');
@@ -423,7 +424,7 @@ function renderChrome() {
       <a class="nav-item" href="#/new"${aria('new')}>${I('plus')}New project</a>
     </nav>
     <div class="sidebar-foot">
-      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span></div><div class="meter-track${plan && plan.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${k && plan ? `${plan.used}% of the 5-hour window used` : 'Plan use not known yet'}"><i style="--value:${k && plan ? Math.min(100, plan.used) : 0}%"></i></div>${k && pw4.lines.length ? [pw4.five, pw4.week].filter(Boolean).map(x => `<span class="meter-foot" title="${esc(x.line)}">${esc(x.brief)}</span>`).join('') : '<span class="meter-foot">Shows after the first run</span>'}</div>
+      <div class="meter" title="Your whole Claude plan: this includes your own chats and Claude Code sessions, not just Atelier."><div class="meter-head"><span>Claude plan</span></div>${k && pw4.lines.length ? [[pw4.five, C.plan.fiveHour, '5-hour window', state?.pace?.fiveHour], [pw4.week, C.plan.sevenDay, 'week', state?.pace?.sevenDay]].filter(([x]) => x).map(([x, w, name, stop]) => `<div class="meter-win"><span class="meter-foot" title="${esc(x.line)}">${esc(x.brief)}</span><div class="meter-track${w.used >= 100 ? ' is-full' : ''}" role="img" aria-label="${esc(`${w.used}% of the ${name} used`)}"><i style="--value:${Math.min(100, w.used)}%"></i>${Number(stop) ? `<b class="meter-stop" style="--at:${Number(stop)}%" title="Atelier stops here"></b>` : ''}</div></div>`).join('') : '<span class="meter-foot">Shows after the first run</span>'}</div>
       <div class="meter"><div class="meter-head"><span>Spent today</span><b class="num">${spent}</b></div><span class="meter-foot">${esc(limitLine)}</span></div>
       <a class="nav-item" href="#/settings"${aria('settings')} style="margin:0 calc(-1 * var(--space-2))">${I('settings')}Settings</a>
     </div>`;
@@ -1548,7 +1549,7 @@ const Office = (() => {
   function model() {
     const C = counts();
     let i = 0;
-    const floors = state.projects.filter(p => !p.error && p.team).map(p => {
+    const floors = state.projects.filter(p => !p.error && p.team && !p.closed).map(p => {
       const s = C.projects[p.alias] || {};
       const { desks, quiet } = teamOf(p, s);
       for (const d of desks) d.i = i++;
@@ -1717,7 +1718,7 @@ const Projects = (() => {
   const inner = m => {
     const { p, S, now, ph } = m;
     return `<span class="pj-top">
-        <span class="pj-name${S.lead ? '' : ' is-off'}"><b>${esc(p.alias)}</b><span class="p-lead${S.lead ? '' : ' is-off'}"><span class="dot${S.lead ? ' dot-active' : ''}" aria-hidden="true"></span>${S.lead ? 'Lead on' : 'Lead off'}</span></span>
+        <span class="pj-name${S.lead ? '' : ' is-off'}"><b>${esc(p.alias)}</b><span class="p-lead${S.lead ? '' : ' is-off'}"><span class="dot${S.lead ? ' dot-active' : ''}" aria-hidden="true"></span>${p.closed ? 'Closed' : S.lead ? 'Lead on' : 'Lead off'}</span></span>
         ${S.lead ? `<span class="strip" aria-hidden="true">${m.desks.map(k => `<i data-k="${k}"></i>`).join('')}</span>` : ''}
         ${S.waiting ? `<span class="pj-wait num">${waitHTML(S)}</span>` : ''}
       </span>
@@ -2323,6 +2324,9 @@ const Settings = (() => {
       ['report', 'Reporting', `<div class="choices">${radio('reporting', 'everything', 'Everything', 'Every event reaches you.', p.reporting, tag('reporting', 'everything'))}${radio('reporting', 'daily', 'A daily digest', 'One summary each day.', p.reporting, tag('reporting', 'daily'))}${radio('reporting', 'exceptions', 'Only exceptions', 'Only what needs you and what went wrong.', p.reporting, tag('reporting', 'exceptions'))}</div>`],
       ['read', 'What you read', `<div class="f-row2">${radio('summaryStyle', 'plain', 'Plain words', 'Short summaries of what it means for the product.', p.summaryStyle)}${radio('summaryStyle', 'technical', 'Technical', 'Full detail: files, tests and diffs.', p.summaryStyle)}</div>`],
       ['team', 'Team', `<table class="s-team"><thead><tr><th scope="col">Role</th><th scope="col">Files it owns</th><th scope="col">Model</th></tr></thead><tbody>${(p.roster || []).map(r => `<tr><th scope="row"><span class="dot${working.has(r.role) ? ' dot-active' : ''}" aria-hidden="true"></span>${esc(cap1(r.role.replace(/-/g, ' ')))}${working.has(r.role) ? '<span class="sr-only">, working</span>' : ''}</th><td>${r.owns?.length ? esc(r.owns.join(', ')) : 'Reads everything, writes nothing'}</td><td>${model(r) ? esc(cap1(model(r))) : 'Set per task'}</td></tr>`).join('')}</tbody></table>`],
+      ['close', p.closed ? 'Closed' : 'Close the project', p.closed
+        ? `<p class="field-help" style="margin:0">Closed ${esc(day(p.closed))}. Its lead is off, nothing is pushed to GitHub, and it stays out of your Inbox, the sidebar and the Office. Its history stays here.</p><div class="f-actions"><button class="btn btn-secondary" type="button" data-sa="reopen">${I('refresh')}Reopen it</button></div>`
+        : `<p class="field-help" style="margin:0">When you’re done with it: the lead stops, nothing more is pushed to GitHub, and it leaves your Inbox, the sidebar and the Office. Its history stays here, and you can reopen it any time.</p><div class="f-actions"><button class="btn btn-secondary" type="button" data-sa="close">${I('x')}Close ${A}</button></div>`],
       ['numbers', 'Numbers', `<dl class="s-dl"><dt>Your approvals</dt><dd class="num">${p.metrics?.approvals ?? 0}</dd><dt>Overruled by you</dt><dd>${p.metrics?.overrules ? `<span class="num">${p.metrics.overrules}</span> time${p.metrics.overrules === 1 ? '' : 's'}` : 'Never yet'}</dd><dt>Audit hit rate</dt><dd>${p.hit?.judged ? `<span class="num">${p.hit.confirmed}</span> of <span class="num">${p.hit.judged}</span> findings confirmed` : 'No findings judged yet'}</dd><dt>Full test suite</dt><dd>${p.suite ? `<code>${esc(p.suite)}</code>` : 'Not set yet: the lead sets it'}</dd><dt>Project folder</dt><dd><code>${esc(p.repo || '')}</code></dd></dl>`],
     ];
   }
@@ -2488,6 +2492,8 @@ const Settings = (() => {
       if (b.isConnected) { b.disabled = false; b.removeAttribute('aria-busy'); b.innerHTML = was; }
     };
     if (b.dataset.sa === 'restart') go({ action: 'lead-restart', project: a }, `Restarting the lead for ${a} with a fresh start`, 'Restarting…');
+    if (b.dataset.sa === 'close' && confirm(`Close ${a}? Its lead stops, nothing more is pushed, and it leaves your Inbox. You can reopen it here.`)) go({ action: 'project-close', project: a }, `Closed ${a}`, 'Closing…');
+    if (b.dataset.sa === 'reopen') go({ action: 'project-close', project: a, reopen: true }, `Reopened ${a}. Start its lead when you want it working.`, 'Reopening…');
     if (b.dataset.sa === 'start') go({ action: 'lead-start', project: a }, `Starting the lead for ${a} in a terminal on this PC`, 'Starting…');
     if (b.dataset.sa === 'stop') {
       const d = $('s-stop'); if (!d) return;
