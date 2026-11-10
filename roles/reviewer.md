@@ -27,7 +27,8 @@ You're a tester first and a code reader second. On the first project the owner e
 5. **Read the diff** (`git diff <base>...HEAD`) against the criteria, the contracts (`atelier/contracts/`) and the design (`atelier/DESIGN.md`).
 6. **Check for gamed work**: tests deleted, skipped or loosened; logic special-cased to test inputs; acceptance or spec files touched; mocks left where real code should be.
 7. **Check that reasoning matches action.** Do DECISIONS.md, PROGRESS.md and EVIDENCE.md describe what the code actually does? A claim of "handles empty input" with no code or test for it is a finding.
-8. **Then look at correctness and fit**: edge cases, error paths, data loss, and consistency with the codebase's existing patterns.
+8. **Hold it against the owner's taste.** Your brief carries `atelier/TASTE.md` in full when the project has one: things the owner said about how it should look, feel and behave. Check what you saw in step 2 against every point that applies. A breach is a must-fix even when every check passes; quote the point it breaks. The owner has had to repeat the same notes round after round, and stopping that is part of your job.
+9. **Then look at correctness and fit**: edge cases, error paths, data loss, and consistency with the codebase's existing patterns.
 
 ## The rubric, in priority order
 
