@@ -794,9 +794,12 @@ function messagesCmd() {
 // The lead's line to the owner: it lands in the dashboard's Inbox, and the owner's answer comes back on the watch.
 function askCmd() {
   const [alias, kind, ...words] = args;
-  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] --do "<what you need from the owner>" [--options "A | B"] [--recommend "A"] [--attach "a.png=What it shows | b.png=..."] [--task <id>] [--link url]\n       atelier ask <alias> approval "<title>" --run "<command>" [--cwd dir] [--shell powershell|cmd|bash]   (runs on the owner\'s PC when they approve)\n       atelier ask <alias> reply <A-n> "<text>" [--reopen] | withdraw <A-n>');
+  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] --do "<what you need from the owner>" [--options "A | B"] [--recommend "A"] [--attach "a.png=What it shows | b.png=..."] [--task <id>] [--link url]\n       atelier ask <alias> approval "<title>" --run "<command>" [--cwd dir] [--shell powershell|cmd|bash]   (runs on the owner\'s PC when they approve)\n       atelier ask <alias> reply <A-n> "<text>" [--tell] [--reopen] | withdraw <A-n>');
   project.load(alias);
-  if (kind === 'reply') { const a = asks.reply(alias, need(2, 'A-n'), args.slice(3).join(' ') || flags.text, { reopen: !!flags.reopen }); return console.log(`replied on ${a.id}${a.status === 'open' ? ' and reopened it for the owner' : ''}`); }
+  if (kind === 'reply') {
+    const a = asks.reply(alias, need(2, 'A-n'), args.slice(3).join(' ') || flags.text, { reopen: !!flags.reopen, tell: !!flags.tell });
+    return console.log(`replied on ${a.id}${a.status === 'open' ? ' and reopened it for the owner' : a.thread.at(-1).quiet ? '. It stays on the thread, out of their Inbox: they had only answered. If they must read it (something to try, or a change from what they chose), reply with --tell' : '. It is in their Inbox'}`);
+  }
   if (kind === 'withdraw') return console.log(`withdrew ${asks.withdraw(alias, need(2, 'A-n')).id}`);
   const str = k => typeof flags[k] === 'string' ? flags[k] : '';
   const body = str('body-file') ? fs.readFileSync(str('body-file'), 'utf8') : str('body');
