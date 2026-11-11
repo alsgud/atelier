@@ -808,7 +808,7 @@ function askCmd() {
 
 function checklistCmd() {
   const [alias, verb, ...words] = args;
-  if (!alias) throw new Error('usage: atelier checklist <alias>   (what is on the current round)\n       atelier checklist <alias> propose "<goal>" --items "a | b | c" --by YYYY-MM-DD --finish YYYY-MM-DD --cost <dollars> --research atelier/research/x.md | --no-research "<why>" [--why "..."]\n       atelier checklist <alias> ready <C-n> --how "<how the owner tries it>" [--attach "a.png=What it shows | ..."] [--task <id>] [--link url]\n       atelier checklist <alias> add "<line>" --owner "<their words>"\n       atelier checklist <alias> withdraw');
+  if (!alias) throw new Error('usage: atelier checklist <alias>   (what is on the current round)\n       atelier checklist <alias> propose "<goal>" --items "a | b | c" --by YYYY-MM-DD --finish YYYY-MM-DD --cost <dollars> --research atelier/research/x.md | --no-research "<why>" [--why "..."]\n       atelier checklist <alias> ready <C-n> --how "<how the owner tries it>" [--attach "a.png=What it shows | ..."] [--task <id>] [--link url]\n       atelier checklist <alias> add "<line>" --owner "<their words>"\n       atelier checklist <alias> move <C-n> --owner "<their words>"   (to the next round)\n       atelier checklist <alias> withdraw');
   project.load(alias);
   const str = k => typeof flags[k] === 'string' ? flags[k] : '';
   if (verb === 'propose') {
@@ -820,8 +820,12 @@ function checklistCmd() {
     return console.log(left ? `${item.id} is ready. ${left} line(s) still to build before the owner reviews.` : 'every line is ready: the round is in the owner\'s Inbox to review.');
   }
   if (verb === 'add') { const it = checklist.addLine(alias, words.join(' '), str('owner')); return console.log(`added ${it.id}`); }
+  if (verb === 'move') {
+    const { round: r, item, left } = checklist.move(alias, need(2, 'C-n'), str('owner'));
+    return console.log(`${item.id} moves to the next round; it goes on your next checklist automatically. ${left ? `${left} line(s) still to build.` : r.status === 'review' ? 'Every other line is ready: the round is in the owner\'s Inbox to review.' : `Round ${r.n} is done: propose the next one.`}`);
+  }
   if (verb === 'withdraw') return console.log(`withdrew round ${checklist.withdraw(alias).n}`);
-  if (verb) throw new Error('propose, ready, add or withdraw');
+  if (verb) throw new Error('propose, ready, add, move or withdraw');
   const list = checklist.rounds(alias);
   const r = checklist.current(alias) || list.at(-1);
   if (!r) return console.log(`no checklist yet. Propose the first: atelier checklist ${alias} propose ...`);
@@ -1194,6 +1198,8 @@ async function leadStopHook(alias) {
   const round = checklist.current(alias);
   if (!round && p.gates?.spec?.status === 'approved') items.push([`no-round:${checklist.rounds(alias).length}`, `no checklist is open, so the project isn't moving: propose the next small round (atelier checklist ${alias} propose ...)`]);
   for (const i of round?.status === 'active' ? round.items.filter(i => i.status === 'sent-back') : []) items.push([`back:${i.id}:${i.judgedAt}`, `the owner sent back ${i.id} ("${i.text}"): ${i.feedback}`]);
+  const idle = checklist.idleLines(round, mine);
+  if (idle.length) items.push([`idle:${idle.map(i => i.id).join(',')}`, `your team is idle: round ${round.n} still has ${idle.map(i => `${i.id} ("${i.text}")`).join(', ')} with no task working on it. Start the work now. If it can't be built yet (it waits on another team, or on something only the owner can do), tell the owner in the Inbox now with options: wait, a cheaper partial step, or move it to the next round so they can review the rest (with their agreement: atelier checklist ${alias} move <C-n> --owner "<their words>"). Never wait silently. If they already have that question in their Inbox, just stop.`]);
   for (const n of asks.forLead(alias)) items.push([`note:${n.id}:${n.thread.length}`, `the owner wrote to you (${n.id}): "${n.body.slice(0, 160)}". Act on it, then answer with atelier ask ${alias} reply ${n.id} "..."`]);
   if (!items.length) return;
   const stateFile = path.join(project.dir(alias), 'lead-continue.json');

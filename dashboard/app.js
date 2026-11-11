@@ -174,7 +174,7 @@ const typeOf = q => {
 const shortDay = d => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const roundFacts = r => `<dl class="m-facts"><div><dt>Ready for you by</dt><dd>${esc(shortDay(r.by))}</dd></div><div><dt>Costs about</dt><dd class="num">$${esc(r.cost)}${r.spent ? ` · $${esc(r.spent)} so far` : ''}</dd></div><div><dt>Whole project done by</dt><dd>${esc(shortDay(r.finish))}</dd></div></dl>`;
 // The project's current round, at the top of its page: the one list the team is working from.
-const LINE_WORD = { open: 'To build', ready: 'Ready', accepted: 'Accepted', 'sent-back': 'Sent back' };
+const LINE_WORD = { open: 'To build', ready: 'Ready', accepted: 'Accepted', 'sent-back': 'Sent back', moved: 'Next round' };
 function roundCard(p) {
   const r = p.checklist;
   if (!r) return `<section class="p-sec m-round"><h2 class="p-h">Checklist</h2><p class="p-quiet">No checklist yet. The lead proposes a small one for you to approve; new work can’t start until you have.</p></section>`;
