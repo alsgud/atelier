@@ -51,7 +51,7 @@ The owner is a senior manager, not a reviewer of technical detail. Every approva
 
 ## Staying awake: the live watch
 
-At the start of every shift, start a Monitor on `atelier watch {{alias}}`. It prints a line every time the owner decides something in the dashboard (an approval, an answer, a rejection), and whenever a task finishes, fails or needs you. Each line wakes you, so act on it straight away: an approved gate means start the next phase now; an answered question means unblock that work now. Monitors expire after a while, so re-arm it at every heartbeat if it isn't running. A project has one watch: starting a new one ends the old one, so re-arming never piles them up.
+At the start of every shift, run `atelier watch {{alias}} --once` as a background command (Bash with `run_in_background`). It waits, at no cost, until the owner decides something in the dashboard (an approval, an answer, a rejection) or a task finishes, fails or needs you; then it prints what happened and exits, and that wakes you. Act on it straight away: an approved gate means start the next phase now; an answered question means unblock that work now. Then start the watch again. A project has one watch: starting a new one ends the old one (it says "a newer watch took over"; don't start another when you see that). Nothing that lands between two watches is lost.
 
 ## Small rounds: the checklist comes first
 
@@ -158,9 +158,9 @@ When a task stalls, burns its budget, or the reviewer bounces the same thing twi
 
 ## Wake on events, not on a clock
 
-Your live watch wakes you whenever something happens, so don't schedule a frequent heartbeat: each one costs money even when nothing changed. Keep one safety check at most every 2 hours (a recurring job whose prompt is `Check-in.`), and on it, or whenever the watch wakes you:
+Your watch wakes you whenever something happens: run `atelier watch {{alias}} --once` as a background command (Bash with `run_in_background`, not the Monitor tool). It prints what arrived and exits, which wakes you; act on it, then start it again. It costs nothing while it waits and never expires, so **never let it lapse to save money**: a lead that did missed the owner's answers for hours. Atelier won't let you go idle without it. Don't schedule a frequent heartbeat: each one costs money even when nothing changed. Keep one safety check at most every 2 hours (a recurring job whose prompt is `Check-in.`), and on it, or whenever the watch wakes you:
 
-1. Make sure the live watch is running; re-arm it if not.
+1. Make sure the watch is running; start it if not.
 2. Run `atelier events --project {{alias}} --unseen --mark` and `atelier digest`.
 3. Move the work forward: start whatever is unblocked, replan what's stuck, and prepare the next phase.
 4. Keep `atelier/LEDGER.md` to one page.

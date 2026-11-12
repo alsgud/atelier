@@ -47,7 +47,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier overrule <alias> "<proposal → what the owner wanted>"
   atelier verify research <report.md>  done-check for a researcher's report
   atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
-  atelier watch <alias>             stream owner decisions and task changes (the lead runs this under Monitor)
+  atelier watch <alias>             wait for owner decisions and task changes (the lead runs it with --once in the background)
   atelier ask <alias> approval|question|feedback|update "<title>" [--body ..] [--attach f,..] [--task id]   the lead writes to the owner's Inbox
   atelier app [install|remove]         Atelier as its own app on this PC (Start menu and desktop)
   atelier checklist <alias> [propose|ready|add|withdraw]   the current round: what's on it and how far along
@@ -877,16 +877,23 @@ async function openCmd() {
 }
 
 // Streams one line per event the lead should act on now: the owner's decisions in the dashboard and
-// tasks that changed state. The lead runs it under its Monitor tool, so each line wakes it immediately
-// instead of at the next heartbeat.
+// tasks that changed state. With --once (the lead runs it as a background command) it prints what arrived and
+// exits, which wakes the lead; it costs nothing while it waits and never expires. Without it, it streams forever
+// (under the Monitor tool, which ends it every 30 minutes, so leads let it lapse and missed the owner's answers).
+// Where it got to is kept, so nothing that lands between one watch and the next is lost.
 async function watchCmd() {
   const [alias] = args;
   project.load(alias);
   const OWNER = new Set(['gate', 'charter', 'criterion-approve', 'criterion-accept', 'criterion-reject', 'criterion-retire', 'approved', 'answered', 'finding-confirmed', 'finding-dismissed', 'ruling', 'trust', 'reporting', 'autonomy', 'demoted', 'ask-answered', 'owner-note', 'checklist-approved', 'checklist-declined', 'checklist-judged']);
   const TEAM = new Set(['done', 'review', 'needs-you', 'stalled', 'failed', 'requested', 'audit', 'finding-to-lead', 'push-failed', 'needs-lead', 'budget-day', 'budget-warn', 'paced']);
   const mine = id => id === alias || cards.all().some(c => c.meta.id === id && c.meta.project === alias);
-  let offset = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
-  console.log(`watching ${alias}: owner decisions and task changes will appear here`);
+  const once = !!flags.once;
+  const mark = path.join(project.dir(alias), 'watch.offset');
+  const size0 = fs.existsSync(paths.events) ? fs.statSync(paths.events).size : 0;
+  const kept = Number(fs.existsSync(mark) ? fs.readFileSync(mark, 'utf8') : NaN);
+  // A kept place more than a day of events back is from an old session; start from now rather than replay it all.
+  let offset = once && kept >= 0 && kept <= size0 && size0 - kept < 2_000_000 ? kept : size0;
+  if (!once) console.log(`watching ${alias}: owner decisions and task changes will appear here`);
   // One watch per project, and the newest wins. A re-arm ends only the shell around the old copy, so that copy
   // can't tell it's orphaned and nobody reads its output: it must not be able to keep the new one out.
   const lock = path.join(project.dir(alias), 'watch.lock');
@@ -898,8 +905,8 @@ async function watchCmd() {
   const leadPidFile = path.join(project.dir(alias), 'lead.pid');
   const myLead = fs.existsSync(leadPidFile) ? fs.readFileSync(leadPidFile, 'utf8').trim() : '';
   for (let n = 0; ; n++) {
-    await new Promise(r => setTimeout(r, 2000));
-    if (![0, process.pid].includes(lockHolder())) process.exit(0);
+    if (n || !once || offset === size0) await new Promise(r => setTimeout(r, 2000));
+    if (![0, process.pid].includes(lockHolder())) { if (once) console.log('a newer watch took over; nothing to do, and don\'t start another'); process.exit(0); }
     if (myLead && n % 15 === 0) {
       const now = fs.existsSync(leadPidFile) ? fs.readFileSync(leadPidFile, 'utf8').trim() : '';
       if (now !== myLead || !alive(Number(myLead))) { console.log('the lead session this watch belongs to has ended; stopping'); process.exit(0); }
@@ -912,15 +919,24 @@ async function watchCmd() {
     fs.readSync(fd, buf, 0, buf.length, offset);
     fs.closeSync(fd);
     offset = size;
+    const out = [];
     for (const line of buf.toString('utf8').split('\n').filter(Boolean)) {
       let e; try { e = JSON.parse(line); } catch { continue; }
       if (!mine(e.id)) continue;
       // Approvals of task plans come from the owner; approvals of request cards come from the lead itself.
       if (e.type === 'approved' && !/by owner/.test(e.msg)) continue;
-      if (OWNER.has(e.type)) console.log(`OWNER DECIDED · ${e.type} · ${e.id} · ${e.msg}`);
-      else if (TEAM.has(e.type)) console.log(`TEAM · ${e.type} · ${e.id} · ${e.msg}`);
+      if (OWNER.has(e.type)) out.push(`OWNER DECIDED · ${e.type} · ${e.id} · ${e.msg}`);
+      else if (TEAM.has(e.type)) out.push(`TEAM · ${e.type} · ${e.id} · ${e.msg}`);
     }
+    if (out.length) console.log(out.join('\n'));
+    fs.writeFileSync(mark, String(offset));
+    if (once && out.length) { console.log(`Act on this, then start the watch again: atelier watch ${alias} --once (in the background).`); process.exit(0); }
   }
+}
+
+// A watch is running for this project: the lock's holder is alive.
+function watching(alias) {
+  try { return alive(Number(fs.readFileSync(path.join(project.dir(alias), 'watch.lock'), 'utf8').trim())); } catch { return false; }
 }
 
 // Copies from before the lock never look at it, so they're ended from here. Only older ones: two copies starting
@@ -1156,7 +1172,7 @@ function leadContext(alias) {
     `Phase: ${project.nextPhase(p)} · trust ${p.trust} · reporting ${project.dials(p).reporting} · autonomy ${p.autonomy || 'pr'}`,
     (d => `Spend today: $${d.spent} of the $${d.limit} daily budget (tasks $${d.tasks}, you $${d.lead}); default task budget $${budget.limits(alias).task}. Plan usage: ${limits.describe()}. Run \`atelier costs ${alias}\` before sizing tasks.`)(budget.today(alias)),
     `The owner approves these phases personally: ${project.dials(p).ownerGates.join(', ') || 'none'}; the others you approve via \`atelier gate ... request\`. Write everything the owner reads in a ${project.dials(p).summaryStyle} style.`,
-    'Start the live watch now if it is not running: use the Monitor tool on `atelier watch ' + alias + '` so owner decisions wake you immediately.',
+    'Start your watch now: run `atelier watch ' + alias + ' --once` as a background command (Bash with run_in_background, not the Monitor tool). It exits, and so wakes you, the moment the owner answers or your team has news; start it again each time it says so. It costs nothing while it waits and never expires.',
     p.github?.problem ? `WARNING: work is not reaching GitHub: ${p.github.problem}. Fix what you can (for example merge origin into the base branch); tell the owner if it needs their GitHub sign-in.` : '',
     decisions.charterTampered(alias, repo) ? 'WARNING: atelier/CHARTER.md changed since the owner approved it. Tell the owner immediately.' : '',
     p.charter ? 'The charter is approved: atelier/CHARTER.md.' : 'The charter is not approved yet: drafting it with the owner comes first.',
@@ -1181,9 +1197,12 @@ async function leadStopHook(alias) {
   if (input.session_id) budget.recordLead(alias, input.session_id, input.transcript_path);
   // The tick's wake-up reads this to tell an idle lead from a busy one (lib/tick.mjs wakeIdleLeads).
   if (input.transcript_path) fs.writeFileSync(path.join(project.dir(alias), 'lead-transcript.txt'), input.transcript_path);
+  // Going idle with no watch running means the owner's answers reach nobody until a restart. The watch costs
+  // nothing while it waits, so this holds even when the day's budget is spent.
+  if (!input.stop_hook_active && !watching(alias)) return console.log(JSON.stringify({ decision: 'block', reason: `Your watch isn't running, so the owner's answers and your team's news would not reach you. Start it now as a background command (Bash with run_in_background): atelier watch ${alias} --once. It costs nothing while it waits and wakes you when something arrives. Then stop.` }));
   const day = budget.today(alias);
   if (day.over || limits.waitUntil()) return;
-  const asked = !input.stop_hook_active && chatAsk(alias, input);
+  const asked =!input.stop_hook_active && chatAsk(alias, input);
   if (asked) return console.log(JSON.stringify({ decision: 'block', reason: `You asked the owner something in the chat ("${asked}"). The owner decides in the dashboard, not the chat: send it with atelier ask ${alias} approval|question|feedback "<title>" --body "..." (attach screenshots or recordings with --attach or --task), then say in one line that it's in their Inbox. If the owner has to run something on their PC (copy files, write a ticket, start a paid run), don't ask them to paste it: add --run "<command>" to the approval and the dashboard runs it when they approve, with the result coming back to you. If it was only a rhetorical line and nothing waits on the owner, just stop.` }));
   const p = project.load(alias);
   const mine = cards.all().map(c => c.meta).filter(m => m.project === alias);
