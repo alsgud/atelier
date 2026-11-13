@@ -48,7 +48,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier verify research <report.md>  done-check for a researcher's report
   atelier verify design|contracts      done-checks for planning tasks (run in the repo/worktree)
   atelier watch <alias>             wait for owner decisions and task changes (the lead runs it with --once in the background)
-  atelier ask <alias> approval|question|feedback|update "<title>" [--body ..] [--attach f,..] [--task id]   the lead writes to the owner's Inbox
+  atelier ask <alias> approval|question|feedback|update "<title>" [--body ..] [--attach f,..] [--task id] [--plans id,id] [--lines C-n]   the lead writes to the owner's Inbox
   atelier app [install|remove]         Atelier as its own app on this PC (Start menu and desktop)
   atelier checklist <alias> [propose|ready|add|withdraw]   the current round: what's on it and how far along
   atelier asks <alias> [--all]         the lead's threads with the owner and their answers
@@ -794,7 +794,7 @@ function messagesCmd() {
 // The lead's line to the owner: it lands in the dashboard's Inbox, and the owner's answer comes back on the watch.
 function askCmd() {
   const [alias, kind, ...words] = args;
-  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] --do "<what you need from the owner>" [--options "A | B"] [--recommend "A"] [--attach "a.png=What it shows | b.png=..."] [--task <id>] [--link url]\n       atelier ask <alias> approval "<title>" --run "<command>" [--cwd dir] [--shell powershell|cmd|bash]   (runs on the owner\'s PC when they approve)\n       atelier ask <alias> reply <A-n> "<text>" [--tell] [--reopen] | withdraw <A-n>');
+  if (!alias || !kind) throw new Error('usage: atelier ask <alias> approval|question|feedback|update "<title>" [--body "..." | --body-file f] --do "<what you need from the owner>" [--options "A | B"] [--recommend "A"] [--attach "a.png=What it shows | b.png=..."] [--task <id>] [--link url] [--lines C-n,C-n]\n       atelier ask <alias> approval "<title>" --plans <id>,<id> --body "..."   (the owner approves those plans with it)\n       atelier ask <alias> approval "<title>" --run "<command>" [--cwd dir] [--shell powershell|cmd|bash]   (runs on the owner\'s PC when they approve)\n       atelier ask <alias> reply <A-n> "<text>" [--tell] [--reopen] | withdraw <A-n>');
   project.load(alias);
   if (kind === 'reply') {
     const a = asks.reply(alias, need(2, 'A-n'), args.slice(3).join(' ') || flags.text, { reopen: !!flags.reopen, tell: !!flags.tell });
@@ -805,8 +805,9 @@ function askCmd() {
   const body = str('body-file') ? fs.readFileSync(str('body-file'), 'utf8') : str('body');
   const a = asks.ask(alias, { kind, title: words.join(' ') || str('title'), body, todo: str('do'), options: str('options').split(/\s*\|\s*/), recommend: str('recommend'),
     attach: asks.attachList(str('attach')), task: str('task'), links: str('link').split(',').map(s => s.trim()),
-    run: str('run') ? { command: str('run'), cwd: str('cwd'), shell: str('shell') } : null });
-  console.log(`sent ${a.id} to the owner's Inbox${a.files.length ? ` with ${a.files.length} attachment(s)` : ''}. ${a.run ? `When they approve, the dashboard runs it on their PC (${a.run.shell}, in ${a.run.cwd || 'their home folder'}) and the result arrives on your watch as ask-answered.` : kind === 'update' ? 'Nothing waits on it.' : 'Their answer arrives on your watch as ask-answered; keep working on what doesn\'t depend on it.'}`);
+    run: str('run') ? { command: str('run'), cwd: str('cwd'), shell: str('shell') } : null, plans: str('plans').split(','), lines: str('lines').split(','), separate: !!flags.separate });
+  if (a.plans) console.log(`${a.plans.join(', ')} ${a.plans.length > 1 ? 'are' : 'is'} inside ${a.id} now, not listed on ${a.plans.length > 1 ? 'their own' : 'its own'}: when the owner approves ${a.id}, ${a.plans.length > 1 ? 'they start' : 'it starts'}.`);
+  console.log(`sent ${a.id} to the owner's Inbox${a.files.length ? ` with ${a.files.length} attachment(s)` : ''}. ${a.run ? `When they approve, the dashboard runs it on their PC (${a.run.shell}, in ${a.run.cwd || 'their home folder'}) and the result arrives on your watch as ask-answered.` : a.kind === 'update' ? 'Nothing waits on it.' : 'Their answer arrives on your watch as ask-answered; keep working on what doesn\'t depend on it.'}`);
 }
 
 function checklistCmd() {
@@ -820,12 +821,12 @@ function checklistCmd() {
   }
   if (verb === 'ready') {
     const { item, left } = checklist.ready(alias, need(2, 'C-n'), { how: str('how'), attach: asks.attachList(str('attach')), task: str('task'), links: str('link').split(',').map(s => s.trim()) });
-    return console.log(left ? `${item.id} is ready. ${left} line(s) still to build before the owner reviews.` : 'every line is ready: the round is in the owner\'s Inbox to review.');
+    return console.log(`${item.id} is in the owner's Inbox to review now, with how to try it: don't also send them an ask to try it. ${left ? `${left} line(s) still to build.` : 'Nothing is left to build in this round.'}`);
   }
   if (verb === 'add') { const it = checklist.addLine(alias, words.join(' '), str('owner')); return console.log(`added ${it.id}`); }
   if (verb === 'move') {
     const { round: r, item, left } = checklist.move(alias, need(2, 'C-n'), str('owner'));
-    return console.log(`${item.id} moves to the next round; it goes on your next checklist automatically. ${left ? `${left} line(s) still to build.` : r.status === 'review' ? 'Every other line is ready: the round is in the owner\'s Inbox to review.' : `Round ${r.n} is done: propose the next one.`}`);
+    return console.log(`${item.id} moves to the next round; it goes on your next checklist automatically. ${left ? `${left} line(s) still to build.` : r.status === 'review' ? 'The rest is ready and in the owner\'s Inbox to review.' : `Round ${r.n} is done: propose the next one.`}`);
   }
   if (verb === 'withdraw') return console.log(`withdrew round ${checklist.withdraw(alias).n}`);
   if (verb) throw new Error('propose, ready, add, move or withdraw');

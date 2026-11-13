@@ -871,10 +871,13 @@ const Inbox = (() => {
               send: (w, note) => send(note ? 'answer' : 'seen', note),
               done: 'Noted.', toast: 'Noted.', log: `Read the reply: ${q.title}` } };
         }
-        if (k.kind === 'approval') return { ...common, body: () => words + askRun(k) + thread,
-          dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what to change, so the lead can rework it.', primary: 'Approve', secondary: 'Not yet', ghost: 'All messages', ghostHref: M,
+        // Plans the lead explains here are approved here, with the item: they aren't listed again on their own.
+        const plans = k.plans || [], np = plans.length;
+        const planList = np ? `<section class="m-how"><h3 class="section-label">${np === 1 ? 'The plan you’re approving' : `The ${np} plans you’re approving`}</h3><ol class="m-lines">${plans.map(p => `<li><a class="link" href="#/t/${encodeURIComponent(p.id)}">${esc(titleWords(p.title))}</a><span class="faint"> · the ${esc(p.role || 'builder')}${p.iterations ? `, up to ${esc(p.iterations)} tries` : ''}${p.budget ? `, at most ${money(p.budget)}` : ''}${p.status && p.status !== 'planned' ? `, ${esc(STATUS_WORD[p.status] || p.status)}` : ''}</span>${planLede(p.brief) ? `<br><span class="p-quiet">${esc(planLede(p.brief))}</span>` : ''}</li>`).join('')}</ol></section>` : '';
+        if (k.kind === 'approval') return { ...common, body: () => words + planList + askRun(k) + thread,
+          dock: { note: 'Add a note, or say what to change', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what to change, so the lead can rework it.', primary: np ? (np === 1 ? 'Approve plan' : `Approve ${np} plans`) : 'Approve', secondary: 'Not yet', ghost: 'All messages', ghostHref: M,
             send: (w, note) => send(w === 'secondary' ? 'decline' : 'approve', note),
-            done: k.run ? 'Approved. It’s running on your PC; the lead gets the result.' : 'Approved. The lead carries on.', toast: `Approved: ${q.title}`, log: `Approved: ${q.title}`,
+            done: k.run ? 'Approved. It’s running on your PC; the lead gets the result.' : np ? 'Approved. The team starts within a minute.' : 'Approved. The lead carries on.', toast: `Approved: ${q.title}`, log: `Approved: ${q.title}`,
             alt: { done: 'Sent back with your note.', toast: 'Sent it back to the lead.', log: `Not yet: ${q.title}` } } };
         if (k.kind === 'question') return { ...common, body: () => `${words}
             ${opts.length ? `<fieldset class="choices" style="max-width:var(--measure)"><legend class="section-label" style="margin-bottom:var(--space-2)">Choose one</legend>${opts.map((o, i) => `<label class="choice"><input type="radio" name="ans" value="${i}"${S.choice === String(i) ? ' checked' : ''}> ${esc(o)}${k.recommend && o.toLowerCase() === k.recommend.toLowerCase() ? ' <span class="faint">(the lead’s pick)</span>' : ''}</label>`).join('')}</fieldset>` : ''}
@@ -904,7 +907,7 @@ const Inbox = (() => {
       case 'checklist-item': {
         const r = q.round, it = q.item, done = r.items.filter(i => i.status === 'accepted').length;
         return { ...base, glyph: 'proof', kind: `Checklist review · round ${r.n}`, short: 'checklist review', todo: 'Try it, then accept it or send it back.',
-          body: () => `<p class="p-quiet" style="margin:0">Line ${r.items.indexOf(r.items.find(i => i.id === it.id)) + 1} of ${r.items.length} · ${done} accepted so far · ${esc(r.goal)}</p>${it.how ? `<section class="m-how"><h3 class="section-label">How to try it</h3><div class="doc">${md(it.how)}</div></section>` : ''}${askMedia(it)}`,
+          body: () => `<p class="p-quiet" style="margin:0">Line ${r.items.indexOf(r.items.find(i => i.id === it.id)) + 1} of ${r.items.length} · ${done} accepted so far · ${esc(r.goal)}</p>${(it.said || []).length ? `<blockquote class="m-you"><span class="section-label">You already said, ${esc(longAgo(it.said.at(-1).at))}</span>${it.said.map(s => md(s.text)).join('')}<p class="faint" style="margin:0;font-size:var(--text-sm)">If that still holds, accept it.</p></blockquote>` : ''}${it.how ? `<section class="m-how"><h3 class="section-label">How to try it</h3><div class="doc">${md(it.how)}</div></section>` : ''}${askMedia(it)}`,
           dock: { note: 'If you send it back, say what’s wrong', rejectNeedsNote: true, primaryNoNote: true, required: 'Say what’s wrong so the team can fix it.', primary: 'Accept', secondary: 'Send back',
             send: (w, note) => ({ action: 'line-judge', project: a, id: it.id, verdict: w === 'secondary' ? 'back' : 'accept', note }),
             done: 'Accepted.', toast: 'Accepted that line.', log: `Accepted: ${q.title}`,
