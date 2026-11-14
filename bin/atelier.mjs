@@ -20,6 +20,7 @@ import * as auditor from '../lib/auditor.mjs';
 import * as messages from '../lib/messages.mjs';
 import * as asks from '../lib/asks.mjs';
 import * as checklist from '../lib/checklist.mjs';
+import * as passcache from '../lib/passcache.mjs';
 import * as metrics from '../lib/metrics.mjs';
 
 const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for Claude Code
@@ -355,7 +356,7 @@ function land(id) {
   const was = m.reason || '';
   cards.update(id, { landing: new Date().toISOString(), landing_pid: process.pid, reason: 'the lead is bringing it in: full tests on the latest build' });
   let check;
-  try { check = runCheck(cmd, worktree, config().checkTimeoutMin); } finally { cards.update(id, { landing: '', landing_pid: '' }); }
+  try { check = passcache.once(cmd, worktree, () => runCheck(cmd, worktree, config().checkTimeoutMin)); } finally { cards.update(id, { landing: '', landing_pid: '' }); }
   if (!check.ok) {
     cards.update(id, { reason: `for the lead: bringing it in failed, the full tests fail on the latest build${was ? ` (before: ${was.replace(/^for the lead: /, '')})` : ''}` });
     throw new Error(`the check fails on ${m.branch} merged with the latest base (${cmd}):\n${String(check.tail || '').split('\n').slice(-12).join('\n')}`);
