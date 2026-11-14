@@ -169,7 +169,7 @@ const ITEM_TYPE = {
 const typeOf = q => {
   if (q.kind === 'ask') return q.ask?.reply ? (q.ask.run?.state === 'done' ? 'review' : 'fyi') : { approval: 'decide', question: 'answer', feedback: 'review' }[q.ask?.kind] || 'fyi';
   return { gate: 'decide', charter: 'decide', 'charter-tampered': 'problem', criterion: 'decide', criteria: 'decide', plan: 'decide', dial: 'decide', screen: 'decide', checklist: 'decide',
-    question: 'answer', 'owner-criterion': 'review', 'checklist-item': 'review', finding: 'problem', budget: 'problem', github: 'problem', 'claude-app': 'problem', 'screen-notice': 'fyi' }[q.kind] || 'fyi';
+    question: 'answer', 'owner-criterion': 'review', 'checklist-item': 'review', finding: 'problem', budget: 'problem', github: 'problem', 'claude-app': 'problem', 'team-idle': 'problem', 'screen-notice': 'fyi' }[q.kind] || 'fyi';
 };
 const shortDay = d => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const roundFacts = r => `<dl class="m-facts"><div><dt>Ready for you by</dt><dd>${esc(shortDay(r.by))}</dd></div><div><dt>Costs about</dt><dd class="num">$${esc(r.cost)}${r.spent ? ` · $${esc(r.spent)} so far` : ''}</dd></div><div><dt>Whole project done by</dt><dd>${esc(shortDay(r.finish))}</dd></div></dl>`;
@@ -797,6 +797,13 @@ const Inbox = (() => {
           dock: { note: 'Approve in your own words', required: 'Say in a few words what you approve. It goes to the lead.', primary: 'Approve charter', ghost: 'Edit it', ghostHref: `${P}/docs/charter`,
             send: (w, note) => ({ action: 'charter-approve', project: a, quote: note }),
             done: 'Approved. The lead plans the next step.', toast: 'Approved the charter.', log: `Approved the charter for ${a}` } };
+      case 'team-idle':
+        return { ...base, glyph: 'blocked', kind: 'Team idle', short: 'team idle', title: `${a}’s team has stopped, and nothing is waiting on you`,
+          body: () => `<p class="lede">Nothing has run on ${A} since ${esc(new Date(q.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }))} (${esc(longAgo(q.at))}), the lead isn’t working, and there was nothing for you in the Inbox. Atelier told the lead ${esc(longAgo(q.nudged) || '')} and it still hasn’t moved. What’s left unfinished:</p>
+            <ul class="olist">${(q.why || []).map(w => `<li>${esc(w.text)}</li>`).join('')}</ul>`,
+          dock: { primary: 'Wake the lead', ghost: 'Open the project', ghostHref: `${P}/overview`, hint: 'The lead gets this list and must act or ask you. If it doesn’t answer, Atelier restarts it.',
+            send: () => ({ action: 'lead-wake', project: a }),
+            done: 'Woken. The lead has the list.', toast: `Woke ${a}’s lead.`, log: `Woke ${a}’s lead` } };
       case 'claude-app':
         return { ...base, glyph: 'blocked', kind: 'Claude app', short: 'Claude app',
           body: () => `<p class="lede">${esc(cap1(longAgo(q.since) || 'a while ago'))}, the Claude app closed itself to install an update and never came back. It’s still running with no window, so clicking its icon does nothing.</p>

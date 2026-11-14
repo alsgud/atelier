@@ -351,8 +351,15 @@ function land(id) {
   const { worktree } = gitx.ensureWorktree(m);
   try { gitx.mergeBases(worktree, m.base || 'main'); } catch { throw new Error(`${m.branch} conflicts with the latest ${m.base || 'main'}; extend the task so its specialist resolves it`); }
   const cmd = p?.suite || m.check;
-  const check = runCheck(cmd, worktree, config().checkTimeoutMin);
-  if (!check.ok) throw new Error(`the check fails on ${m.branch} merged with the latest base (${cmd}):\n${String(check.tail || '').split('\n').slice(-12).join('\n')}`);
+  // The full tests take minutes after the lead's turn has ended: the board and the Office show it's being brought in.
+  const was = m.reason || '';
+  cards.update(id, { landing: new Date().toISOString(), landing_pid: process.pid, reason: 'the lead is bringing it in: full tests on the latest build' });
+  let check;
+  try { check = runCheck(cmd, worktree, config().checkTimeoutMin); } finally { cards.update(id, { landing: '', landing_pid: '' }); }
+  if (!check.ok) {
+    cards.update(id, { reason: `for the lead: bringing it in failed, the full tests fail on the latest build${was ? ` (before: ${was.replace(/^for the lead: /, '')})` : ''}` });
+    throw new Error(`the check fails on ${m.branch} merged with the latest base (${cmd}):\n${String(check.tail || '').split('\n').slice(-12).join('\n')}`);
+  }
   const base = m.base || 'main';
   const tip = gitx.head(worktree);
   if (!gitx.git(m.repo, 'merge-base', '--is-ancestor', base, tip).ok) throw new Error(`${base} moved while landing; run land again`);
