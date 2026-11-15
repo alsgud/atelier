@@ -642,6 +642,12 @@ async function screenCmd() {
 // scheduler, GitHub sync, screen watcher and lead supervisor) at logon and every 5 minutes if it isn't
 // running. Nothing then depends on the Claude app or a terminal staying open.
 // Atelier as its own window on this PC: a Start menu and desktop shortcut that opens the dashboard as an app.
+// The browser Atelier opens in: Chrome wherever it's installed (the owner's choice, 15 Nov), else Edge.
+function browserPath() {
+  const pf = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA].filter(Boolean);
+  return [...pf.map(d => path.join(d, 'Google/Chrome/Application/chrome.exe')), ...pf.map(d => path.join(d, 'Microsoft/Edge/Application/msedge.exe'))].find(f => fs.existsSync(f)) || '';
+}
+
 // Nothing opens until the owner clicks it.
 function appCmd(action) {
   if (process.platform !== 'win32') throw new Error('the PC app is Windows-only for now');
@@ -652,8 +658,8 @@ function appCmd(action) {
     return console.log('removed the Atelier shortcuts');
   }
   if (action !== 'install') throw new Error('usage: atelier app [install|remove]');
-  const browser = [path.join(process.env['ProgramFiles(x86)'] || '', 'Microsoft/Edge/Application/msedge.exe'), path.join(process.env.ProgramFiles || '', 'Google/Chrome/Application/chrome.exe')].find(f => fs.existsSync(f));
-  if (!browser) throw new Error('needs Microsoft Edge or Google Chrome');
+  const browser = browserPath();
+  if (!browser) throw new Error('needs Google Chrome or Microsoft Edge');
   // A .ico may simply wrap a PNG.
   const png = fs.readFileSync(path.join(PKG, 'dashboard', 'icon-192.png'));
   const head = Buffer.alloc(22);
@@ -882,7 +888,11 @@ async function openCmd() {
   console.log(`Atelier dashboard: http://localhost:${port}\naccess token (enter once per device): ${token()}`);
   const ts = !flags.lan && !flags['no-tailscale'] && tailscaleAddress();
   if (ts) console.log(`on your phone, anywhere (Tailscale on): http://${ts}:${port}`);
-  if (process.platform === 'win32') spawn('cmd', ['/c', 'start', '', `http://localhost:${port}`], { detached: true, stdio: 'ignore' }).unref();
+  if (process.platform === 'win32') {
+    const browser = browserPath();
+    if (browser) spawn(browser, [`http://localhost:${port}`], { detached: true, stdio: 'ignore' }).unref();
+    else spawn('cmd', ['/c', 'start', '', `http://localhost:${port}`], { detached: true, stdio: 'ignore' }).unref();
+  }
 }
 
 // Streams one line per event the lead should act on now: the owner's decisions in the dashboard and
