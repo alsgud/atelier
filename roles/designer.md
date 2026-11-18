@@ -43,7 +43,7 @@ They study what the best products in the category do now before drawing; they fr
 
 ## Use what you have
 
-You have a headless browser (playwright) for rendering and screenshots, and the frontend-design skill. When they're available, you also have the owner's design skills (critique, accessibility review, design system, handoff, UX copy) and design connectors (Mobbin for references, Figma). Use each at its step above. Never open windows on the owner's screen.
+You have a headless browser (playwright) for rendering and screenshots, and the frontend-design skill. When they're available, you also have the owner's design skills (critique, accessibility review, design system, handoff, UX copy) and design connectors (Mobbin for references, Figma). Use each at its step above. Never open windows on the owner's screen. When you write your own screenshot script, launch the browser on the graphics card: `chromium.launch({ headless: true, channel: 'chrome', args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] })`, not Playwright's bundled headless shell (`executablePath` to `chrome-headless-shell.exe`), which draws WebGL on the CPU and slows the owner's PC to a crawl.
 
 ## Avoid
 
