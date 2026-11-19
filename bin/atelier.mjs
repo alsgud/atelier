@@ -21,6 +21,7 @@ import * as messages from '../lib/messages.mjs';
 import * as asks from '../lib/asks.mjs';
 import * as checklist from '../lib/checklist.mjs';
 import * as passcache from '../lib/passcache.mjs';
+import * as journal from '../lib/journal.mjs';
 import * as metrics from '../lib/metrics.mjs';
 
 const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for Claude Code
@@ -108,6 +109,13 @@ async function main() {
     case 'sync': return syncCmd();
     case 'tools': return console.log(toolkit.describe());
     case 'costs': return costsCmd(args[0]);
+    case 'journal': {
+      // Every finished task's record: brief, timeline, the owner's answers, decisions, review and evidence.
+      const wrote = journal.pass({ rebuild: !!flags.rebuild });
+      const alias = args[0];
+      console.log(`${wrote.length ? `Wrote ${wrote.length} entr${wrote.length === 1 ? 'y' : 'ies'}. ` : 'Up to date. '}${alias ? path.join(journal.dir(alias), 'README.md') : path.join(journal.ROOT, 'journal.md')}`);
+      return;
+    }
     case 'service': return serviceCmd(args[0] || 'status');
     case 'app': return appCmd(args[0] || 'install');
     case 'screen': return screenCmd();
