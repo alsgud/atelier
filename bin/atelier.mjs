@@ -8,7 +8,7 @@ import * as events from '../lib/events.mjs';
 import * as limits from '../lib/limits.mjs';
 import * as gitx from '../lib/git.mjs';
 import { tick } from '../lib/tick.mjs';
-import { run, alive, atelierEnv, spawnDetached, runCheck, runnerPid, stopRunner } from '../lib/runner.mjs';
+import { run, alive, atelierEnv, spawnDetached, runCheck, runEnv, runnerPid, stopRunner } from '../lib/runner.mjs';
 import * as budget from '../lib/budget.mjs';
 import * as toolkit from '../lib/toolkit.mjs';
 import * as projenv from '../lib/projenv.mjs';
@@ -367,7 +367,7 @@ function land(id) {
   const was = m.reason || '';
   cards.update(id, { landing: new Date().toISOString(), landing_pid: process.pid, reason: 'the lead is bringing it in: full tests on the latest build' });
   let check;
-  try { check = passcache.once(cmd, worktree, () => runCheck(cmd, worktree, config().checkTimeoutMin)); } finally { cards.update(id, { landing: '', landing_pid: '' }); }
+  try { check = passcache.once(cmd, worktree, () => runCheck(cmd, worktree, config().checkTimeoutMin, runEnv(m))); } finally { cards.update(id, { landing: '', landing_pid: '' }); }
   if (!check.ok) {
     cards.update(id, { reason: `for the lead: bringing it in failed, the full tests fail on the latest build${was ? ` (before: ${was.replace(/^for the lead: /, '')})` : ''}` });
     throw new Error(`the check fails on ${m.branch} merged with the latest base (${cmd}):\n${String(check.tail || '').split('\n').slice(-12).join('\n')}`);
@@ -560,6 +560,14 @@ function projectCmd() {
       }
       const e = projenv.load(alias);
       return console.log(e ? `${alias}: ${Object.keys(e.env).length} keys from ${e.from} (${e.importedAt.slice(0, 10)}): ${Object.keys(e.env).join(', ')}${e.dropped.length ? `\nleft out: ${e.dropped.join(', ')}` : ''}` : `${alias}: no keys imported`);
+    }
+    case 'runenv': {
+      // Settings every task run and check of this project gets, e.g. STT_PRIORITY=normal. KEY= removes one.
+      const p = project.load(alias);
+      p.runEnv ||= {};
+      for (const kv of more) { const [k, ...v] = kv.split('='); if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) throw new Error(`not a setting: ${kv}`); if (v.join('=')) p.runEnv[k] = v.join('='); else delete p.runEnv[k]; }
+      project.save(p);
+      return console.log(`${alias} runs get: ${Object.entries(p.runEnv).map(([k, v]) => `${k}=${v}`).join(' ') || '(nothing extra)'}`);
     }
     case 'suite': {
       // The project's full test suite: run when a task claims done and again on merge.
