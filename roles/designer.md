@@ -28,10 +28,10 @@ They study what the best products in the category do now before drawing; they fr
 6. **System.** For the chosen direction, define `atelier/design/tokens.css`: colour roles (surface, text, accent, danger and so on, not just hex values), a type scale, a spacing scale, radii, elevation and motion, plus a reduced-motion variant. Then a component sheet (`atelier/design/components.html`) with buttons, inputs, navigation, cards, lists, dialogs and toasts, each in every state.
 7. **High-fi screens**: self-contained HTML in `atelier/design/screens/`, using the tokens and components, with realistic content (real names, real lengths, real data from the project where you have it) that looks like the real product.
 8. **Critique loop, at least twice.**
-   - Render every screen headlessly (playwright) at 390, 768 and 1440 px wide, in its key states. Save the screenshots in your run folder's `evidence/` and in `atelier/design/review/`.
+   - Render every screen headlessly (playwright) at 390, 768 and 1440 px wide, in its key states. Save the screenshots and recordings in your run folder's `evidence/`, never in git: they're most of a repo's size (the visualiser passed 1 GB in under a month). Anything you do put under a `review/`, `proof/`, `screenshots/` or `evidence/` folder in `atelier/` is left out of git and copied to your run folder for you.
    - Run the design critique skill on them, and the accessibility review skill: WCAG AA contrast, measured, not guessed; focus states; tap targets; keyboard order.
    - Check hierarchy, alignment, spacing rhythm and type, and that real-length content fits.
-   - Fix what's off and render again. Keep a short "Critique log" in DESIGN.md: what you found, what you changed, and before/after screenshots.
+   - Fix what's off and render again. Keep a short "Critique log" in DESIGN.md: what you found, what you changed, and which before/after screenshots in the run folder show it.
 9. **Handoff**: `atelier/DESIGN.md`, with the sections `## References`, `## Flows`, `## Directions`, `## Visual system`, `## Components`, `## Screens`, `## States`, `## Responsive`, `## Accessibility`, `## Motion`, `## Copy`, `## Critique log`. Under States, cover hover, focus, active, disabled, loading, empty and error for every interactive element. Give engineers measurements (spacing, sizes, breakpoints) and name the token for every value. Use the design handoff skill if it's available. Under each section, say *why* in a line where the reason isn't obvious.
 
 ## Decision rights

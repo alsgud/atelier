@@ -22,6 +22,7 @@ import * as asks from '../lib/asks.mjs';
 import * as checklist from '../lib/checklist.mjs';
 import * as passcache from '../lib/passcache.mjs';
 import * as journal from '../lib/journal.mjs';
+import * as tidy from '../lib/tidy.mjs';
 import * as metrics from '../lib/metrics.mjs';
 
 const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for Claude Code
@@ -64,6 +65,7 @@ const HELP = `atelier — task cards, Ralph loops and a phone-driven foreman for
   atelier extend <id> [--iterations N] [--hours H]   more budget, requeue
   atelier stop <id> | resume <id> | retry <id> | cancel <id>
   atelier clean <id>                   remove a finished task's worktree (branch stays)
+  atelier tidy [--all] [--dry-run]     remove landed tasks' worktrees and branches (here and on GitHub); --all includes the backlog
   atelier events [--unseen] [--mark] [--since MIN]
   atelier limits                       last known plan usage
   atelier cloud <id>                   print the prompt to start this task as a cloud session
@@ -141,6 +143,7 @@ async function main() {
     case 'cancel': return cancel(need(0, 'id'));
     case 'land': return land(need(0, 'id'));
     case 'clean': return clean(need(0, 'id'));
+    case 'tidy': return tidyCmd();
     case 'events': return printEvents();
     case 'limits': return console.log(limits.describe());
     case 'cloud': return cloud(need(0, 'id'));
@@ -343,7 +346,7 @@ function cancel(id) {
   const by = process.env.ATELIER_ROLE === 'lead' ? 'the lead' : 'owner';
   cards.update(id, { status: 'failed', reason: `cancelled by ${by}`, pid: '' });
   events.emit(id, 'failed', `cancelled by ${by}`);
-  console.log(`cancelled ${id}; its branch ${m.branch || '(none)'} is kept`);
+  console.log(`cancelled ${id}${m.branch ? `; within the hour its branch is kept as the tag archive/${id} and its worktree removed` : ''}`);
 }
 
 // The lead brings a finished (or good-enough) task branch into the base branch itself, instead of
@@ -748,6 +751,20 @@ async function syncCmd() {
   const { syncProject } = await import('../lib/sync.mjs');
   const all = cards.all();
   for (const alias of args[0] ? [args[0]] : project.list()) for (const line of syncProject(alias, all)) console.log(line);
+  // Right after the fetch: GitHub's branch list is fresh, so a landed task's GitHub branch can go too.
+  if (!args[0]) { const r = tidy.pass({ log: console.log }); if (r.tidied.length) console.log(`tidied ${r.tidied.length} finished task(s): ${r.tidied.join(', ')}`); }
+}
+
+// Cleanup after finished tasks. The tick tidies tasks as they land; --all takes in the backlog from before.
+function tidyCmd() {
+  const r = tidy.pass({ all: !!flags.all, dryRun: !!flags['dry-run'], log: console.log });
+  const count = (k) => r.work.filter(p => p.steps.some(s => s[0] === k)).length;
+  const skipped = r.plans.filter(p => p.skip);
+  console.log(`${flags['dry-run'] ? 'would tidy' : 'tidied'} ${flags['dry-run'] ? r.work.length : r.tidied.length} task(s): ${count('worktree')} worktree(s), ${count('branch')} local branch(es), ${count('remote')} GitHub branch(es), ${count('tag')} archive tag(s)`);
+  const byRepo = new Map();
+  for (const p of r.work) byRepo.set(p.m.repo, (byRepo.get(p.m.repo) || 0) + 1);
+  for (const [repo, n] of byRepo) console.log(`  ${repo}: ${n}`);
+  if (skipped.length) console.log(`left alone: ${skipped.length}`), skipped.slice(0, 15).forEach(p => console.log(`  ${p.m.id}: ${p.skip}`));
 }
 
 // ---------- v3 decision layer ----------
